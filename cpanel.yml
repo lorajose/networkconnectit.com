@@ -1,5 +1,6 @@
 ---
 deployment:
-    tasks:
-                - export DEPLOYPATH=/home/oblm9wnyeimr/networkconnectit.com/
-                - /bin/rsync -av /home/oblm9wnyeimr/repositories/networkconnectit.com/ $DEPLOYPATH
+  tasks:
+    - export DEPLOYPATH=/home/oblm9wnyeimr/networkconnectit.com/
+    - /bin/rsync -av --delete --exclude '.git' /home/oblm9wnyeimr/repositories/networkconnectit.com/ $DEPLOYPATH
+
