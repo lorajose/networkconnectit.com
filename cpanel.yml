@@ -1,0 +1,5 @@
+---
+deployment:
+    tasks:
+                - export DEPLOYPATH=/home/oblm9wnyeimr/public_html/
+                - /bin/rsync -av /home/oblm9wnyeimr/repositories/SecureLink/ $DEPLOYPATH

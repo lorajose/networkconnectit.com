@@ -1,0 +1,1290 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <!-- Added viewport meta for mobile responsiveness -->
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Provider Registration - 5 Steps</title>
+    <style>
+      /* Basic Container */
+      .provider-info-form {
+        font-family: Arial, sans-serif;
+        /* background-color: #f4f4f4;  <-- removed or re-add if needed */
+        padding: 20px;
+      }
+
+      .provider-info-form .form-container {
+        background: #fff;
+        padding: 20px;
+        border: 1px solid #ddd;
+        /* new subtle border */
+        border-radius: 4px;
+        /* slight rounding */
+        margin: 0 auto;
+        max-width: 800px;
+        /* keep the max width */
+      }
+
+      h1,
+      h3 {
+        text-align: center;
+        color: #00204e;
+        margin-top: 0;
+      }
+
+      label {
+        color: #5a7e92;
+        margin-top: 10px;
+        display: block;
+      }
+
+      input,
+      select {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin: 10px 0;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      input[type="checkbox"] {
+        width: auto;
+        margin-right: 5px;
+      }
+
+      /* Step Progress Bar */
+      .provider-info-form .progressbar {
+        display: flex;
+        list-style: none;
+        padding: 0;
+        margin: 20px 0;
+      }
+
+      .provider-info-form .progressbar li {
+        flex: 1;
+        text-align: center;
+        color: #b0b0b0;
+        /* default inactive color */
+      }
+
+      .provider-info-form .progressbar li.active {
+        color: #67c07b;
+        /* highlight color */
+      }
+
+      /* Hide steps by default, show .active */
+      .provider-info-form .form-step {
+        display: none;
+      }
+
+      .provider-info-form .form-step.active {
+        display: block;
+      }
+
+      /* Inputs & selects – keep them simple */
+      .provider-info-form input,
+      .provider-info-form select {
+        width: calc(100% - 20px);
+        padding: 10px;
+        margin: 10px 0;
+        box-sizing: border-box;
+        border: 1px solid #ccc;
+        border-radius: 4px;
+      }
+
+      .provider-info-form input[type="checkbox"] {
+        width: auto;
+        margin-right: 5px;
+      }
+
+      /* Buttons */
+      .button-container {
+        display: flex;
+        justify-content: center;
+        gap: 15px;
+        margin-top: 20px;
+        flex-wrap: wrap;
+      }
+
+      button {
+        background-color: #0d9b8c;
+        color: #fff;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      button:disabled {
+        background-color: #ccc;
+        cursor: not-allowed;
+      }
+
+      /* Buttons – use the same green (#67C07B) */
+      .provider-info-form button {
+        background-color: #67c07b;
+        color: #fff;
+        padding: 10px 15px;
+        border: none;
+        border-radius: 4px;
+        cursor: pointer;
+      }
+
+      .provider-info-form button:disabled {
+        background-color: #ccc;
+      }
+
+      /* Error messages, hidden fields, etc. */
+      .provider-info-form .error {
+        color: red;
+        display: none;
+      }
+
+      .provider-info-form .hidden {
+        display: none;
+      }
+
+      /* Label, heading, and text colors */
+      .provider-info-form label {
+        color: #5a7e92;
+      }
+
+      .provider-info-form h1,
+      .provider-info-form h3 {
+        text-align: center;
+        color: #00204e;
+      }
+
+      .provider-info-form h4 {
+        color: #00204e;
+      }
+
+      .provider-info-form p {
+        font-size: 14px;
+        color: #00204e;
+      }
+
+      .provider-info-form span {
+        font-size: 12px;
+        color: #5a7e92;
+      }
+
+      /* Thank-you Modal styling */
+      #thank-you-modal {
+        position: fixed;
+        top: 0;
+        left: 0;
+        width: 100%;
+        height: 100%;
+        background-color: rgba(0, 0, 0, 0.7);
+        display: none;
+        justify-content: center;
+        align-items: center;
+      }
+
+      #modal-content {
+        background-color: #fff;
+        padding: 20px;
+        border-radius: 5px;
+        text-align: center;
+        position: relative;
+        min-width: 300px;
+        max-width: 90%;
+        margin: 0 auto;
+      }
+
+      #close-btn {
+        position: absolute;
+        top: 10px;
+        right: 10px;
+        font-size: 20px;
+        cursor: pointer;
+      }
+
+      /* Responsive adjustments */
+      @media (max-width: 768px) {
+        .provider-info-form .form-container {
+          padding: 15px;
+          border: 1px solid #ddd;
+          box-shadow: none;
+        }
+
+        .provider-info-form .progressbar {
+          flex-direction: column;
+          align-items: flex-start;
+        }
+
+        .provider-info-form .progressbar li {
+          margin: 5px 0;
+        }
+
+        .provider-info-form button {
+          width: 100%;
+        }
+      }
+
+      @media (max-width: 480px) {
+        .provider-info-form {
+          padding: 10px;
+        }
+
+        .provider-info-form .form-container {
+          padding: 10px;
+        }
+
+        .provider-info-form button {
+          width: 100%;
+          font-size: 14px;
+        }
+
+        .provider-info-form input,
+        .provider-info-form select {
+          padding: 8px;
+          font-size: 14px;
+        }
+
+        .provider-info-form h1,
+        .provider-info-form h3 {
+          font-size: 18px;
+        }
+
+        .provider-info-form h4 {
+          font-size: 16px;
+        }
+      }
+    </style>
+
+    <!-- RECAPTCHA SCRIPT (re-add your site key below) -->
+    <!--  <script src="https://www.google.com/recaptcha/api.js?render=6LerTNcqAAAAAI5br6iw0fBj7PeJjSbw_LkEOa6F"></script> -->
+  </head>
+
+  <body>
+    <div class="provider-info-form">
+      <h1>Provider Registration</h1>
+      <div class="form-container">
+        <!-- Step Progress (5 steps) -->
+        <ul class="progressbar">
+          <li class="active">Provider Info</li>
+          <li>Additional Contact Info</li>
+          <li>How Did You Hear?</li>
+          <li>Demographics</li>
+          <li>Confidentiality</li>
+        </ul>
+
+        <form
+          action="https://webto.salesforce.com/servlet/servlet.WebToLead?encoding=UTF-8&orgId=00D820000008huw"
+          method="POST"
+          id="multi-step-form"
+        >
+          <!-- Salesforce Hidden Fields -->
+          <input type="hidden" name="oid" value="00D820000008huw" />
+          <!-- <input type="hidden" name="debug" value="0" /> -->
+          <input
+            type="hidden"
+            name="debugEmail"
+            value="jose.loravargas@customertimes.com"
+          />
+          <input
+            type="hidden"
+            name="retURL"
+            value="https://www.msv.org/programs/apal/"
+          />
+          <!-- <input type="hidden" id="Provider_Registration_Status" name="Provider_Registration_Status__c" value="Incomplete"> -->
+          <input
+            type="hidden"
+            id="lead_source"
+            name="lead_source"
+            value="Web"
+          />
+          <input
+            type="hidden"
+            id="npi"
+            name="Does_the_provider_have_NPI__c"
+            value="Yes"
+          />
+
+          <!-- RECAPTCHA HIDDEN FIELD -->
+          <input
+            type="hidden"
+            name="recaptcha_response"
+            id="recaptchaResponse"
+          />
+
+          <!-- STEP 1: (Primary + Additional Provider Info) -->
+          <div class="form-step active">
+            <h3>Step 1: Provider Information</h3>
+
+            <!-- Primary Provider Info -->
+            <label for="first_name">
+              First Name <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="first_name"
+              name="first_name"
+              required
+              placeholder="First Name"
+            />
+
+            <label for="last_name">
+              Last Name <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="last_name"
+              name="last_name"
+              required
+              placeholder="Last Name"
+            />
+
+            <label for="provider-npi">
+              Provider NPI # <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="provider-npi"
+              name="pcpnpi__c"
+              maxlength="10"
+              minlength="10"
+              required
+              placeholder="10-digit NPI"
+              pattern="\d{10}"
+            />
+
+            <label for="email"> Email <span style="color: red">*</span> </label>
+            <input
+              type="email"
+              id="email"
+              name="email"
+              required
+              placeholder="example@domain.com"
+            />
+
+            <label for="phone">
+              Practice/Work Phone <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="phone"
+              name="phone"
+              required
+              placeholder="(___) ___-____"
+              pattern="\(\d{3}\)\s?\d{3}-\d{4}"
+              oninput="this.value = formatPhoneNumber(this.value)"
+            />
+
+            <label for="phone-ext">Phone Extension</label>
+            <input
+              type="text"
+              id="phone-ext"
+              name="Phone_Extension__c"
+              maxlength="5"
+              placeholder="Up to 5 digits"
+              oninput="this.value = this.value.replace(/[^0-9]/g, '').slice(0,5);"
+            />
+
+            <label for="type">
+              Provider Type <span style="color: red">*</span>
+            </label>
+            <select id="type" name="Type__c" required onchange="toggleFields()">
+              <option value="">--Select--</option>
+              <option value="Physician (MD, DO)">Physician (MD, DO)</option>
+              <option value="Nurse practitioner (NP)">
+                Nurse practitioner (NP)
+              </option>
+              <option value="Physician's Assistant (PA)">
+                Physician's Assistant (PA)
+              </option>
+              <option value="Other">Other</option>
+            </select>
+
+            <label
+              id="Other-Provider-id"
+              class="hidden"
+              for="pcpothersta_desc__c"
+            >
+              Other Provider Type <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="pcpothersta_desc__c"
+              name="pcpothersta_desc__c"
+              class="hidden"
+              placeholder="Describe provider type"
+            />
+
+            <!-- Specialty -->
+            <label for="specialty-desc">
+              Specialty <span style="color: red">*</span>
+            </label>
+            <select
+              id="specialty-desc"
+              name="Specialty_Description__c"
+              required
+              onchange="toggleFields()"
+            >
+              <option value="">--Select--</option>
+              <option value="Orthopedic">Orthopedic</option>
+              <option value="Family Medicine">Family Medicine</option>
+              <option value="Obstetrics and Gynecology">
+                Obstetrics and Gynecology
+              </option>
+              <option value="Emergency Medicine">Emergency Medicine</option>
+              <option value="Geriatrician">Geriatrician</option>
+              <option value="Care Coordinator">Care Coordinator</option>
+              <option value="Mental Health Provider">
+                Mental Health Provider
+              </option>
+              <option value="Other">Other</option>
+            </select>
+
+            <label
+              id="Other-specialty-id"
+              class="hidden"
+              for="other-specialty-desc"
+            >
+              Other Specialty <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="other-specialty-desc"
+              name="Other_Specialty_Description__c"
+              class="hidden"
+              placeholder="Describe specialty"
+            />
+
+            <!-- Years in Practice -->
+            <label for="Number_of_Years_In_Practice__c">
+              Number of Years in Practice <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="Number_of_Years_In_Practice__c"
+              name="Number_of_Years_In_Practice__c"
+              required
+              placeholder="Example: 2"
+            />
+
+            <!-- Trainee logic -->
+            <label for="The_provider_is_a_Trainee__c">
+              The provider is a Trainee? <span style="color: red">*</span>
+            </label>
+            <select
+              id="The_provider_is_a_Trainee__c"
+              name="The_provider_is_a_Trainee__c"
+              required
+              onchange="toggleFields()"
+            >
+              <option value="">--None--</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+
+            <label id="Trainee_Type_Label" for="Trainee_Type__c" class="hidden">
+              Trainee Type <span style="color: red">*</span>
+            </label>
+            <select
+              id="Trainee_Type__c"
+              name="Trainee_Type__c"
+              class="hidden"
+              onchange="toggleFields()"
+            >
+              <option value="">--None--</option>
+              <option
+                value="Student in a medical field (e.g., medical student, PA student)"
+              >
+                Student in a medical field (e.g., medical student, PA student)
+              </option>
+              <option
+                value="Resident (or equivalent within other medical fields)"
+              >
+                Resident (or equivalent within other medical fields)
+              </option>
+              <option
+                value="Fellow (or equivalent within other medical fields)"
+              >
+                Fellow (or equivalent within other medical fields)
+              </option>
+              <option value="Other medical trainee">
+                Other medical trainee
+              </option>
+            </select>
+
+            <label
+              id="otherMedicalTraineeDescriptionid"
+              for="Other_Medical_Trainee_Description__c"
+              class="hidden"
+            >
+              Other Medical Trainee Description
+              <span style="color: red">*</span>
+            </label>
+            <input
+              id="Other_Medical_Trainee_Description__c"
+              name="Other_Medical_Trainee_Description__c"
+              class="hidden"
+              type="text"
+              placeholder="Describe your trainee status"
+            />
+
+            <label id="trainenddate_label" for="trainenddate" class="hidden">
+              Date When Training Will End <span style="color: red">*</span>
+            </label>
+            <!-- (1) Visible date field with no name, so browser won't submit YYYY-MM-DD -->
+            <input type="date" id="trainenddate" class="hidden" />
+
+            <!-- (2) Hidden field with the “00Nco...” name for the real date value -->
+            <input
+              type="hidden"
+              id="trainenddate_hidden"
+              name="trainenddate__c"
+              value=""
+            />
+
+            <!-- Specialty Mental Health Training? -->
+            <label for="Specialty_Mental_Health_Training__c">
+              Specialty Mental Health Training?
+              <span style="color: red">*</span>
+            </label>
+            <select
+              id="Specialty_Mental_Health_Training__c"
+              name="Specialty_Mental_Health_Training__c"
+              required
+              onchange="toggleFields()"
+            >
+              <option value="">--None--</option>
+              <option value="Yes">Yes</option>
+              <option value="No">No</option>
+            </select>
+
+            <label
+              id="mhTrainingDescLabel"
+              for="Specialty_Mental_Health_Training_Desc__c"
+              class="hidden"
+            >
+              Describe Previous Mental Health Training
+              <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="Specialty_Mental_Health_Training_Desc__c"
+              name="Specialty_Mental_Health_Training_Desc__c"
+              maxlength="255"
+              class="hidden"
+              placeholder="Briefly describe your MH training"
+            />
+
+            <div class="button-container">
+              <button
+                type="button"
+                class="next-btn"
+                id="next-btn-step1"
+                disabled
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          <!-- END STEP 1 -->
+
+          <!-- STEP 2: Additional Contact Info -->
+          <div class="form-step">
+            <h3>Step 2: Additional Contact Information</h3>
+
+            <label for="home-phone">Home Phone</label>
+            <input
+              type="text"
+              id="home-phone"
+              name="Home_Phone__c"
+              placeholder="(___) ___-____"
+              pattern="\(\d{3}\)\s?\d{3}-\d{4}"
+              oninput="this.value = formatPhoneNumber(this.value)"
+            />
+
+            <label for="mobile">Mobile Phone</label>
+            <input
+              type="text"
+              id="mobile"
+              name="mobile"
+              placeholder="(___) ___-____"
+              pattern="\(\d{3}\)\s?\d{3}-\d{4}"
+              oninput="this.value = formatPhoneNumber(this.value)"
+            />
+
+            <div class="button-container">
+              <button type="button" class="prev-btn">Previous</button>
+              <button
+                type="button"
+                class="next-btn"
+                id="next-btn-step2"
+                disabled
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          <!-- END STEP 2 -->
+
+          <!-- STEP 3: How Did You Hear About Us? -->
+          <div class="form-step">
+            <h3>Step 3: How Did You Hear About Us?</h3>
+
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="health-haven-staff"
+                  name="Health_Haven_staff__c"
+                  value="true"
+                />
+                APAL or HealthHaven Staff
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="enrolled-provider"
+                  name="Health_Haven_Enrolled_Provider__c"
+                  value="true"
+                />
+                APAL or HealthHaven Enrolled Provider
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="friend-colleague"
+                  name="Friend_or_Colleague__c"
+                  value="true"
+                />
+                Friend or Colleague
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="friend-association"
+                  name="My_Medical_or_Specialty_Association__c"
+                  value="true"
+                />
+                My Medical or Specialty Association
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="friend-media"
+                  name="Social_Media__c"
+                  value="true"
+                />
+                Social Media
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="search-engine"
+                  name="Search_Engine__c"
+                  value="true"
+                />
+                Search Engine
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="news-story"
+                  name="News_Story__c"
+                  value="true"
+                />
+                News Story
+              </label>
+            </div>
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="conference"
+                  name="Conference_presentation_or_exhibit__c"
+                  value="true"
+                />
+                Presentation or Exhibit
+              </label>
+            </div>
+            <!-- "Other" => require heard_other__c -->
+            <div>
+              <label>
+                <input
+                  type="checkbox"
+                  id="otherCheck"
+                  name="Other__c"
+                  value="true"
+                  onchange="toggleFields()"
+                />
+                Other
+              </label>
+            </div>
+
+            <label id="heard_other_label" for="heard_other" class="hidden">
+              How did you hear about APAL? (Other)
+              <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="heard_other"
+              name="heard_other__c"
+              class="hidden"
+              placeholder="Please specify"
+            />
+
+            <div class="button-container">
+              <button type="button" class="prev-btn">Previous</button>
+              <button
+                type="button"
+                class="next-btn"
+                id="next-btn-step3"
+                disabled
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          <!-- END STEP 3 -->
+
+          <!-- STEP 4: Demographics -->
+          <div class="form-step">
+            <h3>Step 4: Provider Demographics</h3>
+
+            <label for="Do_you_think_of_yourself_as__c">
+              Do you think of yourself as
+            </label>
+            <select
+              id="Do_you_think_of_yourself_as__c"
+              name="Do_you_think_of_yourself_as__c"
+            >
+              <option value="">--None--</option>
+              <option value="Male">Male</option>
+              <option value="Female">Female</option>
+              <option value="Other">Other</option>
+              <option value="Decline to answer">Decline to answer</option>
+            </select>
+
+            <label for="How_do_You_Identify_with_Respect_to_Race__c">
+              How do you identify with respect to Race?
+            </label>
+            <select
+              id="How_do_You_Identify_with_Respect_to_Race__c"
+              name="How_do_You_Identify_with_Respect_to_Race__c"
+              onchange="toggleFields()"
+            >
+              <option value="">--None--</option>
+              <option value="American Indian or Alaska Native">
+                American Indian or Alaska Native
+              </option>
+              <option value="Asian">Asian</option>
+              <option value="Black or African American">
+                Black or African American
+              </option>
+              <option value="Hispanic/ Latinx/ Spanish">
+                Hispanic/ Latinx/ Spanish
+              </option>
+              <option value="Native Hawaiian or Pacific Islander">
+                Native Hawaiian or Pacific Islander
+              </option>
+              <option value="Middle Eastern/ North African">
+                Middle Eastern/ North African
+              </option>
+              <option value="Multiple race/ Biracial">
+                Multiple race/ Biracial
+              </option>
+              <option value="White or Caucasian">White or Caucasian</option>
+              <option value="Prefer to self-describe (option not listed)">
+                Prefer to self-describe (option not listed)
+              </option>
+              <option value="Prefer not to answer">Prefer not to answer</option>
+            </select>
+
+            <label id="pcpracedesc-id" for="pcpracedesc" class="hidden">
+              Provider Race Description <span style="color: red">*</span>
+            </label>
+            <input
+              type="text"
+              id="pcpracedesc"
+              name="pcpracedesc__c"
+              maxlength="255"
+              class="hidden"
+            />
+
+            <label for="Provider_Language_other_than_English__c">
+              Provider Language (other than English)
+            </label>
+            <select
+              id="Provider_Language_other_than_English__c"
+              name="Provider_Language_other_than_English__c"
+              onchange="toggleFields()"
+            >
+              <option value="">--None--</option>
+              <option value="Spanish">Spanish</option>
+              <option value="Other">Other</option>
+            </select>
+
+            <label
+              id="Provider-Description-id"
+              for="Provider_Languages_Description__c"
+              class="hidden"
+            >
+              Other Languages <span style="color: red">*</span>
+            </label>
+            <input
+              id="Provider_Languages_Description__c"
+              name="Provider_Languages_Description__c"
+              maxlength="255"
+              class="hidden"
+            />
+
+            <div class="button-container">
+              <button type="button" class="prev-btn">Previous</button>
+              <button
+                type="button"
+                class="next-btn"
+                id="next-btn-step4"
+                disabled
+              >
+                Next
+              </button>
+            </div>
+          </div>
+          <!-- END STEP 4 -->
+
+          <!-- STEP 5: Confidentiality & Submit -->
+          <div class="form-step">
+            <h3>Step 5: Confidentiality</h3>
+
+            <label for="opt_out"> Opt-out </label>
+            <input
+              type="checkbox"
+              id="opt_out"
+              name="Opt_out__c"
+              value="true"
+            />
+
+            <!-- <div class="g-recaptcha" data-sitekey="6LdVjv8qAAAAAFcBwVqriUvQeqWKXFRMcgGDPN8Z"></div> -->
+            <!-- <div
+              class="g-recaptcha"
+              data-sitekey="6LdVjv8qAAAAAFcBwVqriUvQeqWKXFRMcgGDPN8Z"
+              data-callback="recaptchaCallback"
+            ></div> -->
+
+            <div class="button-container">
+              <button type="button" class="prev-btn">Previous</button>
+              <button
+                type="submit"
+                name="submitComplete"
+                id="submit-complete"
+                style="background-color: green; color: white"
+                disabled
+              >
+                Submit
+              </button>
+            </div>
+          </div>
+          <!-- END STEP 5 -->
+        </form>
+      </div>
+
+      <!-- Thank You Modal -->
+      <div id="thank-you-modal">
+        <div id="modal-content">
+          <span id="close-btn">&times;</span>
+          <p>
+            Thank you for registering with APAL! As our program grows, we will
+            keep you informed about educational opportunities and access to the
+            APAL line. Questions? Contact cford@msv.org.
+          </p>
+        </div>
+      </div>
+    </div>
+    <script>
+      const formSteps = document.querySelectorAll(".form-step");
+      const progressBarItems = document.querySelectorAll(".progressbar li");
+      let currentStep = 0;
+      document.addEventListener("DOMContentLoaded", function () {
+        showStep(currentStep);
+        if (!document.getElementById("form-error-message")) {
+          const e = document.createElement("div");
+          e.id = "form-error-message";
+          e.style.color = "red";
+          e.style.fontWeight = "bold";
+          e.style.padding = "10px";
+          e.style.marginTop = "10px";
+          e.style.backgroundColor = "#ffeeee";
+          e.style.border = "1px solid #ffcccc";
+          e.style.borderRadius = "4px";
+          e.style.display = "none";
+          const t = document.querySelector(".progressbar");
+          t.parentNode.insertBefore(e, t.nextSibling);
+        }
+        const r = document.querySelectorAll(".next-btn");
+        r.forEach((e) => {
+          (e.disabled = !1),
+            (e.style.opacity = "1"),
+            (e.style.cursor = "pointer"),
+            e.addEventListener("click", () => {
+              validateStepWithErrorMessages(currentStep) &&
+                (currentStep++, showStep(currentStep), hideErrorMessage());
+            });
+        });
+        const o = document.querySelectorAll(".prev-btn");
+        o.forEach((e) => {
+          e.addEventListener("click", () => {
+            currentStep > 0 &&
+              (currentStep--, showStep(currentStep), hideErrorMessage());
+          });
+        });
+        // ✅ Versión sin reCAPTCHA, con envío real y redirección automática
+        // ✅ Bloque corregido: respeta retURL y omite reCAPTCHA
+        const d = document.getElementById("submit-complete");
+        if (d) {
+          d.disabled = false;
+          d.style.opacity = "1";
+          d.style.cursor = "pointer";
+
+          d.addEventListener("click", function (e) {
+            e.preventDefault();
+
+            if (validateStepWithErrorMessages(currentStep)) {
+              // Manejar fecha trainee si existe
+              const trainDate = document.getElementById("trainenddate").value;
+              if (trainDate) {
+                const [y, m, d2] = trainDate.split("-");
+                document.getElementById(
+                  "trainenddate_hidden"
+                ).value = `${m}/${d2}/${y}`;
+              }
+
+              const form = document.getElementById("multi-step-form");
+
+              // asegurar retURL correcto
+              let retField = form.querySelector('input[name="retURL"]');
+              if (!retField) {
+                retField = document.createElement("input");
+                retField.type = "hidden";
+                retField.name = "retURL";
+                retField.value = "https://www.msv.org/programs/apal/";
+                form.appendChild(retField);
+              }
+
+              // enviar a Salesforce
+              form.submit();
+            }
+          });
+        }
+
+        document
+          .getElementById("close-btn")
+          .addEventListener("click", function () {
+            document.getElementById("thank-you-modal").style.display = "none";
+          });
+        const n = document.querySelectorAll(
+          ".form-step input, .form-step select"
+        );
+        n.forEach((e) => {
+          e.addEventListener("input", handleFieldInput),
+            e.addEventListener("change", handleFieldInput);
+        });
+      });
+      function handleFieldInput(e) {
+        const t = e.target;
+        t.classList.contains("hidden") ||
+          !t.required ||
+          (t.checkValidity() ? unhighlightField(t) : highlightField(t));
+      }
+      function showStep(e) {
+        formSteps.forEach((t, r) => {
+          t.classList.toggle("active", r === e);
+        }),
+          progressBarItems.forEach((t, r) => {
+            t.classList.toggle("active", r <= e);
+          }),
+          toggleFields(),
+          document
+            .querySelector(".form-container")
+            .scrollIntoView({ behavior: "smooth" });
+      }
+      function validateStepWithErrorMessages(e) {
+        toggleFields();
+        const t = formSteps[e],
+          r = t.querySelectorAll("[required]:not(.hidden)");
+        let o = !0,
+          d = [];
+        return (
+          r.forEach((e) => {
+            const t = getFieldLabel(e);
+            if ("SELECT" === e.tagName)
+              "" === e.value ||
+              "--None--" === e.value ||
+              "--Select--" === e.value
+                ? ((o = !1),
+                  d.push(`Please select an option for "${t}"`),
+                  highlightField(e))
+                : unhighlightField(e);
+            else if ("checkbox" === e.type && e.required)
+              !e.checked
+                ? ((o = !1), d.push(`Please check "${t}"`), highlightField(e))
+                : unhighlightField(e);
+            else if ("radio" === e.type && e.required) {
+              const r = e.name,
+                n = t.querySelector(`input[name="${r}"]:checked`);
+              n
+                ? unhighlightField(e)
+                : ((o = !1),
+                  d.push(`Please select an option for "${t}"`),
+                  highlightField(e));
+            } else
+              e.value && e.value.trim()
+                ? e.checkValidity()
+                  ? unhighlightField(e)
+                  : ((o = !1),
+                    d.push(`Please enter valid information for "${t}"`),
+                    highlightField(e))
+                : ((o = !1),
+                  d.push(`Please fill in "${t}"`),
+                  highlightField(e));
+          }),
+          o ? hideErrorMessage() : showErrorMessage(d),
+          updateIncompleteSubmission(),
+          o
+        );
+      }
+      function toggleFields() {
+        const e = document.getElementById("The_provider_is_a_Trainee__c"),
+          t = document.getElementById("Trainee_Type_Label"),
+          r = document.getElementById("Trainee_Type__c"),
+          o = document.getElementById("otherMedicalTraineeDescriptionid"),
+          d = document.getElementById("Other_Medical_Trainee_Description__c"),
+          n = document.getElementById("trainenddate_label"),
+          a = document.getElementById("trainenddate");
+        e && "Yes" === e.value
+          ? (t.classList.remove("hidden"),
+            r.classList.remove("hidden"),
+            (r.required = !0))
+          : e &&
+            (t.classList.add("hidden"),
+            r.classList.add("hidden"),
+            (r.required = !1),
+            (r.value = ""),
+            o.classList.add("hidden"),
+            d.classList.add("hidden"),
+            (d.required = !1),
+            (d.value = ""),
+            n.classList.add("hidden"),
+            a.classList.add("hidden"),
+            (a.required = !1),
+            (a.value = "")),
+          e &&
+            "Yes" === e.value &&
+            r &&
+            r.value &&
+            ("Other medical trainee" === r.value
+              ? (o.classList.remove("hidden"),
+                d.classList.remove("hidden"),
+                (d.required = !0),
+                n.classList.add("hidden"),
+                a.classList.add("hidden"),
+                (a.required = !1),
+                (a.value = ""))
+              : -1 < r.value.indexOf("Student in a medical field")
+              ? (n.classList.remove("hidden"),
+                a.classList.remove("hidden"),
+                (a.required = !0),
+                o.classList.add("hidden"),
+                d.classList.add("hidden"),
+                (d.required = !1),
+                (d.value = ""))
+              : (o.classList.add("hidden"),
+                d.classList.add("hidden"),
+                (d.required = !1),
+                (d.value = ""),
+                n.classList.add("hidden"),
+                a.classList.add("hidden"),
+                (a.required = !1),
+                (a.value = "")));
+        const l = document.getElementById(
+            "Specialty_Mental_Health_Training__c"
+          ),
+          i = document.getElementById("mhTrainingDescLabel"),
+          s = document.getElementById(
+            "Specialty_Mental_Health_Training_Desc__c"
+          );
+        l && "Yes" === l.value
+          ? (i.classList.remove("hidden"),
+            s.classList.remove("hidden"),
+            (s.required = !0))
+          : l &&
+            (i.classList.add("hidden"),
+            s.classList.add("hidden"),
+            (s.required = !1),
+            (s.value = ""));
+        const c = document.getElementById("type"),
+          u = document.getElementById("Other-Provider-id"),
+          m = document.getElementById("pcpothersta_desc__c");
+        c && "Other" === c.value
+          ? (u.classList.remove("hidden"),
+            m.classList.remove("hidden"),
+            (m.required = !0))
+          : c &&
+            (u.classList.add("hidden"),
+            m.classList.add("hidden"),
+            (m.required = !1),
+            (m.value = ""));
+        const h = document.getElementById("specialty-desc"),
+          f = document.getElementById("Other-specialty-id"),
+          v = document.getElementById("other-specialty-desc");
+        h && "Other" === h.value
+          ? (f.classList.remove("hidden"),
+            v.classList.remove("hidden"),
+            (v.required = !0))
+          : h &&
+            (f.classList.add("hidden"),
+            v.classList.add("hidden"),
+            (v.required = !1),
+            (v.value = ""));
+        const y = document.getElementById("otherCheck"),
+          g = document.getElementById("heard_other_label"),
+          p = document.getElementById("heard_other");
+        y && y.checked
+          ? (g.classList.remove("hidden"),
+            p.classList.remove("hidden"),
+            (p.required = !0))
+          : y &&
+            (g.classList.add("hidden"),
+            p.classList.add("hidden"),
+            (p.required = !1),
+            (p.value = ""));
+        const b = document.getElementById(
+            "How_do_You_Identify_with_Respect_to_Race__c"
+          ),
+          _document = document.getElementById("pcpracedesc-id"),
+          _ = document.getElementById("pcpracedesc");
+        b && "Prefer to self-describe (option not listed)" === b.value
+          ? (_document.classList.remove("hidden"),
+            _.classList.remove("hidden"),
+            (_.required = !0))
+          : b &&
+            (_document.classList.add("hidden"),
+            _.classList.add("hidden"),
+            (_.required = !1),
+            (_.value = ""));
+        const q = document.getElementById(
+            "Provider_Language_other_than_English__c"
+          ),
+          C = document.getElementById("Provider-Description-id"),
+          L = document.getElementById("Provider_Languages_Description__c");
+        q && "Other" === q.value
+          ? (C.classList.remove("hidden"),
+            L.classList.remove("hidden"),
+            (L.required = !0))
+          : q &&
+            (C.classList.add("hidden"),
+            L.classList.add("hidden"),
+            (L.required = !1),
+            (L.value = ""));
+      }
+      function updateIncompleteSubmission() {
+        [
+          "first_name",
+          "last_name",
+          "provider-npi",
+          "email",
+          "phone",
+          "phone-ext",
+          "The_provider_is_a_Trainee__c",
+          "Trainee_Type__c",
+          "Other_Medical_Trainee_Description__c",
+          "Number_of_Years_In_Practice__c",
+          "trainenddate",
+          "Specialty_Mental_Health_Training__c",
+          "Specialty_Mental_Health_Training_Desc__c",
+          "home-phone",
+          "mobile",
+          "type",
+          "pcpothersta_desc__c",
+          "specialty-desc",
+          "other-specialty-desc",
+          "health-haven-staff",
+          "enrolled-provider",
+          "friend-colleague",
+          "friend-association",
+          "friend-media",
+          "search-engine",
+          "news-story",
+          "conference",
+          "otherCheck",
+          "heard_other",
+          "Do_you_think_of_yourself_as__c",
+          "How_do_You_Identify_with_Respect_to_Race__c",
+          "pcpracedesc",
+          "Provider_Language_other_than_English__c",
+          "Provider_Languages_Description__c",
+          "opt_out",
+        ].forEach((e) => {
+          const t = document.getElementById(e);
+          t &&
+            ("checkbox" === t.type
+              ? t.checked
+              : !!t.value && "" !== t.value.trim());
+        });
+      }
+      function getFieldLabel(e) {
+        const t = e.id,
+          r = document.querySelector(`label[for="${t}"]`);
+        return r && r.textContent
+          ? r.textContent.replace("*", "").trim()
+          : e.name || e.id || "Unknown field";
+      }
+      function highlightField(e) {
+        (e.style.border = "2px solid red"),
+          (e.style.backgroundColor = "#fff0f0");
+      }
+      function unhighlightField(e) {
+        (e.style.border = "1px solid #ccc"), (e.style.backgroundColor = "");
+      }
+      function showErrorMessage(e) {
+        const t = document.getElementById("form-error-message");
+        if (t) {
+          let r = "<strong>Please fix the following errors:</strong><ul>";
+          e.forEach((e) => {
+            r += `<li>${e}</li>`;
+          }),
+            (r += "</ul>"),
+            (t.innerHTML = r),
+            (t.style.display = "block"),
+            t.scrollIntoView({ behavior: "smooth", block: "center" });
+        }
+      }
+      function hideErrorMessage() {
+        const e = document.getElementById("form-error-message");
+        e && ((e.style.display = "none"), (e.innerHTML = ""));
+      }
+      function formatPhoneNumber(e) {
+        let t = e.replace(/\D/g, "");
+        t = t.slice(0, 10);
+        const r = t.length;
+        return r < 4
+          ? t
+          : r < 7
+          ? `(${t.slice(0, 3)}) ${t.slice(3)}`
+          : `(${t.slice(0, 3)}) ${t.slice(3, 6)}-${t.slice(6, 10)}`;
+      }
+    </script>
+    <script src="https://www.google.com/recaptcha/api.js" async defer>
+      function enableSubmitOnRecaptcha() { document.getElementById('submit-complete').disabled = false;}function recaptchaCallback() {enableSubmitOnRecaptcha();}
+    </script>
+  </body>
+</html>
