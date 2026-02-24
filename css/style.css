@@ -1,3 +1,79 @@
+/*------------------------------------------------------------------
+  Cybersecurity-inspired palette & base styles (2026)
+------------------------------------------------------------------*/
+:root {
+    --deep-slate: #0F172A;
+    --night-graphite: #0B1020;
+    --electric-blue: #2DD4FF;
+    --cyber-lime: #9EFF00;
+    --mist-gray: #CBD5E1;
+    --soft-fog: rgba(255, 255, 255, 0.08);
+}
+
+body {
+    background: radial-gradient(120% 120% at 20% 20%, #111933 0%, #0B1020 50%, #070910 100%);
+    color: var(--mist-gray);
+}
+
+a {
+    color: var(--electric-blue);
+}
+
+a:hover {
+    color: var(--cyber-lime);
+}
+
+.bg-cyber {
+    background: linear-gradient(135deg, rgba(45, 212, 255, 0.15), rgba(158, 255, 0, 0.08)), radial-gradient(120% 120% at 15% 20%, rgba(45, 212, 255, 0.12), transparent 45%), var(--night-graphite);
+}
+
+.glass-card {
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    transition: transform 0.3s ease, box-shadow 0.3s ease, border-color 0.3s ease;
+}
+
+.glass-card:hover {
+    transform: translateY(-6px);
+    border-color: var(--electric-blue);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 10px 30px rgba(45, 212, 255, 0.35);
+}
+
+.cyber-badge {
+    background: var(--cyber-lime);
+    color: #0A0F1C;
+    box-shadow: 0 0 18px rgba(158, 255, 0, 0.45);
+}
+
+.cyber-hero {
+    position: relative;
+    overflow: hidden;
+    background: radial-gradient(140% 140% at 30% 10%, rgba(45, 212, 255, 0.18), rgba(15, 23, 42, 0.95)), linear-gradient(180deg, rgba(11, 16, 32, 0.7), rgba(11, 16, 32, 1));
+}
+
+.network-canvas {
+    position: absolute;
+    inset: 0;
+    width: 100%;
+    height: 100%;
+    pointer-events: none;
+    mix-blend-mode: screen;
+    opacity: 0.8;
+}
+
+.section-divider {
+    border-top: 1px solid rgba(255, 255, 255, 0.06);
+}
+
+.cyber-hero h1,
+.cyber-hero h2,
+.cyber-hero h3,
+.cyber-hero p,
+.cyber-hero span {
+    color: var(--mist-gray);
+}
 
 /*** Spinner Start ***/
 /*** Spinner ***/
@@ -674,11 +750,17 @@
     position: relative;
     overflow: hidden;
     transition: 0.5s;
+    background: rgba(255, 255, 255, 0.08);
+    backdrop-filter: blur(18px);
+    border: 1px solid rgba(255, 255, 255, 0.20);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.45), inset 0 1px 0 rgba(255, 255, 255, 0.25);
+    color: var(--mist-gray);
 }
 
 .price .price-item:hover {
-    background: var(--bs-white) !important;
-    box-shadow: 0 0 45px rgba(0, 0, 0, 0.2);
+    transform: translateY(-6px);
+    border-color: var(--electric-blue);
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.55), 0 10px 30px rgba(45, 212, 255, 0.35);
 }
 
 .price .price-item .pice-item-offer {
