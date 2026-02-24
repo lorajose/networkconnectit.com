@@ -208,6 +208,9 @@ a:hover {
 .header .navbar .nav-link.active {
     color: var(--electric-blue) !important;
 }
+.header .navbar {
+    background: rgba(11, 18, 32, 0.9) !important;
+}
 .header .navbar .navbar-toggler {
     border-color: #fff;
 }

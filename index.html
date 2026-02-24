@@ -739,15 +739,33 @@
 
         <!-- Smart Budget Configurator -->
         <section id="budget-configurator" class="py-20 section-divider text-slate-100" style="background:#0b1220;">
-            <div class="max-w-5xl mx-auto px-6">
+            <style>
+                @keyframes pulseOnce { 0%{transform:scale(1);} 50%{transform:scale(1.05);} 100%{transform:scale(1);} }
+                .btn-pulse { animation: pulseOnce 220ms ease; }
+                .camera-icon { filter: drop-shadow(0 0 6px rgba(45,212,255,0.6)); }
+                .switch-icon { transition: fill 0.4s ease, filter 0.4s ease; }
+                .progress-bar {
+                    background: linear-gradient(90deg, rgba(45,212,255,0.15), rgba(158,255,0,0.2));
+                    overflow: hidden;
+                }
+                .progress-bar::after {
+                    content:'';
+                    position:absolute; inset:0;
+                    background: linear-gradient(90deg, rgba(45,212,255,0), rgba(45,212,255,0.6), rgba(158,255,0,0));
+                    width:200%;
+                    animation: prog 1.3s linear infinite;
+                }
+                @keyframes prog { 0%{transform:translateX(-50%);} 100%{transform:translateX(0);} }
+            </style>
+            <div class="max-w-6xl mx-auto px-6">
                 <div class="text-center mb-10">
                     <p class="text-sm font-semibold text-cyan-300 uppercase tracking-wide">Smart Budget Configurator</p>
                     <h2 class="text-3xl md:text-4xl font-bold text-white">Get a preliminary estimate in seconds</h2>
                     <p class="mt-3 text-slate-200">Select cameras, office size, and security level. Enter your email to reveal the tailored estimate.</p>
                 </div>
 
-                <div class="grid gap-8 md:grid-cols-2">
-                    <!-- Left column: selectors -->
+                <div class="grid gap-10 lg:grid-cols-2">
+                    <!-- Left column: selectors + icons -->
                     <div class="space-y-8">
                         <div>
                             <p class="text-sm font-semibold text-slate-200 mb-3">Number of cameras</p>
@@ -759,6 +777,7 @@
                                 <button class="option-btn" data-group="cameras" data-value="20">20</button>
                                 <button class="option-btn" data-group="cameras" data-value="30">30</button>
                             </div>
+                            <div class="mt-4 flex flex-wrap gap-2" id="camera-icons"></div>
                         </div>
 
                         <div>
@@ -778,29 +797,57 @@
                                 <button class="option-btn" data-group="security" data-value="pro">Hardened</button>
                                 <button class="option-btn" data-group="security" data-value="elite">Zero-Downtime</button>
                             </div>
+                            <div class="mt-4 flex items-center gap-3">
+                                <svg id="switch-icon" class="switch-icon" width="120" height="48" viewBox="0 0 160 64" fill="#6b7280" xmlns="http://www.w3.org/2000/svg">
+                                    <rect x="8" y="8" rx="12" ry="12" width="144" height="48" />
+                                    <circle cx="36" cy="32" r="10" fill="#0b1220"/>
+                                    <circle cx="80" cy="32" r="10" fill="#0b1220"/>
+                                    <circle cx="124" cy="32" r="10" fill="#0b1220"/>
+                                </svg>
+                                <span class="text-slate-300 text-sm">Security appliance glow reflects level.</span>
+                            </div>
                         </div>
                     </div>
 
                     <!-- Right column: estimate + email capture -->
-                    <div class="glass-card rounded-2xl p-8 bg-white/15 border border-white/30 text-slate-100">
+                    <div class="glass-card rounded-2xl p-8 bg-white/10 border border-white/30 text-slate-100">
                         <p class="text-sm font-semibold text-cyan-300 uppercase tracking-wide mb-2">Preliminary Estimate</p>
-                        <div class="relative">
-                            <div id="estimate-blur" class="blur-sm select-none pointer-events-none">
+
+                        <div id="progress-card" class="mb-4 hidden">
+                            <div class="relative progress-bar h-3 rounded-full"></div>
+                            <p class="text-xs text-slate-200 mt-2">Calculating network topology... Optimizing bandwidth for AI...</p>
+                        </div>
+
+                        <div class="relative mb-4">
+                            <div id="estimate-blur" class="select-none pointer-events-none">
                                 <p class="text-5xl font-bold text-white">$—</p>
                                 <p class="text-slate-200 mt-2">Enter your email to reveal your tailored price.</p>
                             </div>
-                            <div id="estimate-visible" class="hidden">
-                                <p class="text-5xl font-bold text-white" id="estimate-value">$0</p>
-                                <p class="text-slate-200 mt-2">Includes equipment, configuration, and preliminary labor estimate.</p>
+                            <div id="estimate-visible" class="hidden space-y-2">
+                                <p class="text-4xl font-bold text-white" id="estimate-value">$0</p>
+                                <div class="grid grid-cols-3 gap-3 text-sm">
+                                    <div class="bg-white/10 rounded-lg p-3">
+                                        <p class="text-slate-300">Hardware Est.</p>
+                                        <p class="font-semibold text-white" id="hardware-value">$0</p>
+                                    </div>
+                                    <div class="bg-white/10 rounded-lg p-3">
+                                        <p class="text-slate-300">Labor Est.</p>
+                                        <p class="font-semibold text-white" id="labor-value">$0</p>
+                                    </div>
+                                    <div class="bg-white/10 rounded-lg p-3">
+                                        <p class="text-slate-300">Monthly Support Est.</p>
+                                        <p class="font-semibold text-white" id="support-value">$0</p>
+                                    </div>
+                                </div>
                             </div>
                         </div>
 
                         <form id="estimate-form" class="mt-6 space-y-3">
                             <label class="block text-sm text-slate-200">Work email</label>
                             <input id="lead-email" type="email" required placeholder="you@company.com" class="w-full rounded-xl bg-white/10 border border-white/30 px-4 py-3 text-white placeholder:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--electric-blue)]">
-                            <button type="submit" class="w-full mt-2 bg-[var(--electric-blue)] text-[var(--night-graphite)] font-semibold rounded-xl py-3 hover:brightness-110 transition">Reveal my estimate</button>
+                            <button id="reveal-btn" type="submit" class="w-full mt-2 bg-[var(--electric-blue)] text-[var(--night-graphite)] font-semibold rounded-xl py-3 hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Reveal my estimate</button>
                         </form>
-                        <p class="text-xs text-slate-200 mt-3">We’ll also send a detailed breakdown and options to refine the scope.</p>
+                        <p class="text-xs text-slate-200 mt-3">This is a preliminary base estimate for hardware and standard installation. A professional on-site survey is mandatory to finalize infrastructure requirements, cable paths, and specialized mounting.</p>
                     </div>
                 </div>
             </div>
@@ -1322,82 +1369,140 @@
         <script src="js/main.js"></script>
         <script>
             (() => {
-                const state = {
-                    cameras: 8,
-                    sqft: 'medium',
-                    security: 'pro'
-                };
-
+            (() => {
+                const state = { cameras: 8, sqft: 'medium', security: 'pro' };
                 const buttons = document.querySelectorAll('.option-btn');
                 const estimateValue = document.getElementById('estimate-value');
                 const form = document.getElementById('estimate-form');
                 const emailInput = document.getElementById('lead-email');
                 const blurBlock = document.getElementById('estimate-blur');
                 const visibleBlock = document.getElementById('estimate-visible');
+                const hardwareValue = document.getElementById('hardware-value');
+                const laborValue = document.getElementById('labor-value');
+                const supportValue = document.getElementById('support-value');
+                const progressCard = document.getElementById('progress-card');
+                const revealBtn = document.getElementById('reveal-btn');
+                const cameraIconsBox = document.getElementById('camera-icons');
+                const switchIcon = document.getElementById('switch-icon');
 
-                const sqftMap = {
-                    small: 500,
-                    medium: 900,
-                    large: 1400,
-                    xlarge: 2200
-                };
+                const sqftFactor = { small: 1, medium: 1.5, large: 2.5, xlarge: 2.5 };
+                const securityAdd = { basic: 0, pro: 1200, elite: 3500 };
+                const cameraUnit = 475; // mid-point between $350-$600
 
-                const securityMultiplier = {
-                    basic: 1.0,
-                    pro: 1.2,
-                    elite: 1.45
-                };
+                const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','live.com','msn.com','icloud.com','aol.com','protonmail.com'];
 
-                function computeEstimate() {
-                    const base = 800;
-                    const cameraCost = state.cameras * 170;
-                    const sqftCost = sqftMap[state.sqft] || 0;
-                    const subtotal = base + cameraCost + sqftCost;
-                    const total = Math.round(subtotal * securityMultiplier[state.security] + 99);
-                    return total;
+                function isCorporateEmail(email) {
+                    const okFormat = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$/i.test(email);
+                    if (!okFormat) return false;
+                    const domain = email.split('@')[1].toLowerCase();
+                    return !freeDomains.includes(domain);
+                }
+
+                function playClick() {
+                    const ctx = new (window.AudioContext || window.webkitAudioContext)();
+                    const o = ctx.createOscillator();
+                    const g = ctx.createGain();
+                    o.type = 'triangle';
+                    o.frequency.value = 440;
+                    g.gain.value = 0.05;
+                    o.connect(g); g.connect(ctx.destination);
+                    o.start(); setTimeout(()=>{o.stop(); ctx.close();}, 120);
                 }
 
                 function renderActive(group, value) {
                     buttons.forEach(btn => {
                         const isActive = btn.dataset.group === group && btn.dataset.value === value;
-                        if (isActive) {
-                            btn.classList.add('ring-2', 'ring-[var(--electric-blue)]', 'bg-white/15');
-                        } else if (btn.dataset.group === group) {
-                            btn.classList.remove('ring-2', 'ring-[var(--electric-blue)]', 'bg-white/15');
+                        if (btn.dataset.group === group) {
+                            btn.classList.toggle('ring-2', isActive);
+                            btn.classList.toggle('ring-[var(--electric-blue)]', isActive);
+                            btn.classList.toggle('bg-white/15', isActive);
                         }
                     });
                 }
 
+                function renderCameras(count) {
+                    cameraIconsBox.innerHTML = '';
+                    const iconsToShow = Math.min(count, 12);
+                    for (let i=0;i<iconsToShow;i++){
+                        const svg = `<svg class="camera-icon ${i < iconsToShow ? 'opacity-100' : 'opacity-30'}" width="42" height="26" viewBox="0 0 84 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="6" y="10" width="58" height="32" rx="8" fill="rgba(255,255,255,0.1)" stroke="#2DD4FF" stroke-width="2"/>
+                            <circle cx="35" cy="26" r="8" fill="#0b1220" stroke="#2DD4FF" stroke-width="2"/>
+                            <circle cx="35" cy="26" r="3" fill="#9EFF00"/>
+                            <path d="M64 18 L78 14 L78 38 L64 34 Z" fill="rgba(45,212,255,0.3)" stroke="#2DD4FF" stroke-width="2" />
+                        </svg>`;
+                        cameraIconsBox.insertAdjacentHTML('beforeend', svg);
+                    }
+                }
+
+                function renderSwitch(level){
+                    const colors = { basic: '#6b7280', pro: '#2DD4FF', elite: '#2DD4FF' };
+                    switchIcon.setAttribute('fill', colors[level]);
+                    switchIcon.style.filter = level === 'basic' ? 'drop-shadow(0 0 0 rgba(45,212,255,0))' : 'drop-shadow(0 0 12px rgba(45,212,255,0.6))';
+                }
+
+                function computeTotals(){
+                    const factor = sqftFactor[state.sqft] || 1;
+                    const secAdd = securityAdd[state.security] || 0;
+                    const base = (state.cameras * cameraUnit * factor) + secAdd;
+                    const hardware = Math.round(base * 0.55);
+                    const labor = Math.round(base * 0.45);
+                    const support = Math.round(base * 0.10);
+                    const total = base + support;
+                    return { hardware, labor, support, total };
+                }
+
+                function updateEmailValidity(){
+                    const valid = isCorporateEmail(emailInput.value);
+                    revealBtn.disabled = !valid;
+                }
+
                 function initButtons() {
                     buttons.forEach(btn => {
-                        btn.classList.add('w-full', 'py-3', 'rounded-xl', 'bg-white/5', 'text-white', 'font-semibold', 'border', 'border-white/15', 'hover:bg-white/10', 'transition');
+                        btn.classList.add('w-full','py-3','rounded-xl','bg-white/5','text-white','font-semibold','border','border-white/15','hover:bg-white/10','transition');
                         btn.addEventListener('click', () => {
                             const { group, value } = btn.dataset;
                             state[group] = group === 'cameras' ? parseInt(value, 10) : value;
                             renderActive(group, value);
-                            if (!visibleBlock.classList.contains('hidden')) {
-                                estimateValue.textContent = `$${computeEstimate().toLocaleString()}`;
-                            }
+                            renderCameras(state.cameras);
+                            renderSwitch(state.security);
+                            btn.classList.add('btn-pulse');
+                            setTimeout(()=>btn.classList.remove('btn-pulse'),220);
+                            playClick();
                         });
                     });
                     renderActive('cameras', String(state.cameras));
                     renderActive('sqft', state.sqft);
                     renderActive('security', state.security);
+                    renderCameras(state.cameras);
+                    renderSwitch(state.security);
                 }
+
+                emailInput.addEventListener('input', updateEmailValidity);
 
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
-                    if (!emailInput.checkValidity()) return;
-                    const estimate = computeEstimate();
-                    estimateValue.textContent = `$${estimate.toLocaleString()}`;
-                    blurBlock.classList.add('hidden');
-                    visibleBlock.classList.remove('hidden');
-                    const mailBody = `Email: ${emailInput.value}\nCameras: ${state.cameras}\nSquare footage: ${state.sqft}\nSecurity level: ${state.security}\nPreliminary estimate: $${estimate.toLocaleString()}`;
-                    const mailto = `mailto:network@networkconnectit.com?subject=${encodeURIComponent('Preliminary Estimate Request')}&body=${encodeURIComponent(mailBody)}`;
-                    window.location.href = mailto;
+                    if (!isCorporateEmail(emailInput.value)) return;
+                    const totals = computeTotals();
+                    progressCard.classList.remove('hidden');
+                    blurBlock.classList.remove('hidden');
+                    visibleBlock.classList.add('hidden');
+                    // simulate calculation delay
+                    setTimeout(() => {
+                        progressCard.classList.add('hidden');
+                        blurBlock.classList.add('hidden');
+                        visibleBlock.classList.remove('hidden');
+                        estimateValue.textContent = `$${totals.total.toLocaleString()}`;
+                        hardwareValue.textContent = `$${totals.hardware.toLocaleString()}`;
+                        laborValue.textContent = `$${totals.labor.toLocaleString()}`;
+                        supportValue.textContent = `$${totals.support.toLocaleString()}`;
+                        const body = `Email: ${emailInput.value}\nCameras: ${state.cameras}\nSqFt: ${state.sqft}\nSecurity: ${state.security}\nHardware: $${totals.hardware}\nLabor: $${totals.labor}\nMonthly Support: $${totals.support}\nTotal (with support): $${totals.total}`;
+                        const mailto = `mailto:networkconnectit@gmail.com?subject=${encodeURIComponent('Preliminary Estimate Request')}&body=${encodeURIComponent(body)}`;
+                        window.location.href = mailto;
+                    }, 1200);
                 });
 
                 initButtons();
+                updateEmailValidity();
             })();
         </script>
         <script>
