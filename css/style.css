@@ -209,13 +209,27 @@ a:hover {
     color: var(--electric-blue) !important;
 }
 .header .navbar {
-    background: rgba(11, 18, 32, 0.9) !important;
+    background: rgba(11, 18, 32, 0.95) !important;
+    z-index: 1100;
 }
 .header .navbar .navbar-toggler {
     border-color: #fff;
 }
 .header .navbar .fa-bars {
     color: #fff;
+}
+.header .navbar-collapse {
+    background: rgba(11, 18, 32, 0.95);
+}
+.header .dropdown-menu {
+    background: #0f172a;
+}
+.header .dropdown-menu .dropdown-item {
+    color: #e5e7eb;
+}
+.header .dropdown-menu .dropdown-item:hover {
+    color: #0f172a;
+    background: #2DD4FF;
 }
 
 .sticky-top.navbar-light .navbar-nav .nav-link {
