@@ -210,7 +210,8 @@ a:hover {
 }
 .header .navbar {
     background: rgba(11, 18, 32, 0.95) !important;
-    z-index: 1100;
+    z-index: 1200;
+    position: relative;
 }
 .header .navbar .navbar-toggler {
     border-color: #fff;

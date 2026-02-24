@@ -1455,7 +1455,7 @@
                             <path d="M64 18 L78 14 L78 38 L64 34 Z" fill="rgba(45,212,255,0.3)" stroke="#2DD4FF" stroke-width="2" />
                         </svg>`;
                         cameraIconsBox.appendChild(node);
-                        gsap.from(node,{duration:0.45, y:-60, opacity:0, ease:'power2.out', delay:i*0.03});
+                        if (window.gsap) window.gsap.from(node,{duration:0.45, y:-60, opacity:0, ease:'power2.out', delay:i*0.03});
                     }
                     setTimeout(renderLines, 120);
                 }
@@ -1503,7 +1503,7 @@
                         line.setAttribute('stroke-linecap','round');
                         line.setAttribute('stroke-dasharray','6 8');
                         vizLines.appendChild(line);
-                        gsap.from(line,{duration:0.6, opacity:0, attr:{'stroke-dashoffset':30}});
+                        if (window.gsap) window.gsap.from(line,{duration:0.6, opacity:0, attr:{'stroke-dashoffset':30}});
                     });
                 }
 
@@ -1543,6 +1543,7 @@
                     renderActive('security', state.security);
                     renderCameras(state.cameras);
                     renderSwitch(state.security);
+                    renderHeat(state.sqft);
                 }
 
                 emailInput.addEventListener('input', updateEmailValidity);
