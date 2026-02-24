@@ -201,6 +201,20 @@ a:hover {
     transition: .5s;
 }
 
+.header .navbar .nav-link {
+    color: #fff !important;
+}
+.header .navbar .nav-link:hover,
+.header .navbar .nav-link.active {
+    color: var(--electric-blue) !important;
+}
+.header .navbar .navbar-toggler {
+    border-color: #fff;
+}
+.header .navbar .fa-bars {
+    color: #fff;
+}
+
 .sticky-top.navbar-light .navbar-nav .nav-link {
     padding: 20px 0;
     color: var(--dark) !important;

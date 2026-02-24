@@ -738,19 +738,19 @@
         <!-- Pricing End -->
 
         <!-- Smart Budget Configurator -->
-        <section id="budget-configurator" class="py-20 bg-cyber section-divider text-white">
+        <section id="budget-configurator" class="py-20 section-divider text-slate-100" style="background:#0b1220;">
             <div class="max-w-5xl mx-auto px-6">
                 <div class="text-center mb-10">
-                    <p class="text-sm font-semibold text-blue-300 uppercase tracking-wide">Smart Budget Configurator</p>
+                    <p class="text-sm font-semibold text-cyan-300 uppercase tracking-wide">Smart Budget Configurator</p>
                     <h2 class="text-3xl md:text-4xl font-bold text-white">Get a preliminary estimate in seconds</h2>
-                    <p class="mt-3 text-slate-100">Select cameras, office size, and security level. Enter your email to reveal the tailored estimate.</p>
+                    <p class="mt-3 text-slate-200">Select cameras, office size, and security level. Enter your email to reveal the tailored estimate.</p>
                 </div>
 
                 <div class="grid gap-8 md:grid-cols-2">
                     <!-- Left column: selectors -->
                     <div class="space-y-8">
                         <div>
-                            <p class="text-sm font-semibold text-slate-100 mb-3">Number of cameras</p>
+                            <p class="text-sm font-semibold text-slate-200 mb-3">Number of cameras</p>
                             <div class="grid grid-cols-3 gap-3">
                                 <button class="option-btn" data-group="cameras" data-value="4">4</button>
                                 <button class="option-btn" data-group="cameras" data-value="8">8</button>
@@ -762,7 +762,7 @@
                         </div>
 
                         <div>
-                            <p class="text-sm font-semibold text-slate-100 mb-3">Office / Warehouse size</p>
+                            <p class="text-sm font-semibold text-slate-200 mb-3">Office / Warehouse size</p>
                             <div class="grid grid-cols-2 gap-3">
                                 <button class="option-btn" data-group="sqft" data-value="small">≤ 2,000 sq ft</button>
                                 <button class="option-btn" data-group="sqft" data-value="medium">2,000–5,000 sq ft</button>
@@ -772,7 +772,7 @@
                         </div>
 
                         <div>
-                            <p class="text-sm font-semibold text-slate-100 mb-3">Network security level</p>
+                            <p class="text-sm font-semibold text-slate-200 mb-3">Network security level</p>
                             <div class="grid grid-cols-3 gap-3">
                                 <button class="option-btn" data-group="security" data-value="basic">Baseline</button>
                                 <button class="option-btn" data-group="security" data-value="pro">Hardened</button>
@@ -782,22 +782,22 @@
                     </div>
 
                     <!-- Right column: estimate + email capture -->
-                    <div class="glass-card rounded-2xl p-8">
-                        <p class="text-sm font-semibold text-blue-300 uppercase tracking-wide mb-2">Preliminary Estimate</p>
+                    <div class="glass-card rounded-2xl p-8 bg-white/15 border border-white/30 text-slate-100">
+                        <p class="text-sm font-semibold text-cyan-300 uppercase tracking-wide mb-2">Preliminary Estimate</p>
                         <div class="relative">
                             <div id="estimate-blur" class="blur-sm select-none pointer-events-none">
                                 <p class="text-5xl font-bold text-white">$—</p>
-                                <p class="text-slate-300 mt-2">Enter your email to reveal your tailored price.</p>
+                                <p class="text-slate-200 mt-2">Enter your email to reveal your tailored price.</p>
                             </div>
                             <div id="estimate-visible" class="hidden">
                                 <p class="text-5xl font-bold text-white" id="estimate-value">$0</p>
-                                <p class="text-slate-300 mt-2">Includes equipment, configuration, and preliminary labor estimate.</p>
+                                <p class="text-slate-200 mt-2">Includes equipment, configuration, and preliminary labor estimate.</p>
                             </div>
                         </div>
 
                         <form id="estimate-form" class="mt-6 space-y-3">
-                            <label class="block text-sm text-slate-100">Work email</label>
-                            <input id="lead-email" type="email" required placeholder="you@company.com" class="w-full rounded-xl bg-white/10 border border-white/20 px-4 py-3 text-white placeholder:text-slate-100 focus:outline-none focus:ring-2 focus:ring-[var(--electric-blue)]">
+                            <label class="block text-sm text-slate-200">Work email</label>
+                            <input id="lead-email" type="email" required placeholder="you@company.com" class="w-full rounded-xl bg-white/10 border border-white/30 px-4 py-3 text-white placeholder:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--electric-blue)]">
                             <button type="submit" class="w-full mt-2 bg-[var(--electric-blue)] text-[var(--night-graphite)] font-semibold rounded-xl py-3 hover:brightness-110 transition">Reveal my estimate</button>
                         </form>
                         <p class="text-xs text-slate-200 mt-3">We’ll also send a detailed breakdown and options to refine the scope.</p>
@@ -1220,34 +1220,34 @@
                     <div class="col-md-6 col-lg-6 col-xl-3">
                         <div class="footer-item d-flex flex-column">
                             <h4 class="text-dark mb-4">Company</h4>
-                            <a href=""> Why NetworkConnectIt?</a>
-                            <a href=""> Our Features</a>
-                            <a href=""> Our Portfolio</a>
-                            <a href=""> About Us</a>
-                            <a href=""> Our Blog & News</a>
-                            <a href=""> Get In Touch</a>
+                            <a href="about.html"> Why NetworkConnectIt?</a>
+                            <a href="feature.html"> Our Features</a>
+                            <a href="service.html"> Our Portfolio</a>
+                            <a href="about.html"> About Us</a>
+                            <a href="blog.html"> Our Blog & News</a>
+                            <a href="contact.html"> Get In Touch</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">
                         <div class="footer-item d-flex flex-column">
                             <h4 class="mb-4 text-dark">Quick Links</h4>
-                            <a href=""> About Us</a>
-                            <a href=""> Contact Us</a>
-                            <a href=""> Privacy Policy</a>
-                            <a href=""> Terms & Conditions</a>
-                            <a href=""> Our Blog & News</a>
-                            <a href=""> Our Team</a>
+                            <a href="about.html"> About Us</a>
+                            <a href="contact.html"> Contact Us</a>
+                            <a href="index.html#privacy"> Privacy Policy</a>
+                            <a href="index.html#terms"> Terms & Conditions</a>
+                            <a href="blog.html"> Our Blog & News</a>
+                            <a href="about.html#team"> Our Team</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">
                         <div class="footer-item d-flex flex-column">
                             <h4 class="mb-4 text-dark">Services</h4>
-                            <a href=""> All Services</a>
-                            <a href=""> Network Installation & Optimization</a>
-                            <a href=""> Network Maintenance & Support</a>
-                            <a href=""> Fast, Reliable, and Secure Networking</a>
-                            <a href=""> Cisco Solutions</a>
-                            <a href=""> Ubiquiti UniFi Integration</a>
+                            <a href="service.html"> All Services</a>
+                            <a href="service.html"> Network Installation & Optimization</a>
+                            <a href="service.html"> Network Maintenance & Support</a>
+                            <a href="service.html"> Fast, Reliable, and Secure Networking</a>
+                            <a href="service.html"> Cisco Solutions</a>
+                            <a href="service.html"> Ubiquiti UniFi Integration</a>
                         </div>
                     </div>
                     <div class="col-md-6 col-lg-6 col-xl-3">
@@ -1418,6 +1418,36 @@
                     });
                 }
             })();
+        </script>
+        <!-- Crisp Chat Async Widget -->
+        <style>
+          .crisp-client .cc-window { right: 20px !important; bottom: 20px !important; }
+        </style>
+        <script>
+          window.$crisp = [];
+          window.CRISP_WEBSITE_ID = "ed545499-2bb5-493e-b827-24c30145c062";
+          window.CRISP_RUNTIME_CONFIG = {
+            session: {
+              // set user later via $crisp.push(["set", "user:email", email]) if available
+            },
+            // customize chat title not directly supported; use greeting message instead
+          };
+          window.addEventListener("load", function() {
+            const d = document;
+            const s = d.createElement("script");
+            s.src = "https://client.crisp.chat/l.js";
+            s.async = true;
+            d.head.appendChild(s);
+            // welcome message after 5s
+            setTimeout(function() {
+              if (window.$crisp) {
+                window.$crisp.push(["do", "chat:open"]);
+                window.$crisp.push(["do", "message:send", ["text", "Having trouble with your network? An engineer is ready to help you"]]);
+              }
+            }, 5000);
+            // set launcher color (Electric Blue)
+            window.$crisp.push(["config", "color:theme", "#2DD4FF"]);
+          });
         </script>
 </body>
 
