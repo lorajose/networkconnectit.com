@@ -1593,7 +1593,13 @@
 
                 function updateEmailValidity(){
                     const valid = isCorporateEmail(emailInput.value);
-                    revealBtn.disabled = !valid;
+                    if (valid) {
+                        revealBtn.disabled = false;
+                        revealBtn.removeAttribute('disabled');
+                    } else {
+                        revealBtn.disabled = true;
+                        revealBtn.setAttribute('disabled','disabled');
+                    }
                 }
 
                 function initButtons() {
@@ -1625,7 +1631,9 @@
                     animateTotals(computeTotals());
                 }
 
-                emailInput.addEventListener('input', updateEmailValidity);
+                ['input','keyup','change','blur'].forEach(ev => {
+                    emailInput.addEventListener(ev, updateEmailValidity);
+                });
 
                 form.addEventListener('submit', (e) => {
                     e.preventDefault();
