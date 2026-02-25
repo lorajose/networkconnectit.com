@@ -760,6 +760,7 @@
                 .heat-medium { background: radial-gradient(circle at 40% 40%, rgba(45,212,255,0.18), transparent 50%), radial-gradient(circle at 60% 60%, rgba(158,255,0,0.12), transparent 55%), #0b1220; }
                 .heat-large { background: radial-gradient(circle at 50% 50%, rgba(45,212,255,0.24), transparent 60%), radial-gradient(circle at 60% 40%, rgba(158,255,0,0.18), transparent 60%), #0b1220; }
                 .heat-xlarge { background: radial-gradient(circle at 50% 50%, rgba(45,212,255,0.28), transparent 70%), radial-gradient(circle at 50% 50%, rgba(158,255,0,0.24), transparent 70%), #0b1220; }
+                .nvr-glow { filter: drop-shadow(0 0 14px rgba(45,212,255,0.65)); }
             </style>
             <div class="max-w-6xl mx-auto px-6">
                 <div class="text-center mb-10">
@@ -768,7 +769,7 @@
                     <p class="mt-3 text-slate-200">Select cameras, office size, and security level. Enter your email to reveal the tailored estimate.</p>
                 </div>
 
-                <div id="viz-wrapper" class="relative overflow-hidden rounded-3xl border border-white/10 mb-10 heat-medium transition-all duration-500" style="min-height:240px;">
+                <div id="viz-wrapper" class="relative overflow-hidden rounded-3xl border border-white/10 mb-10 heat-medium transition-all duration-500" style="min-height:280px;">
                     <svg id="viz-lines" class="absolute inset-0 pointer-events-none"></svg>
                     <div id="viz-shield" class="absolute inset-4 rounded-3xl border-2 border-transparent pointer-events-none transition-all duration-400"></div>
                     <div class="absolute inset-0 flex items-center justify-center">
@@ -779,7 +780,16 @@
                             <circle cx="124" cy="32" r="10" fill="#0b1220"/>
                         </svg>
                     </div>
-                    <div id="camera-icons" class="relative grid grid-cols-6 gap-2 p-4 pointer-events-none"></div>
+                    <div id="nvr-icon" class="absolute right-6 bottom-6 flex items-center gap-2 text-slate-200 nvr-glow">
+                        <svg width="90" height="44" viewBox="0 0 180 88" fill="#0b1220" xmlns="http://www.w3.org/2000/svg">
+                            <rect x="4" y="16" width="172" height="52" rx="10" stroke="#2DD4FF" stroke-width="3" fill="rgba(45,212,255,0.08)"/>
+                            <circle cx="32" cy="42" r="6" fill="#9EFF00"/>
+                            <circle cx="52" cy="42" r="6" fill="#9EFF00"/>
+                            <rect x="80" y="36" width="70" height="12" rx="4" fill="#2DD4FF"/>
+                        </svg>
+                        <span class="text-xs">NVR</span>
+                    </div>
+                    <div id="camera-icons" class="relative grid grid-cols-6 md:grid-cols-8 gap-2 p-4 pointer-events-none"></div>
                 </div>
 
                 <div class="grid gap-10 lg:grid-cols-2">
@@ -1444,10 +1454,11 @@
 
                 function renderCameras(count) {
                     cameraIconsBox.innerHTML = '';
-                    const iconsToShow = Math.min(count, 12);
+                    const iconsToShow = Math.min(count, 30);
                     for (let i=0;i<iconsToShow;i++){
                         const node = document.createElement('div');
-                        node.innerHTML = `<svg class="camera-icon" width="42" height="26" viewBox="0 0 84 52" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        const small = count > 12;
+                        node.innerHTML = `<svg class="camera-icon" width="${small?32:42}" height="${small?20:26}" viewBox="0 0 84 52" fill="none" xmlns="http://www.w3.org/2000/svg">
                             <rect x="6" y="10" width="58" height="32" rx="8" fill="rgba(255,255,255,0.1)" stroke="#2DD4FF" stroke-width="2"/>
                             <circle cx="35" cy="26" r="8" fill="#0b1220" stroke="#2DD4FF" stroke-width="2"/>
                             <circle cx="35" cy="26" r="3" fill="#9EFF00"/>
@@ -1517,6 +1528,21 @@
                     return { hardware, labor, support, total };
                 }
 
+                function animateTotals(newTotals){
+                    if (window.gsap) {
+                        gsap.to({v: currentTotals.total},{ duration:0.6, v:newTotals.total, onUpdate:function(){ estimateValue.textContent = `$${Math.round(this.targets()[0].v).toLocaleString()}`;}});
+                        gsap.to({v: currentTotals.hardware},{ duration:0.6, v:newTotals.hardware, onUpdate:function(){ hardwareValue.textContent = `$${Math.round(this.targets()[0].v).toLocaleString()}`;}});
+                        gsap.to({v: currentTotals.labor},{ duration:0.6, v:newTotals.labor, onUpdate:function(){ laborValue.textContent = `$${Math.round(this.targets()[0].v).toLocaleString()}`;}});
+                        gsap.to({v: currentTotals.support},{ duration:0.6, v:newTotals.support, onUpdate:function(){ supportValue.textContent = `$${Math.round(this.targets()[0].v).toLocaleString()}`;}});
+                    } else {
+                        estimateValue.textContent = `$${newTotals.total.toLocaleString()}`;
+                        hardwareValue.textContent = `$${newTotals.hardware.toLocaleString()}`;
+                        laborValue.textContent = `$${newTotals.labor.toLocaleString()}`;
+                        supportValue.textContent = `$${newTotals.support.toLocaleString()}`;
+                    }
+                    currentTotals = newTotals;
+                }
+
                 function updateEmailValidity(){
                     const valid = isCorporateEmail(emailInput.value);
                     revealBtn.disabled = !valid;
@@ -1535,6 +1561,11 @@
                             btn.classList.add('btn-pulse');
                             setTimeout(()=>btn.classList.remove('btn-pulse'),220);
                             playClick();
+                            if (!visibleBlock.classList.contains('hidden')) {
+                                const totals = computeTotals();
+                                animateTotals(totals);
+                                renderLines();
+                            }
                         });
                     });
                     renderActive('cameras', String(state.cameras));
