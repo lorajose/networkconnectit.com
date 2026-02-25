@@ -769,8 +769,8 @@
                     <p class="mt-3 text-slate-200">Select cameras, office size, and security level. Enter your email to reveal the tailored estimate.</p>
                 </div>
 
-                <div id="viz-wrapper" class="relative overflow-hidden rounded-3xl border border-white/10 mb-10 heat-medium transition-all duration-500" style="min-height:280px;">
-                    <svg id="viz-lines" class="absolute inset-0 pointer-events-none"></svg>
+                    <div id="viz-wrapper" class="relative overflow-hidden rounded-3xl border border-white/10 mb-10 heat-medium transition-all duration-500" style="min-height:280px;">
+                    <svg id="viz-lines" class="absolute inset-0 pointer-events-none" width="100%" height="100%"></svg>
                     <div id="viz-shield" class="absolute inset-4 rounded-3xl border-2 border-transparent pointer-events-none transition-all duration-400"></div>
                     <div class="absolute inset-0 flex items-center justify-center">
                         <svg id="switch-icon" class="switch-icon" width="120" height="48" viewBox="0 0 160 64" fill="#6b7280" xmlns="http://www.w3.org/2000/svg">
@@ -790,7 +790,7 @@
                         <span class="text-xs">NVR</span>
                     </div>
                     <div id="camera-icons" class="relative grid grid-cols-6 md:grid-cols-8 gap-2 p-4 pointer-events-none"></div>
-                </div>
+                    </div>
 
                 <div class="grid gap-10 lg:grid-cols-2">
                     <!-- Left column: selectors + icons -->
@@ -1507,6 +1507,8 @@
 
                 function renderLines(){
                     vizLines.innerHTML = '';
+                    vizLines.setAttribute('width', vizWrapper.clientWidth);
+                    vizLines.setAttribute('height', vizWrapper.clientHeight);
                     const cams = [...cameraIconsBox.children];
                     const sw = switchIcon.getBoundingClientRect();
                     const wrap = vizWrapper.getBoundingClientRect();
@@ -1603,6 +1605,7 @@
                             renderCameras(state.cameras);
                             renderSwitch(state.security);
                             renderHeat(state.sqft);
+                            renderSelectionSummary();
                             btn.classList.add('btn-pulse');
                             setTimeout(()=>btn.classList.remove('btn-pulse'),220);
                             playClick();
@@ -1619,6 +1622,7 @@
                     renderCameras(state.cameras);
                     renderSwitch(state.security);
                     renderHeat(state.sqft);
+                    renderSelectionSummary();
                 }
 
                 emailInput.addEventListener('input', updateEmailValidity);
@@ -1627,6 +1631,8 @@
                     e.preventDefault();
                     if (!isCorporateEmail(emailInput.value)) return;
                     const totals = computeTotals();
+                    const mats = computeMaterials();
+                    renderSelectionSummary();
                     progressCard.classList.remove('hidden');
                     blurBlock.classList.remove('hidden');
                     visibleBlock.classList.add('hidden');
@@ -1640,7 +1646,7 @@
                         gsap.to({l:currentTotals.labor},{ duration:0.8, l: totals.labor, onUpdate: function(){ laborValue.textContent = `$${Math.round(this.targets()[0].l).toLocaleString()}`; } });
                         gsap.to({s:currentTotals.support},{ duration:0.8, s: totals.support, onUpdate: function(){ supportValue.textContent = `$${Math.round(this.targets()[0].s).toLocaleString()}`; } });
                         currentTotals = totals;
-                        const body = `Email: ${emailInput.value}\nCameras: ${state.cameras}\nSqFt: ${state.sqft}\nSecurity: ${state.security}\nHardware: $${totals.hardware}\nLabor: $${totals.labor}\nMonthly Support: $${totals.support}\nTotal (with support): $${totals.total}`;
+                        const body = `Email: ${emailInput.value}\nCameras: ${state.cameras}\nSqFt: ${state.sqft}\nSecurity: ${state.security}\nHardware: $${totals.hardware}\nLabor: $${totals.labor}\nMonthly Support: $${totals.support}\nTotal (with support): $${totals.total}\nCAT6 boxes: ${mats.boxes} (~${mats.totalFeet} ft)\nRJ45 connectors: ${mats.rj45}\nMounting/patch hardware: ${mats.misc}`;
                         const mailto = `mailto:network@networkconnectit.com?subject=${encodeURIComponent('Preliminary Estimate Request')}&body=${encodeURIComponent(body)}`;
                         window.location.href = mailto;
                     }, 1200);
@@ -1648,6 +1654,7 @@
 
                 initButtons();
                 updateEmailValidity();
+                renderSelectionSummary();
             })();
         </script>
         <script>
