@@ -853,6 +853,9 @@
                             </div>
                             <div id="estimate-visible" class="hidden space-y-2">
                                 <p class="text-4xl font-bold text-white" id="estimate-value">$0</p>
+                                <div class="text-xs text-slate-300 leading-relaxed" id="selection-summary">
+                                    Number of cameras: — | Network security level: — | Office / Warehouse size: —
+                                </div>
                                 <div class="grid grid-cols-3 gap-3 text-sm">
                                     <div class="bg-white/10 rounded-lg p-3">
                                         <p class="text-slate-300">Hardware Est.</p>
@@ -866,6 +869,12 @@
                                         <p class="text-slate-300">Monthly Support Est.</p>
                                         <p class="font-semibold text-white" id="support-value">$0</p>
                                     </div>
+                                </div>
+                                <div class="bg-white/5 rounded-lg p-3 text-xs text-slate-200 space-y-1" id="materials-breakdown">
+                                    <p class="font-semibold text-white">Preliminary materials:</p>
+                                    <p id="mat-cable">CAT6 cable boxes: —</p>
+                                    <p id="mat-rj45">RJ45 connectors: —</p>
+                                    <p id="mat-misc">Misc. mounting/patch hardware: —</p>
                                 </div>
                             </div>
                         </div>
@@ -1415,6 +1424,10 @@
                 const vizLines = document.getElementById('viz-lines');
                 const vizWrapper = document.getElementById('viz-wrapper');
                 const vizShield = document.getElementById('viz-shield');
+                const selectionSummary = document.getElementById('selection-summary');
+                const matCable = document.getElementById('mat-cable');
+                const matRJ45 = document.getElementById('mat-rj45');
+                const matMisc = document.getElementById('mat-misc');
 
                 const sqftFactor = { small: 1, medium: 1.5, large: 2.5, xlarge: 2.5 };
                 const securityAdd = { basic: 0, pro: 1200, elite: 3500 };
@@ -1515,6 +1528,21 @@
                         vizLines.appendChild(line);
                         if (window.gsap) window.gsap.from(line,{duration:0.6, opacity:0, attr:{'stroke-dashoffset':30}});
                     });
+                    // line from switch to NVR
+                    const nvr = document.getElementById('nvr-icon').getBoundingClientRect();
+                    const xN = nvr.left - wrap.left + nvr.width/2;
+                    const yN = nvr.top - wrap.top + nvr.height/2;
+                    const nLine = document.createElementNS('http://www.w3.org/2000/svg','line');
+                    nLine.setAttribute('x1', sw.left - wrap.left + sw.width/2);
+                    nLine.setAttribute('y1', sw.top - wrap.top + sw.height/2);
+                    nLine.setAttribute('x2', xN);
+                    nLine.setAttribute('y2', yN);
+                    nLine.setAttribute('stroke', state.security==='elite' ? '#fbbf24' : '#2DD4FF');
+                    nLine.setAttribute('stroke-width','3');
+                    nLine.setAttribute('stroke-linecap','round');
+                    nLine.setAttribute('stroke-dasharray','10 6');
+                    vizLines.appendChild(nLine);
+                    if (window.gsap) window.gsap.from(nLine,{duration:0.6, opacity:0, attr:{'stroke-dashoffset':40}});
                 }
 
                 function computeTotals(){
@@ -1526,6 +1554,23 @@
                     const support = Math.round(base * 0.10);
                     const total = base + support;
                     return { hardware, labor, support, total };
+                }
+
+                function computeMaterials(){
+                    const footagePerDrop = { small: 120, medium: 180, large: 260, xlarge: 320 }[state.sqft] || 180;
+                    const totalFeet = state.cameras * footagePerDrop;
+                    const boxes = Math.max(1, Math.ceil(totalFeet / 1000));
+                    const rj45 = Math.ceil(state.cameras * 2 * 1.1); // two ends + 10% spare
+                    const misc = Math.ceil(state.cameras * 1.05); // faceplates/patch slots approx.
+                    return { boxes, rj45, misc, totalFeet };
+                }
+
+                function renderSelectionSummary(){
+                    selectionSummary.textContent = `Number of cameras: ${state.cameras} | Network security level: ${state.security} | Office / Warehouse size: ${state.sqft}`;
+                    const mats = computeMaterials();
+                    matCable.textContent = `CAT6 cable boxes: ${mats.boxes} (approx. ${mats.totalFeet.toLocaleString()} ft run)`;
+                    matRJ45.textContent = `RJ45 connectors: ${mats.rj45} pcs (includes 10% spare)`;
+                    matMisc.textContent = `Mounting/patch hardware (faceplates/ports): ${mats.misc} pcs (approx.)`;
                 }
 
                 function animateTotals(newTotals){
@@ -1596,7 +1641,7 @@
                         gsap.to({s:currentTotals.support},{ duration:0.8, s: totals.support, onUpdate: function(){ supportValue.textContent = `$${Math.round(this.targets()[0].s).toLocaleString()}`; } });
                         currentTotals = totals;
                         const body = `Email: ${emailInput.value}\nCameras: ${state.cameras}\nSqFt: ${state.sqft}\nSecurity: ${state.security}\nHardware: $${totals.hardware}\nLabor: $${totals.labor}\nMonthly Support: $${totals.support}\nTotal (with support): $${totals.total}`;
-                        const mailto = `mailto:networkconnectit@gmail.com?subject=${encodeURIComponent('Preliminary Estimate Request')}&body=${encodeURIComponent(body)}`;
+                        const mailto = `mailto:network@networkconnectit.com?subject=${encodeURIComponent('Preliminary Estimate Request')}&body=${encodeURIComponent(body)}`;
                         window.location.href = mailto;
                     }, 1200);
                 });
