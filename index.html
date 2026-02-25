@@ -1161,17 +1161,32 @@
         els.email.addEventListener('input', handleEmailInput);
         els.email.addEventListener('blur', handleEmailInput);
 
-        els.btn.addEventListener('click', (e) => {
-            e.preventDefault();
-            handleEmailInput();
-            if (els.btn.disabled) return;
-            els.progress.classList.remove('hidden');
-            els.btn.textContent = 'Calculating...';
-            els.btn.disabled = true;
-            setTimeout(() => {
-                els.btn.textContent = 'Estimate ready – sending...';
-                const mats = computeMaterials();
-                const totals = computeTotals();
+        async function sendEstimate() {
+            const mats = computeMaterials();
+            const totals = computeTotals();
+            const payload = {
+                email: state.email,
+                cameras: state.cameras,
+                security: els.summarySec.textContent,
+                size: els.summarySize.textContent,
+                materials: mats,
+                totals: {
+                    hardware: formatter.format(totals.hardware),
+                    labor: formatter.format(totals.labor),
+                    support: formatter.format(totals.support),
+                    total: formatter.format(totals.total)
+                },
+                extras: Array.from(state.extras)
+            };
+            try {
+                const res = await fetch('/php/estimate.php', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify(payload)
+                });
+                if (!res.ok) throw new Error('send failed');
+            } catch (err) {
+                // Fallback mailto
                 const body = encodeURIComponent(
 `Preliminary Estimate
 Cameras: ${state.cameras}
@@ -1187,12 +1202,26 @@ Total: ${formatter.format(totals.total)}
 Email: ${state.email}
 Disclaimer: Preliminary; on-site survey required.`);
                 window.location.href = `mailto:network@networkconnectit.com?subject=Preliminary Estimate Request&body=${body}`;
+            }
+        }
+
+        els.btn.addEventListener('click', (e) => {
+            e.preventDefault();
+            handleEmailInput();
+            if (els.btn.disabled) return;
+            els.progress.classList.remove('hidden');
+            els.btn.textContent = 'Calculating...';
+            els.btn.disabled = true;
+            setTimeout(async () => {
+                els.btn.textContent = 'Sending...';
+                await sendEstimate();
+                els.btn.textContent = 'Submitted!';
                 setTimeout(() => {
                     els.btn.textContent = 'Submit to receive my final estimate.';
                     els.btn.disabled = false;
                     els.progress.classList.add('hidden');
-                }, 800);
-            }, 1200);
+                }, 1200);
+            }, 800);
         });
 
         window.addEventListener('resize', () => renderCameras());
