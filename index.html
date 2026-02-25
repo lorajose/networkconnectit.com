@@ -882,7 +882,7 @@
                         <form id="estimate-form" class="mt-6 space-y-3">
                             <label class="block text-sm text-slate-200">Work email</label>
                             <input id="lead-email" type="email" required placeholder="you@company.com" class="w-full rounded-xl bg-white/10 border border-white/30 px-4 py-3 text-white placeholder:text-slate-200 focus:outline-none focus:ring-2 focus:ring-[var(--electric-blue)]">
-                            <button id="reveal-btn" type="submit" class="w-full mt-2 bg-[var(--electric-blue)] text-[var(--night-graphite)] font-semibold rounded-xl py-3 hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Reveal my estimate</button>
+                            <button id="reveal-btn" type="submit" class="w-full mt-2 bg-[var(--electric-blue)] text-[var(--night-graphite)] font-semibold rounded-xl py-3 hover:brightness-110 transition disabled:opacity-50 disabled:cursor-not-allowed" disabled>Submit to receive my final estimate</button>
                         </form>
                         <p class="text-xs text-slate-200 mt-3">This is a preliminary base estimate for hardware and standard installation. A professional on-site survey is mandatory to finalize infrastructure requirements, cable paths, and specialized mounting.</p>
                     </div>
@@ -1434,7 +1434,7 @@
                 const cameraUnit = 475; // mid-point between $350-$600
                 let currentTotals = { hardware:0, labor:0, support:0, total:0 };
 
-                const freeDomains = ['gmail.com','yahoo.com','hotmail.com','outlook.com','live.com','msn.com','icloud.com','aol.com','protonmail.com'];
+                
 
                 function isCorporateEmail(email) {
                     const okFormat = /^[A-Z0-9._%+-]+@[A-Z0-9.-]+\\.[A-Z]{2,}$/i.test(email);
