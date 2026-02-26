@@ -36,12 +36,8 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
         // Configuración del email
         $to = "networkconnectit@gmail.com";
-        $headers = "From: noreply@networkconnectit.com\r\n";
-        $headers .= "Reply-To: " . $email . "\r\n";
-        $headers .= "Content-Type: text/html; charset=UTF-8";
-
-        $email_subject = "New Contact Form Submission: " . $subject;
-        $email_body = "
+        $subjectLine = "New Contact Form Submission: " . $subject;
+        $bodyHtml = "
             <h2>Contact Form Details</h2>
             <p><strong>Name:</strong> $name</p>
             <p><strong>Email:</strong> $email</p>
@@ -51,7 +47,52 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             <p><strong>Message:</strong><br>$message</p>
         ";
 
-        if (mail($to, $email_subject, $email_body, $headers)) {
+        $sent = false;
+        $errorMsg = '';
+
+        // Primer intento: PHPMailer con SMTP
+        $autoload = dirname(__DIR__) . '/vendor/autoload.php';
+        if (file_exists($autoload)) {
+            require_once $autoload;
+            try {
+                $mail = new PHPMailer\PHPMailer\PHPMailer(true);
+                $mail->isSMTP();
+                $mail->Host = 'mail.networkconnectit.com';
+                $mail->SMTPAuth = true;
+                $mail->Username = 'network@networkconnectit.com';
+                $mail->Password = 'CarlosJose2024';
+                $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
+                $mail->Port = 587;
+
+                $mail->setFrom('network@networkconnectit.com', 'NetworkConnectIT');
+                $mail->addAddress($to);
+                $mail->addReplyTo($email ?: 'noreply@networkconnectit.com');
+                $mail->isHTML(true);
+                $mail->Subject = $subjectLine;
+                $mail->Body = $bodyHtml;
+                $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</li>'], "\n", $bodyHtml));
+                $mail->send();
+                $sent = true;
+            } catch (Exception $e) {
+                $errorMsg = $mail->ErrorInfo ?: $e->getMessage();
+                $sent = false;
+            }
+        }
+
+        // Segundo intento: mail() nativo
+        if (!$sent) {
+            $headers = "From: noreply@networkconnectit.com\r\n";
+            $headers .= "Reply-To: " . $email . "\r\n";
+            $headers .= "Content-Type: text/html; charset=UTF-8";
+            $sent = mail($to, $subjectLine, $bodyHtml, $headers);
+            if (!$sent && !$errorMsg) {
+                $errorMsg = 'mail() failed';
+            }
+        }
+
+        @file_put_contents('/tmp/sendmail.log', date('c') . " sent=" . ($sent ? '1' : '0') . " error=" . $errorMsg . "\n", FILE_APPEND);
+
+        if ($sent) {
             header('Location: /success.html');
             exit;
         } else {

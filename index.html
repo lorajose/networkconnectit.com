@@ -7,6 +7,16 @@
     <meta content="width=device-width, initial-scale=1.0" name="viewport">
     <meta content="network security, CCTV, professional installation, Cisco certification, UniFi deployment, preventive maintenance, VLAN segmentation, business continuity" name="keywords">
     <meta content="Professional installation with Cisco-certified engineers, VLAN segmentation, AI CCTV, and preventive maintenance to keep your business network and cameras secure 24/7." name="description">
+    <link rel="canonical" href="https://networkconnectit.com/">
+    <meta property="og:title" content="Professional Network Security & CCTV | Cisco Certified | Preventive Maintenance">
+    <meta property="og:description" content="Cisco & UniFi architectures engineered for uptime: VLAN segmentation, AI CCTV, dual-WAN failover, and 24/7 monitoring to keep your business online.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://networkconnectit.com/">
+    <meta property="og:image" content="https://networkconnectit.com/img/hero-img-1.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Professional Network Security & CCTV | Cisco Certified">
+    <meta name="twitter:description" content="Prevent downtime with Cisco/UniFi networks, AI CCTV, and proactive maintenance.">
+    <meta name="twitter:image" content="https://networkconnectit.com/img/hero-img-1.png">
 
     <!-- Google Web Fonts -->
     <link rel="preconnect" href="https://fonts.googleapis.com">
@@ -1255,6 +1265,14 @@ Disclaimer: Preliminary; on-site survey required.`);
                 const style = d.createElement("style");
                 style.innerHTML = ".crisp-client .cc-bottom { bottom:20px!important; } .crisp-client .cc-right { right:20px!important; }";
                 d.head.appendChild(style);
+                const isMobile = window.matchMedia("(max-width: 768px)").matches;
+                if (window.$crisp) {
+                    // Mantener burbuja en móvil pero cerrar el panel si se abre automáticamente
+                    window.$crisp.push(["do", "chat:close"]);
+                    if (isMobile) {
+                        window.$crisp.push(["config", "hide:on:mobile", false]);
+                    }
+                }
             };
             d.getElementsByTagName("head")[0].appendChild(s);
         })();
