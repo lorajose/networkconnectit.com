@@ -2,6 +2,9 @@
 // Lightweight endpoint to receive the Smart Budget Configurator data
 // and forward it to the ops inbox.
 
+use PHPMailer\PHPMailer\PHPMailer;
+use PHPMailer\PHPMailer\Exception;
+
 // Only accept JSON POST
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
@@ -57,7 +60,40 @@ $body = "<h2>Preliminary Estimate</h2>
 </ul>
 <p><em>Note: Preliminary estimate; on-site survey required for final proposal.</em></p>";
 
-$sent = mail($to, $subject, $body, $headers);
+// Try PHPMailer with SMTP first (if available), then fallback to mail()
+$sent = false;
+
+if (file_exists(__DIR__ . '/vendor/autoload.php')) {
+    require_once __DIR__ . '/vendor/autoload.php';
+    try {
+        $mail = new PHPMailer(true);
+        $mail->isSMTP();
+        $mail->Host = 'mail.networkconnectit.com';
+        $mail->SMTPAuth = true;
+        $mail->Username = 'network@networkconnectit.com';
+        $mail->Password = 'CarlosJose2024';
+        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
+        $mail->Port = 587;
+
+        $mail->setFrom('network@networkconnectit.com', 'NetworkConnectIT');
+        $mail->addAddress($to);
+        $mail->addReplyTo($email);
+        $mail->isHTML(true);
+        $mail->Subject = $subject;
+        $mail->Body = $body;
+        $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</li>'], "\n", $body));
+        $mail->send();
+        $sent = true;
+    } catch (Exception $e) {
+        $sent = false;
+    }
+}
+
+if (!$sent) {
+    $sent = mail($to, $subject, $body, $headers);
+}
+
+header('Content-Type: application/json');
 
 if ($sent) {
     echo json_encode(["status" => "ok"]);

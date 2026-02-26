@@ -850,6 +850,7 @@
                         <div class="text-sm text-slate-300">Calculating network topology... Optimizing bandwidth for AI...</div>
                         <div class="progress-bar"></div>
                     </div>
+                    <div id="statusMsg" class="text-sm text-cyan-200 hidden"></div>
 
                     <div class="space-y-3">
                         <label for="workEmail" class="text-sm font-semibold text-slate-200">Work email</label>
@@ -1185,6 +1186,7 @@
                     body: JSON.stringify(payload)
                 });
                 if (!res.ok) throw new Error('send failed');
+                return true;
             } catch (err) {
                 // Fallback mailto
                 const body = encodeURIComponent(
@@ -1202,6 +1204,7 @@ Total: ${formatter.format(totals.total)}
 Email: ${state.email}
 Disclaimer: Preliminary; on-site survey required.`);
                 window.location.href = `mailto:network@networkconnectit.com?subject=Preliminary Estimate Request&body=${body}`;
+                return false;
             }
         }
 
@@ -1209,13 +1212,19 @@ Disclaimer: Preliminary; on-site survey required.`);
             e.preventDefault();
             handleEmailInput();
             if (els.btn.disabled) return;
+            const status = document.getElementById('statusMsg');
+            if (status) { status.classList.add('hidden'); status.textContent = ''; }
             els.progress.classList.remove('hidden');
             els.btn.textContent = 'Calculating...';
             els.btn.disabled = true;
             setTimeout(async () => {
                 els.btn.textContent = 'Sending...';
-                await sendEstimate();
-                els.btn.textContent = 'Submitted!';
+                const ok = await sendEstimate();
+                els.btn.textContent = ok ? 'Submitted!' : 'Sent via email client';
+                if (status) {
+                    status.textContent = ok ? 'Estimate sent to network@networkconnectit.com.' : 'If mail did not send, please email us directly at network@networkconnectit.com.';
+                    status.classList.remove('hidden');
+                }
                 setTimeout(() => {
                     els.btn.textContent = 'Submit to receive my final estimate.';
                     els.btn.disabled = false;
