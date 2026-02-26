@@ -202,25 +202,26 @@ a:hover {
 }
 
 .header .navbar .nav-link {
-    color: #fff !important;
+    color: #e8eefc !important;
 }
 .header .navbar .nav-link:hover,
 .header .navbar .nav-link.active {
     color: var(--electric-blue) !important;
 }
 .header .navbar {
-    background: rgba(11, 18, 32, 0.95) !important;
+    background: rgba(11, 18, 32, 0.92) !important;
+    backdrop-filter: blur(10px);
     z-index: 1200;
     position: relative;
 }
 .header .navbar .navbar-toggler {
-    border-color: #fff;
+    border-color: rgba(255,255,255,0.6);
 }
 .header .navbar .fa-bars {
     color: #fff;
 }
 .header .navbar-collapse {
-    background: rgba(11, 18, 32, 0.95);
+    background: rgba(11, 18, 32, 0.96);
 }
 .header .dropdown-menu {
     background: #0f172a;
@@ -228,9 +229,60 @@ a:hover {
 .header .dropdown-menu .dropdown-item {
     color: #e5e7eb;
 }
+.header .navbar-nav .nav-link {
+    margin-right: 18px;
+}
+@media (max-width: 991.98px) {
+    .header .navbar-nav .nav-link {
+        padding: 12px 0;
+        color: #e8eefc !important;
+    }
+    .header .navbar-collapse {
+        padding: 10px 16px 16px;
+    }
+}
 .header .dropdown-menu .dropdown-item:hover {
     color: #0f172a;
     background: #2DD4FF;
+}
+.navbar {
+    background: rgba(11, 18, 32, 0.94) !important;
+    backdrop-filter: blur(10px);
+    z-index: 2000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
+}
+.navbar-collapse {
+    background: rgba(11, 18, 32, 0.96);
+    z-index: 2000;
+}
+.navbar-dark .navbar-nav .nav-link {
+    color: #e8eefc !important;
+}
+.navbar-dark .navbar-nav .nav-link:hover,
+.navbar-dark .navbar-nav .nav-link:focus,
+.navbar-dark .navbar-nav .nav-link.active {
+    color: var(--electric-blue) !important;
+}
+.navbar-dark .navbar-toggler {
+    border-color: rgba(255,255,255,0.6);
+}
+.navbar-dark .navbar-toggler .fa-bars,
+.navbar-dark .navbar-toggler-icon {
+    color: #fff;
+}
+.navbar-collapse.show {
+    display: block !important;
+}
+@media (max-width: 991.98px) {
+    .navbar-collapse {
+        padding: 10px 16px 16px;
+    }
+    .navbar-dark .navbar-nav .nav-link {
+        padding: 12px 0;
+    }
 }
 
 .sticky-top.navbar-light .navbar-nav .nav-link {

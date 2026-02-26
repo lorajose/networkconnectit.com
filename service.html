@@ -175,7 +175,7 @@ header a:hover {
 
          <!-- Navbar & Hero Start -->
     <div class="container-fluid header position-relative overflow-hidden p-0 cyber-hero bg-cyber">
-        <nav class="navbar navbar-expand-lg fixed-top navbar-light px-4 px-lg-5 py-3 py-lg-0">
+        <nav class="navbar navbar-expand-lg navbar-dark fixed-top px-4 px-lg-5 py-3 py-lg-0">
             <a href="index.html" class="navbar-brand p-0">
                 <img src="img/NetworkConnectIT Logo.png" alt="Logo">
             </a>
@@ -226,6 +226,241 @@ header a:hover {
     <!-- Navbar & Hero End -->
 
 
+    <!-- Smart Budget Configurator Network Start -->
+    <section class="container py-5" id="smart-budget-network">
+        <div class="bg-slate-900 text-slate-100 rounded-4 p-4 p-md-5 shadow-lg" style="background: linear-gradient(145deg,#0b1220 0%,#13233a 45%,#0b1220 100%); border:1px solid rgba(124,255,79,0.2);">
+            <div class="row g-4">
+                <div class="col-lg-6">
+                    <h2 class="fw-bold mb-2">Smart Budget Configurator Network</h2>
+                    <p class="mb-4 text-slate-300">Simule el montaje profesional de su rack y obtenga un estimado inmediato para la zona Tri-State.</p>
+
+                    <div class="row g-3">
+                        <div class="col-sm-6">
+                            <label class="form-label text-slate-200">Cantidad de Switches (1U-4U)</label>
+                            <input type="range" min="1" max="8" value="3" class="form-range" id="swCount">
+                            <div class="d-flex justify-content-between small text-slate-400">
+                                <span>1</span><span>8</span>
+                            </div>
+                            <div class="mt-1 fw-semibold" id="swCountLabel">3 unidades</div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label text-slate-200">Nivel de desorden</label>
+                            <div class="btn-group w-100" role="group" aria-label="Mess level">
+                                <button class="btn btn-outline-light mess-btn active" data-mess="low">Bajo</button>
+                                <button class="btn btn-outline-light mess-btn" data-mess="medium">Medio</button>
+                                <button class="btn btn-outline-light mess-btn" data-mess="critical">Crítico</button>
+                            </div>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label text-slate-200">Ubicación</label>
+                            <select class="form-select bg-dark text-light border-0" id="location">
+                                <option value="NYC">NYC (recargo 20%)</option>
+                                <option value="NY">NY (metro area)</option>
+                                <option value="NJ">NJ</option>
+                                <option value="CT">CT</option>
+                            </select>
+                        </div>
+                        <div class="col-sm-6">
+                            <label class="form-label text-slate-200">Nombre</label>
+                            <input class="form-control bg-dark text-light border-0" id="clientName" placeholder="Jane Doe">
+                            <label class="form-label mt-2 text-slate-200">Email corporativo</label>
+                            <input class="form-control bg-dark text-light border-0" id="clientEmail" placeholder="you@company.com" type="email">
+                        </div>
+                    </div>
+
+                    <div class="mt-4 p-3 rounded-3" style="background: rgba(12,25,46,0.7); border:1px dashed rgba(124,255,79,0.5);">
+                        <div class="d-flex justify-content-between">
+                            <span class="text-slate-300">Subtotal Field Services</span>
+                            <span id="fsSubtotal" class="fw-bold text-neon">$0</span>
+                        </div>
+                        <div class="d-flex justify-content-between">
+                            <span class="text-slate-300">Recargo ubicación</span>
+                            <span id="locAdj" class="fw-bold text-neon">$0</span>
+                        </div>
+                        <hr class="border border-slate-700">
+                        <div class="d-flex justify-content-between fs-5">
+                            <span class="fw-bold">Estimado total</span>
+                            <span id="fsTotal" class="fw-bold text-neon">$0</span>
+                        </div>
+                        <div class="small text-slate-400 mt-2">Tarifas referencia Tri-State; sujeto a visita técnica y rutas de cable.</div>
+                    </div>
+
+                    <button id="sendQuote" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Enviar Cotización</button>
+                </div>
+
+                <div class="col-lg-6">
+                    <div class="rack-visual position-relative mx-auto">
+                        <div class="rack-frame"></div>
+                        <div class="rack-shelf shelf-top"></div>
+                        <div class="rack-shelf shelf-mid"></div>
+                        <div class="rack-shelf shelf-bottom"></div>
+                        <div class="component patch" id="compPatch">Patch Panel</div>
+                        <div class="component switch" id="compSwitch">Switch Stack</div>
+                        <div class="component cable" id="compCable">Cable Management</div>
+                        <div class="pulse" id="healthPulse"></div>
+                    </div>
+                    <div class="small text-slate-400 mt-2 text-center">Los módulos se deslizan y se “encienden” conforme cambias la configuración.</div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Smart Budget Configurator Network End -->
+
+    <style>
+        #smart-budget-network .rack-visual {
+            width: 260px;
+            height: 360px;
+            background: #0f172a;
+            border: 2px solid #1b3b6f;
+            border-radius: 16px;
+            box-shadow: 0 15px 45px rgba(0,0,0,0.35);
+            overflow: hidden;
+        }
+        #smart-budget-network .rack-frame {
+            position: absolute;
+            inset: 12px;
+            border: 2px solid #2dd4ff;
+            border-radius: 10px;
+        }
+        .rack-shelf {
+            position: absolute;
+            left: 12px; right: 12px;
+            height: 6px;
+            background: #1b3b6f;
+            border-radius: 4px;
+        }
+        .shelf-top { top: 90px; }
+        .shelf-mid { top: 180px; }
+        .shelf-bottom { top: 270px; }
+        .component {
+            position: absolute;
+            left: 28px; right: 28px;
+            height: 42px;
+            border-radius: 8px;
+            color: #e8eefc;
+            font-size: 12px;
+            letter-spacing: .3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            opacity: 0;
+            transform: translateY(40px);
+            transition: transform .6s cubic-bezier(.2,.8,.2,1), opacity .6s;
+        }
+        .component.patch { top: 60px; background: linear-gradient(90deg,#1b3b6f,#274b8a); }
+        .component.switch { top: 150px; background: linear-gradient(90deg,#0f7bf2,#0c5bb8); }
+        .component.cable { top: 240px; background: linear-gradient(90deg,#14b8a6,#0ea5e9); }
+        .component.active { opacity: 1; transform: translateY(0); }
+        .component.active:nth-child(odd) { box-shadow: 0 0 18px rgba(124,255,79,0.35); }
+        .pulse {
+            position: absolute;
+            inset: 0;
+            border-radius: 16px;
+            box-shadow: 0 0 0 0 rgba(124,255,79,0.25);
+            animation: pulse 2.4s infinite;
+        }
+        @keyframes pulse {
+            0%   { box-shadow: 0 0 0 0 rgba(124,255,79,0.3); }
+            70%  { box-shadow: 0 0 0 18px rgba(124,255,79,0); }
+            100% { box-shadow: 0 0 0 0 rgba(124,255,79,0); }
+        }
+        .text-neon { color: #7CFF4F; }
+        #smart-budget-network .btn-outline-light.active {
+            background: #7CFF4F;
+            color: #0b1220;
+            border-color: #7CFF4F;
+        }
+    </style>
+
+    <script>
+    (() => {
+        const swRange = document.getElementById('swCount');
+        const swLabel = document.getElementById('swCountLabel');
+        const messBtns = document.querySelectorAll('.mess-btn');
+        const locationSel = document.getElementById('location');
+        const subtotalEl = document.getElementById('fsSubtotal');
+        const locAdjEl = document.getElementById('locAdj');
+        const totalEl = document.getElementById('fsTotal');
+        const components = [document.getElementById('compPatch'), document.getElementById('compSwitch'), document.getElementById('compCable')];
+        const pulse = document.getElementById('healthPulse');
+        const nameEl = document.getElementById('clientName');
+        const emailEl = document.getElementById('clientEmail');
+        const sendBtn = document.getElementById('sendQuote');
+
+        const rates = {
+            switchUnit: 680, // USD base por switch 1U en Tri-State
+            cleaning: 320     // limpieza / gestión de cableado base
+        };
+        const messMult = { low: 1.0, medium: 1.35, critical: 1.75 };
+        const locMult = { NYC: 1.20, NY: 1.10, NJ: 1.00, CT: 1.00 };
+
+        let messLevel = 'low';
+
+        messBtns.forEach(btn => btn.addEventListener('click', () => {
+            messBtns.forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            messLevel = btn.dataset.mess;
+            animateRack();
+            calc();
+        }));
+
+        swRange.addEventListener('input', () => {
+            swLabel.textContent = `${swRange.value} unidades`;
+            animateRack();
+            calc();
+        });
+
+        locationSel.addEventListener('change', () => { calc(); animateRack(); });
+
+        function calc() {
+            const count = Number(swRange.value);
+            const base = (count * rates.switchUnit) + rates.cleaning;
+            const multiplier = messMult[messLevel] * (locMult[locationSel.value] || 1);
+            const total = base * multiplier;
+            const locAdj = total - base * messMult[messLevel];
+            subtotalEl.textContent = `$${(base * messMult[messLevel]).toFixed(0)}`;
+            locAdjEl.textContent = `$${locAdj.toFixed(0)}`;
+            totalEl.textContent = `$${total.toFixed(0)}`;
+        }
+
+        function animateRack() {
+            components.forEach((c,i) => {
+                setTimeout(() => c.classList.add('active'), i*120);
+            });
+            pulse.style.animation = 'none';
+            void pulse.offsetWidth; // reset
+            pulse.style.animation = 'pulse 2.4s infinite';
+        }
+
+        sendBtn.addEventListener('click', () => {
+            const name = nameEl.value.trim();
+            const email = emailEl.value.trim();
+            if (!name || !email || !email.includes('@')) {
+                alert('Ingresa un nombre y un email corporativo válido.');
+                return;
+            }
+            calc();
+            const bodyLines = [
+                `Nombre: ${name}`,
+                `Email: ${email}`,
+                `Switches (1U-4U): ${swRange.value}`,
+                `Nivel de desorden: ${messLevel}`,
+                `Ubicación: ${locationSel.value}`,
+                `Subtotal Field Services: ${subtotalEl.textContent}`,
+                `Recargo ubicación: ${locAdjEl.textContent}`,
+                `Estimado total: ${totalEl.textContent}`,
+                `Nota: Estimado preliminar sujeto a visita técnica en Tri-State.`
+            ];
+            const subject = encodeURIComponent(`Nueva Solicitud de Estimado Network - ${name}`);
+            const body = encodeURIComponent(bodyLines.join('\\n'));
+            window.location.href = `mailto:networkconnectit@gmail.com?subject=${subject}&body=${body}`;
+        });
+
+        // init
+        animateRack();
+        calc();
+    })();
+    </script>
               <!-- Service Start -->
               <div class="container-fluid service py-5">
                 <div class="container py-5">
