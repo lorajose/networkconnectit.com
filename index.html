@@ -1185,7 +1185,8 @@
                     headers: { 'Content-Type': 'application/json' },
                     body: JSON.stringify(payload)
                 });
-                if (!res.ok) throw new Error('send failed');
+                const data = await res.json();
+                if (!res.ok || data.status !== 'ok') throw new Error(data.message || 'send failed');
                 return true;
             } catch (err) {
                 // Fallback mailto

@@ -62,9 +62,12 @@ $body = "<h2>Preliminary Estimate</h2>
 
 // Try PHPMailer with SMTP first (if available), then fallback to mail()
 $sent = false;
+$errorMsg = '';
 
-if (file_exists(__DIR__ . '/vendor/autoload.php')) {
-    require_once __DIR__ . '/vendor/autoload.php';
+// Load Composer autoload (vendor folder is one level up)
+$autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
+if (file_exists($autoloadPath)) {
+    require_once $autoloadPath;
     try {
         $mail = new PHPMailer(true);
         $mail->isSMTP();
@@ -85,13 +88,20 @@ if (file_exists(__DIR__ . '/vendor/autoload.php')) {
         $mail->send();
         $sent = true;
     } catch (Exception $e) {
+        $errorMsg = $mail->ErrorInfo ?: $e->getMessage();
         $sent = false;
     }
 }
 
 if (!$sent) {
     $sent = mail($to, $subject, $body, $headers);
+    if (!$sent && !$errorMsg) {
+        $errorMsg = 'mail() failed';
+    }
 }
+
+// Optional: write debug log to /tmp (safe path)
+@file_put_contents('/tmp/estimate_mail.log', date('c') . " sent=" . ($sent ? '1' : '0') . " error=" . $errorMsg . "\n", FILE_APPEND);
 
 header('Content-Type: application/json');
 
@@ -99,5 +109,5 @@ if ($sent) {
     echo json_encode(["status" => "ok"]);
 } else {
     http_response_code(500);
-    echo json_encode(["status" => "error", "message" => "Mail failed"]);
+    echo json_encode(["status" => "error", "message" => $errorMsg ?: "Mail failed"]);
 }
