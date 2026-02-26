@@ -31,7 +31,7 @@ if (!$email || $cams <= 0) {
     exit('Missing required fields');
 }
 
-$to = "network@networkconnectit.com";
+$to = "networkconnectit@gmail.com";
 $subject = "Smart Budget Configurator - Preliminary Estimate";
 $headers = "From: noreply@networkconnectit.com\r\n";
 $headers .= "Reply-To: " . $email . "\r\n";

@@ -32,7 +32,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
 
             // Remitente y destinatario
             $mail->setFrom($email, $name);
-            $mail->addAddress('your-email@domain.com');  // Tu correo de recepción
+            $mail->addAddress('networkconnectit@gmail.com');  // Tu correo de recepción
 
             // Contenido del correo
             $mail->isHTML(true);

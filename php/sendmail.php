@@ -35,7 +35,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         }
 
         // Configuración del email
-        $to = "network@networkconnectit.com";
+        $to = "networkconnectit@gmail.com";
         $headers = "From: noreply@networkconnectit.com\r\n";
         $headers .= "Reply-To: " . $email . "\r\n";
         $headers .= "Content-Type: text/html; charset=UTF-8";
@@ -65,4 +65,3 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     }
 }
 ?>
-

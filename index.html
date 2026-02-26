@@ -1204,7 +1204,7 @@ Monthly support: ${formatter.format(totals.support)}
 Total: ${formatter.format(totals.total)}
 Email: ${state.email}
 Disclaimer: Preliminary; on-site survey required.`);
-                window.location.href = `mailto:network@networkconnectit.com?subject=Preliminary Estimate Request&body=${body}`;
+                window.location.href = `mailto:networkconnectit@gmail.com?subject=Preliminary Estimate Request&body=${body}`;
                 return false;
             }
         }
@@ -1223,7 +1223,7 @@ Disclaimer: Preliminary; on-site survey required.`);
                 const ok = await sendEstimate();
                 els.btn.textContent = ok ? 'Submitted!' : 'Sent via email client';
                 if (status) {
-                    status.textContent = ok ? 'Estimate sent to network@networkconnectit.com.' : 'If mail did not send, please email us directly at network@networkconnectit.com.';
+                    status.textContent = ok ? 'Estimate sent to networkconnectit@gmail.com.' : 'If mail did not send, please email us directly at networkconnectit@gmail.com.';
                     status.classList.remove('hidden');
                 }
                 setTimeout(() => {
