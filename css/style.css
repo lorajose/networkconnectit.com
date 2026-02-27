@@ -28,6 +28,10 @@ a:hover {
     background: linear-gradient(135deg, rgba(45, 212, 255, 0.15), rgba(158, 255, 0, 0.08)), radial-gradient(120% 120% at 15% 20%, rgba(45, 212, 255, 0.12), transparent 45%), var(--night-graphite);
 }
 
+.header {
+    overflow: visible !important; /* allow mobile menu to extend */
+}
+
 .glass-card {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(18px);
@@ -283,6 +287,10 @@ a:hover {
 @media (max-width: 991.98px) {
     .navbar-collapse {
         padding: 10px 16px 16px;
+        position: absolute;
+        top: 100%;
+        left: 0;
+        right: 0;
     }
     .navbar-dark .navbar-nav .nav-link {
         padding: 12px 0;

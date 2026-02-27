@@ -472,7 +472,7 @@ header a:hover {
         }));
 
         swRange.addEventListener('input', () => {
-            swLabel.textContent = `${swRange.value} unidades`;
+            swLabel.textContent = `${swRange.value} units`;
             animateRack();
             calc();
         });
@@ -572,9 +572,17 @@ header a:hover {
                 `Total estimate: ${totalEl.textContent}`,
                 `Note: Preliminary estimate; final proposal after on-site survey.`
             ];
-            const subject = encodeURIComponent(`Nueva Solicitud de Estimado Network - ${name}`);
+            const subject = encodeURIComponent(`New Network Estimate Request - ${name}`);
             const body = encodeURIComponent(bodyLines.join('\\n'));
-            window.location.href = `mailto:networkconnectit@gmail.com?subject=${subject}&body=${body}`;
+            const mailtoUrl = `mailto:networkconnectit@gmail.com?subject=${subject}&body=${body}`;
+            // double trigger for mobile reliability
+            window.location.href = mailtoUrl;
+            const tmp = document.createElement('a');
+            tmp.href = mailtoUrl;
+            tmp.style.display = 'none';
+            document.body.appendChild(tmp);
+            tmp.click();
+            document.body.removeChild(tmp);
 
             rackLive.classList.add('submitted');
             setTimeout(()=> rackLive.classList.remove('submitted'), 1200);
