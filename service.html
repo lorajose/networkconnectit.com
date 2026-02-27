@@ -246,9 +246,9 @@ header a:hover {
                         <div class="col-sm-6">
                             <label class="form-label text-slate-200">Cable mess level</label>
                             <div class="btn-group w-100" role="group" aria-label="Mess level">
-                                <button class="btn btn-outline-light mess-btn active" data-mess="low">Low</button>
-                                <button class="btn btn-outline-light mess-btn" data-mess="medium">Medium</button>
-                                <button class="btn btn-outline-light mess-btn" data-mess="critical">Critical</button>
+                                <button type="button" class="btn btn-outline-light mess-btn active" data-mess="low">Low</button>
+                                <button type="button" class="btn btn-outline-light mess-btn" data-mess="medium">Medium</button>
+                                <button type="button" class="btn btn-outline-light mess-btn" data-mess="critical">Critical</button>
                             </div>
                         </div>
                         <div class="col-sm-6">
@@ -481,6 +481,7 @@ header a:hover {
 
         let messLevel = 'low';
         let currentMaterials = {};
+        let currentTotals = { labor: 0, support: 0, total: 0 };
 
         messBtns.forEach(btn => btn.addEventListener('click', () => {
             messBtns.forEach(b => b.classList.remove('active'));
@@ -504,9 +505,17 @@ header a:hover {
             const multiplier = messMult[messLevel] * (locMult[locationSel.value] || 1);
             const total = base * multiplier;
             const locAdj = total - base * messMult[messLevel];
-            subtotalEl.textContent = `$${(base * messMult[messLevel]).toFixed(0)}`;
-            locAdjEl.textContent = `$${locAdj.toFixed(0)}`;
-            totalEl.textContent = `$${total.toFixed(0)}`;
+            const fieldSubtotal = Math.round(base * messMult[messLevel]);
+            const locationUplift = Math.round(locAdj);
+            const totalRounded = Math.round(total);
+            subtotalEl.textContent = `$${fieldSubtotal}`;
+            locAdjEl.textContent = `$${locationUplift}`;
+            totalEl.textContent = `$${totalRounded}`;
+            currentTotals = {
+                labor: fieldSubtotal,
+                support: locationUplift,
+                total: totalRounded
+            };
             currentMaterials = calcMaterials(count, messLevel);
             matBoxesEl.textContent = currentMaterials.boxes;
             matRj45El.textContent = currentMaterials.rj45;
@@ -612,11 +621,15 @@ header a:hover {
                 switches: Number(swRange.value),
                 mess: messLevel,
                 location: locationSel.value,
+                location_label: locationSel.options[locationSel.selectedIndex]?.text || locationSel.value,
                 materials: currentMaterials,
                 totals: {
-                    total: totalEl.textContent,
-                    labor: subtotalEl.textContent,
-                    support: locAdjEl.textContent
+                    total: currentTotals.total,
+                    total_estimate: currentTotals.total,
+                    labor: currentTotals.labor,
+                    field_services_subtotal: currentTotals.labor,
+                    support: currentTotals.support,
+                    location_uplift: currentTotals.support
                 }
             };
 

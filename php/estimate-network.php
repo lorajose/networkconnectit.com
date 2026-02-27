@@ -8,10 +8,61 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     exit('Method Not Allowed');
 }
 
-$payload = json_decode(file_get_contents('php://input'), true);
-if (!$payload) {
+$rawBody = file_get_contents('php://input');
+$payload = json_decode($rawBody, true);
+if (!is_array($payload)) {
+    $payload = $_POST;
+}
+if (!is_array($payload)) {
     http_response_code(400);
-    exit('Invalid JSON');
+    exit('Invalid request payload');
+}
+
+function first_present_value(array $source, array $keys, $default = null) {
+    foreach ($keys as $key) {
+        if (array_key_exists($key, $source) && $source[$key] !== null && $source[$key] !== '') {
+            return $source[$key];
+        }
+    }
+    return $default;
+}
+
+function normalize_mess_level($messLevel) {
+    $mess = strtolower(trim((string)$messLevel));
+    if (!in_array($mess, ['low', 'medium', 'critical'], true)) {
+        return 'low';
+    }
+    return $mess;
+}
+
+function normalize_location_code($location) {
+    $locationCode = strtoupper(trim((string)$location));
+    if (!in_array($locationCode, ['NYC', 'NY', 'NJ', 'CT'], true)) {
+        return 'NYC';
+    }
+    return $locationCode;
+}
+
+function parse_int_value($value) {
+    if (is_int($value)) {
+        return $value;
+    }
+    if (is_float($value) || is_numeric($value)) {
+        return (int)round((float)$value);
+    }
+    if (!is_string($value)) {
+        return null;
+    }
+
+    $digits = preg_replace('/[^0-9-]/', '', $value);
+    if ($digits === '' || $digits === '-') {
+        return null;
+    }
+    return (int)$digits;
+}
+
+function format_usd($amount) {
+    return '$' . number_format((int)round((float)$amount), 0, '.', ',');
 }
 
 function calculate_materials($switchCount, $messLevel) {
@@ -37,31 +88,76 @@ function calculate_materials($switchCount, $messLevel) {
     $patchPanels = max(1, (int)ceil($switchCount / 2));
     $cableManagers = max(2, (int)ceil($switchCount / 2));
     $patchCords = $activeDrops;
-    $keystones = $activeDrops;
-    $labels = $activeDrops;
-    $velcroRolls = max(1, (int)ceil($activeDrops / 80));
 
     return [
         'boxes' => $cat6Boxes,
         'rj45' => $rj45,
         'patch_panels' => $patchPanels,
         'cable_managers' => $cableManagers,
-        'patch_cords' => $patchCords,
-        'keystones' => $keystones,
-        'labels' => $labels,
-        'velcro_rolls' => $velcroRolls,
-        'misc' => "Patch panels: {$patchPanels}, cable managers: {$cableManagers}, patch cords: {$patchCords}, keystones: {$keystones}, labels: {$labels}, velcro rolls: {$velcroRolls}"
+        'patch_cords' => $patchCords
     ];
 }
 
-$name      = trim($payload['name'] ?? '');
-$email     = filter_var($payload['email'] ?? '', FILTER_VALIDATE_EMAIL);
-$switches  = intval($payload['switches'] ?? 0);
-$messLevelRaw = (string)($payload['mess'] ?? $payload['security'] ?? 'low');
-$messLevel = htmlspecialchars($messLevelRaw);
-$location  = htmlspecialchars((string)($payload['location'] ?? ''));
-$totals    = $payload['totals'] ?? [];
-$materials = calculate_materials($switches, $messLevelRaw);
+function calculate_totals($switchCount, $messLevel, $locationCode) {
+    $switchUnit = 680;
+    $cleaning = 320;
+    $messMult = ['low' => 1.0, 'medium' => 1.35, 'critical' => 1.75];
+    $locMult = ['NYC' => 1.20, 'NY' => 1.10, 'NJ' => 1.00, 'CT' => 1.00];
+
+    $mess = normalize_mess_level($messLevel);
+    $location = normalize_location_code($locationCode);
+    $base = ($switchCount * $switchUnit) + $cleaning;
+    $fieldServices = $base * $messMult[$mess];
+    $total = $fieldServices * $locMult[$location];
+    $uplift = $total - $fieldServices;
+
+    return [
+        'labor' => (int)round($fieldServices),
+        'support' => (int)round($uplift),
+        'total' => (int)round($total)
+    ];
+}
+
+$name = trim((string)first_present_value($payload, ['name', 'full_name'], ''));
+$email = filter_var(trim((string)first_present_value($payload, ['email', 'work_email'], '')), FILTER_VALIDATE_EMAIL);
+$switches = max(0, (int)first_present_value($payload, ['switches', 'switch_count', 'number_of_switches'], 0));
+$messLevelRaw = (string)first_present_value($payload, ['mess', 'messLevel', 'cable_mess_level', 'security'], 'low');
+$messLevel = normalize_mess_level($messLevelRaw);
+$locationCodeRaw = (string)first_present_value($payload, ['location', 'location_code', 'size'], 'NYC');
+$locationCode = normalize_location_code($locationCodeRaw);
+$locationLabel = trim((string)first_present_value($payload, ['location_label', 'locationLabel'], ''));
+
+$locationMap = [
+    'NYC' => 'NYC (20% logistics/parking uplift)',
+    'NY' => 'NY (metro)',
+    'NJ' => 'NJ',
+    'CT' => 'CT'
+];
+$locationDisplay = $locationLabel !== '' ? $locationLabel : ($locationMap[$locationCode] ?? $locationCode);
+
+$materialsCalculated = calculate_materials($switches, $messLevel);
+$incomingMaterials = $payload['materials'] ?? [];
+if (!is_array($incomingMaterials)) {
+    $incomingMaterials = [];
+}
+
+$materials = $materialsCalculated;
+$materialKeyMap = [
+    'boxes' => ['boxes', 'cat6_boxes', 'cat6Boxes'],
+    'rj45' => ['rj45', 'rj_45', 'rj45_connectors', 'rj45Connectors'],
+    'patch_panels' => ['patch_panels', 'patchPanels'],
+    'cable_managers' => ['cable_managers', 'cableManagers'],
+    'patch_cords' => ['patch_cords', 'patchCords']
+];
+foreach ($materialKeyMap as $normalizedKey => $aliases) {
+    $candidate = first_present_value($incomingMaterials, $aliases, null);
+    $parsed = parse_int_value($candidate);
+    if ($parsed !== null && $parsed > 0) {
+        $materials[$normalizedKey] = $parsed;
+    }
+}
+
+$totalsCalculated = calculate_totals($switches, $messLevel, $locationCode);
 
 if (!$email || $switches <= 0) {
     http_response_code(400);
@@ -76,10 +172,10 @@ $headers .= "Content-Type: text/html; charset=UTF-8";
 
 $body = "<h2>Network Rack Preliminary Estimate</h2>
 <p><strong>Name:</strong> " . htmlspecialchars($name ?: 'N/A') . "</p>
-<p><strong>Email:</strong> {$email}</p>
-<p><strong>Switch count (1U-4U):</strong> {$switches}</p>
-<p><strong>Cable mess level:</strong> {$messLevel}</p>
-<p><strong>Location:</strong> {$location}</p>
+<p><strong>Email:</strong> " . htmlspecialchars($email) . "</p>
+<p><strong>Number of Switches (1U-4U each):</strong> {$switches}</p>
+<p><strong>Cable mess level:</strong> " . htmlspecialchars(ucfirst($messLevel)) . "</p>
+<p><strong>Location:</strong> " . htmlspecialchars($locationDisplay) . "</p>
 <h3>Materials</h3>
 <ul>
   <li>Cat6 boxes: " . htmlspecialchars($materials['boxes'] ?? '-') . "</li>
@@ -87,18 +183,14 @@ $body = "<h2>Network Rack Preliminary Estimate</h2>
   <li>Patch panels: " . htmlspecialchars($materials['patch_panels'] ?? '-') . "</li>
   <li>Cable managers: " . htmlspecialchars($materials['cable_managers'] ?? '-') . "</li>
   <li>Patch cords: " . htmlspecialchars($materials['patch_cords'] ?? '-') . "</li>
-  <li>Keystone jacks: " . htmlspecialchars($materials['keystones'] ?? '-') . "</li>
-  <li>Cable labels: " . htmlspecialchars($materials['labels'] ?? '-') . "</li>
-  <li>Velcro rolls: " . htmlspecialchars($materials['velcro_rolls'] ?? '-') . "</li>
-  <li>Misc parts summary: " . htmlspecialchars($materials['misc'] ?? '-') . "</li>
 </ul>
 <h3>Totals (USD)</h3>
 <ul>
-  <li>Labor/Field services: " . htmlspecialchars($totals['labor'] ?? '-') . "</li>
-  <li>Location uplift: " . htmlspecialchars($totals['support'] ?? '-') . "</li>
-  <li>Total estimate: " . htmlspecialchars($totals['total'] ?? $totals['total_estimate'] ?? '-') . "</li>
+  <li>Field services subtotal: " . format_usd($totalsCalculated['labor']) . "</li>
+  <li>Location uplift: " . format_usd($totalsCalculated['support']) . "</li>
+  <li>Total estimate: " . format_usd($totalsCalculated['total']) . "</li>
 </ul>
-<p><em>Note: Preliminary estimate; final proposal requires on-site survey for cabling paths and mounting.</em></p>";
+<p><em>Preliminary only. Final proposal follows on-site survey and cabling path review.</em></p>";
 
 $sent = false;
 $errorMsg = '';
@@ -141,7 +233,15 @@ if (!$sent) {
 
 header('Content-Type: application/json');
 if ($sent) {
-    echo json_encode(["status" => "ok", "materials" => $materials]);
+    echo json_encode([
+        "status" => "ok",
+        "materials" => $materials,
+        "totals" => [
+            "labor" => format_usd($totalsCalculated['labor']),
+            "support" => format_usd($totalsCalculated['support']),
+            "total" => format_usd($totalsCalculated['total'])
+        ]
+    ]);
 } else {
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => $errorMsg ?: "Mail failed"]);
