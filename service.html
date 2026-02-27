@@ -565,7 +565,8 @@ header a:hover {
                 return;
             }
             sendBtn.disabled = true;
-            sendStatus.textContent = 'Opening your email app...';
+            sendBtn.textContent = 'Sending...';
+            sendStatus.textContent = 'Sending your estimate securely...';
             calc();
             const bodyLines = [
                 `Name: ${name}`,
@@ -578,19 +579,41 @@ header a:hover {
                 `Total estimate: ${totalEl.textContent}`,
                 `Note: Preliminary estimate; final proposal after on-site survey.`
             ];
-            const subject = encodeURIComponent(`New Network Estimate Request - ${name}`);
-            const body = encodeURIComponent(bodyLines.join('\\n'));
-            const mailtoUrl = `mailto:networkconnectit@gmail.com?subject=${subject}&body=${body}`;
-            mailtoLink.setAttribute('href', mailtoUrl);
-            // trigger within same user gesture
-            mailtoLink.click();
+            const payload = {
+                email,
+                cameras: Number(swRange.value),           // reuse endpoint field
+                security: messLevel,
+                size: locationSel.value,
+                materials: {},
+                totals: {
+                    total: totalEl.textContent,
+                    labor: subtotalEl.textContent,
+                    support: locAdjEl.textContent
+                },
+                extras: [`Name: ${name}`]
+            };
+
+            fetch('/php/estimate.php', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify(payload)
+            }).then(async res => {
+                const data = await res.json().catch(()=>({}));
+                if (res.ok && data.status === 'ok') {
+                    sendStatus.textContent = 'Estimate sent to networkconnectit@gmail.com. We will reply shortly.';
+                } else {
+                    throw new Error(data.message || 'Failed to send. Please try again.');
+                }
+            }).catch(err => {
+                console.error(err);
+                sendStatus.textContent = 'Could not send automatically. Please email us at networkconnectit@gmail.com.';
+            }).finally(() => {
+                sendBtn.disabled = false;
+                sendBtn.textContent = 'Send Quote';
+            });
 
             rackLive.classList.add('submitted');
             setTimeout(()=> rackLive.classList.remove('submitted'), 1200);
-            setTimeout(()=> {
-                sendBtn.disabled = false;
-                sendStatus.textContent = 'If your email app did not open, please try again or copy this address: networkconnectit@gmail.com';
-            }, 2500);
         });
 
         // init

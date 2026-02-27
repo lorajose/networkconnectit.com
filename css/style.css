@@ -37,8 +37,14 @@ a:hover {
     background: rgba(11, 18, 32, 0.98) !important;
     box-shadow: 0 6px 20px rgba(0,0,0,0.35);
     pointer-events: auto !important;
+    width: 100%;
+    left: 0;
+    right: 0;
 }
 .navbar * { pointer-events: auto; }
+.navbar.fixed-top {
+    position: fixed;
+}
 .glass-card {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(18px);
@@ -222,8 +228,10 @@ a:hover {
     color: var(--electric-blue) !important;
 }
 .navbar .nav-link {
-    color: #f8fafc !important;
+    color: #ffffff !important;
     text-shadow: 0 0 8px rgba(0,0,0,0.4);
+    padding: 0.75rem 1.1rem;
+    font-weight: 600;
 }
 .navbar .nav-link:hover,
 .navbar .nav-link:focus,
