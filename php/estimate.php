@@ -17,16 +17,17 @@ if (!$payload) {
     exit('Invalid JSON');
 }
 
-// Extract fields
-$email   = filter_var($payload['email'] ?? '', FILTER_VALIDATE_EMAIL);
-$cams    = intval($payload['cameras'] ?? 0);
-$security = htmlspecialchars($payload['security'] ?? '');
-$size     = htmlspecialchars($payload['size'] ?? '');
+// Extract fields (support both camera-based and switch-based forms)
+$email    = filter_var($payload['email'] ?? '', FILTER_VALIDATE_EMAIL);
+$name     = trim($payload['name'] ?? '');
+$switches = intval($payload['switches'] ?? ($payload['cameras'] ?? 0));
+$mess     = htmlspecialchars($payload['security'] ?? $payload['mess'] ?? '');
+$location = htmlspecialchars($payload['size'] ?? $payload['location'] ?? '');
 $materials = $payload['materials'] ?? [];
 $totals    = $payload['totals'] ?? [];
 $extras    = $payload['extras'] ?? [];
 
-if (!$email || $cams <= 0) {
+if (!$email || $switches <= 0) {
     http_response_code(400);
     exit('Missing required fields');
 }
@@ -40,10 +41,11 @@ $headers .= "Content-Type: text/html; charset=UTF-8";
 $extrasList = !empty($extras) ? implode(', ', array_map('htmlspecialchars', $extras)) : 'None';
 
 $body = "<h2>Preliminary Estimate</h2>
+<p><strong>Name:</strong> " . htmlspecialchars($name ?: 'N/A') . "</p>
 <p><strong>Email:</strong> {$email}</p>
-<p><strong>Cameras:</strong> {$cams}</p>
-<p><strong>Security level:</strong> {$security}</p>
-<p><strong>Size:</strong> {$size}</p>
+<p><strong>Switches / Cameras:</strong> {$switches}</p>
+<p><strong>Mess / Security level:</strong> {$mess}</p>
+<p><strong>Location / Size:</strong> {$location}</p>
 <p><strong>Extras:</strong> {$extrasList}</p>
 <h3>Materials</h3>
 <ul>
@@ -56,7 +58,7 @@ $body = "<h2>Preliminary Estimate</h2>
   <li>Hardware: " . htmlspecialchars($totals['hardware'] ?? '-') . "</li>
   <li>Labor: " . htmlspecialchars($totals['labor'] ?? '-') . "</li>
   <li>Monthly support: " . htmlspecialchars($totals['support'] ?? '-') . "</li>
-  <li>Total: " . htmlspecialchars($totals['total'] ?? '-') . "</li>
+  <li>Total: " . htmlspecialchars($totals['total'] ?? $totals['total_estimate'] ?? '-') . "</li>
 </ul>
 <p><em>Note: Preliminary estimate; on-site survey required for final proposal.</em></p>";
 
