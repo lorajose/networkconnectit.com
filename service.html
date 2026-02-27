@@ -231,75 +231,93 @@ header a:hover {
         <div class="bg-slate-900 text-slate-100 rounded-4 p-4 p-md-5 shadow-lg" style="background: linear-gradient(145deg,#0b1220 0%,#13233a 45%,#0b1220 100%); border:1px solid rgba(124,255,79,0.2);">
             <div class="row g-4">
                 <div class="col-lg-6">
-                    <h2 class="fw-bold mb-2">Smart Budget Configurator Network</h2>
-                    <p class="mb-4 text-slate-300">Simule el montaje profesional de su rack y obtenga un estimado inmediato para la zona Tri-State.</p>
+                    <h2 class="fw-bold mb-2">Smart Budget Configurator · Network</h2>
+                    <p class="mb-4 text-slate-300">Preview the rack build, cleaning effort, and field-service estimate for Tri-State (NY/NYC/NJ/CT).</p>
 
                     <div class="row g-3">
                         <div class="col-sm-6">
-                            <label class="form-label text-slate-200">Cantidad de Switches (1U-4U)</label>
+                            <label class="form-label text-slate-200">Number of Switches (1U–4U each)</label>
                             <input type="range" min="1" max="8" value="3" class="form-range" id="swCount">
                             <div class="d-flex justify-content-between small text-slate-400">
                                 <span>1</span><span>8</span>
                             </div>
-                            <div class="mt-1 fw-semibold" id="swCountLabel">3 unidades</div>
+                            <div class="mt-1 fw-semibold" id="swCountLabel">3 units</div>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label text-slate-200">Nivel de desorden</label>
+                            <label class="form-label text-slate-200">Cable mess level</label>
                             <div class="btn-group w-100" role="group" aria-label="Mess level">
-                                <button class="btn btn-outline-light mess-btn active" data-mess="low">Bajo</button>
-                                <button class="btn btn-outline-light mess-btn" data-mess="medium">Medio</button>
-                                <button class="btn btn-outline-light mess-btn" data-mess="critical">Crítico</button>
+                                <button class="btn btn-outline-light mess-btn active" data-mess="low">Low</button>
+                                <button class="btn btn-outline-light mess-btn" data-mess="medium">Medium</button>
+                                <button class="btn btn-outline-light mess-btn" data-mess="critical">Critical</button>
                             </div>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label text-slate-200">Ubicación</label>
+                            <label class="form-label text-slate-200">Location</label>
                             <select class="form-select bg-dark text-light border-0" id="location">
-                                <option value="NYC">NYC (recargo 20%)</option>
-                                <option value="NY">NY (metro area)</option>
+                                <option value="NYC">NYC (20% logistics/parking uplift)</option>
+                                <option value="NY">NY (metro)</option>
                                 <option value="NJ">NJ</option>
                                 <option value="CT">CT</option>
                             </select>
                         </div>
                         <div class="col-sm-6">
-                            <label class="form-label text-slate-200">Nombre</label>
+                            <label class="form-label text-slate-200">Name</label>
                             <input class="form-control bg-dark text-light border-0" id="clientName" placeholder="Jane Doe">
-                            <label class="form-label mt-2 text-slate-200">Email corporativo</label>
+                            <label class="form-label mt-2 text-slate-200">Work email</label>
                             <input class="form-control bg-dark text-light border-0" id="clientEmail" placeholder="you@company.com" type="email">
                         </div>
                     </div>
 
                     <div class="mt-4 p-3 rounded-3" style="background: rgba(12,25,46,0.7); border:1px dashed rgba(124,255,79,0.5);">
                         <div class="d-flex justify-content-between">
-                            <span class="text-slate-300">Subtotal Field Services</span>
+                            <span class="text-slate-300">Field services subtotal</span>
                             <span id="fsSubtotal" class="fw-bold text-neon">$0</span>
                         </div>
                         <div class="d-flex justify-content-between">
-                            <span class="text-slate-300">Recargo ubicación</span>
+                            <span class="text-slate-300">Location uplift</span>
                             <span id="locAdj" class="fw-bold text-neon">$0</span>
                         </div>
                         <hr class="border border-slate-700">
                         <div class="d-flex justify-content-between fs-5">
-                            <span class="fw-bold">Estimado total</span>
+                            <span class="fw-bold">Total estimate</span>
                             <span id="fsTotal" class="fw-bold text-neon">$0</span>
                         </div>
-                        <div class="small text-slate-400 mt-2">Tarifas referencia Tri-State; sujeto a visita técnica y rutas de cable.</div>
+                        <div class="small text-slate-400 mt-2">Preliminary only. Final proposal follows on-site survey and cabling path review.</div>
                     </div>
 
-                    <button id="sendQuote" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Enviar Cotización</button>
+                    <button id="sendQuote" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Send Quote</button>
                 </div>
 
                 <div class="col-lg-6">
-                    <div class="rack-visual position-relative mx-auto">
-                        <div class="rack-frame"></div>
-                        <div class="rack-shelf shelf-top"></div>
-                        <div class="rack-shelf shelf-mid"></div>
-                        <div class="rack-shelf shelf-bottom"></div>
-                        <div class="component patch" id="compPatch">Patch Panel</div>
-                        <div class="component switch" id="compSwitch">Switch Stack</div>
-                        <div class="component cable" id="compCable">Cable Management</div>
-                        <div class="pulse" id="healthPulse"></div>
+                    <div class="row g-3">
+                        <div class="col-md-6 text-center">
+                            <div class="rack-visual position-relative mx-auto live-rack" id="rackLive">
+                                <div class="rack-frame"></div>
+                                <div class="rack-shelf shelf-top"></div>
+                                <div class="rack-shelf shelf-mid"></div>
+                                <div class="rack-shelf shelf-bottom"></div>
+                                <div class="component patch active">Patch Panel</div>
+                                <div class="switch-stack" id="switchStackLive"></div>
+                                <div class="component cable active">Cable Manager</div>
+                                <div class="wires wire-live"></div>
+                                <div class="pulse" id="healthPulse"></div>
+                            </div>
+                            <div class="small text-slate-400 mt-2">Live selection</div>
+                        </div>
+                        <div class="col-md-6 text-center">
+                            <div class="rack-visual position-relative mx-auto clean-rack" id="rackClean">
+                                <div class="rack-frame"></div>
+                                <div class="rack-shelf shelf-top"></div>
+                                <div class="rack-shelf shelf-mid"></div>
+                                <div class="rack-shelf shelf-bottom"></div>
+                                <div class="component patch active">Patch Panel</div>
+                                <div class="switch-stack" id="switchStackClean"></div>
+                                <div class="component cable active">Cable Manager</div>
+                                <div class="wires wire-clean tidy"></div>
+                            </div>
+                            <div class="small text-slate-400 mt-2">After cleanup (organized)</div>
+                        </div>
                     </div>
-                    <div class="small text-slate-400 mt-2 text-center">Los módulos se deslizan y se “encienden” conforme cambias la configuración.</div>
                 </div>
             </div>
         </div>
@@ -352,6 +370,29 @@ header a:hover {
         .component.cable { top: 240px; background: linear-gradient(90deg,#14b8a6,#0ea5e9); }
         .component.active { opacity: 1; transform: translateY(0); }
         .component.active:nth-child(odd) { box-shadow: 0 0 18px rgba(124,255,79,0.35); }
+        .switch-stack {
+            position: absolute;
+            top: 120px;
+            left: 28px; right: 28px;
+            display: grid;
+            grid-template-columns: 1fr;
+            gap: 8px;
+            justify-items: stretch;
+        }
+        .switch-unit {
+            height: 26px;
+            border-radius: 6px;
+            background: linear-gradient(90deg,#0f7bf2,#0c5bb8);
+            box-shadow: 0 6px 14px rgba(0,0,0,0.28);
+            border: 1px solid rgba(124,255,79,0.25);
+            opacity: 0;
+            transform: translateY(16px);
+            transition: opacity .45s ease, transform .45s ease;
+        }
+        .switch-unit.show {
+            opacity: 1;
+            transform: translateY(0);
+        }
         .pulse {
             position: absolute;
             inset: 0;
@@ -364,6 +405,25 @@ header a:hover {
             70%  { box-shadow: 0 0 0 18px rgba(124,255,79,0); }
             100% { box-shadow: 0 0 0 0 rgba(124,255,79,0); }
         }
+        .wires {
+            position: absolute;
+            inset: 12px;
+            pointer-events: none;
+        }
+        .wire-line {
+            position: absolute;
+            height: 2px;
+            background: linear-gradient(90deg,#2dd4ff,#7CFF4F);
+            opacity: 0.7;
+            border-radius: 2px;
+            transition: transform .6s ease, opacity .4s ease;
+        }
+        .wire-line:nth-child(odd) { background: linear-gradient(90deg,#14b8a6,#2dd4ff); }
+        .wire-line.mess-medium { transform: skewX(8deg) translateY(2px); }
+        .wire-line.mess-critical { transform: skewX(14deg) translateY(6px) rotate(-2deg); opacity: 0.9; }
+        .live-rack.mess-medium .wire-line { transform: skewX(8deg) translateY(2px); }
+        .live-rack.mess-critical .wire-line { transform: skewX(14deg) translateY(6px) rotate(-2deg); opacity: 0.9; }
+        .wire-clean .wire-line { transform: translateY(0) skewX(0); opacity: 0.8; }
         .text-neon { color: #7CFF4F; }
         #smart-budget-network .btn-outline-light.active {
             background: #7CFF4F;
@@ -381,11 +441,13 @@ header a:hover {
         const subtotalEl = document.getElementById('fsSubtotal');
         const locAdjEl = document.getElementById('locAdj');
         const totalEl = document.getElementById('fsTotal');
-        const components = [document.getElementById('compPatch'), document.getElementById('compSwitch'), document.getElementById('compCable')];
         const pulse = document.getElementById('healthPulse');
         const nameEl = document.getElementById('clientName');
         const emailEl = document.getElementById('clientEmail');
         const sendBtn = document.getElementById('sendQuote');
+        const switchStackLive = document.getElementById('switchStackLive');
+        const switchStackClean = document.getElementById('switchStackClean');
+        const rackLive = document.getElementById('rackLive');
 
         const rates = {
             switchUnit: 680, // USD base por switch 1U en Tri-State
@@ -423,10 +485,45 @@ header a:hover {
             totalEl.textContent = `$${total.toFixed(0)}`;
         }
 
-        function animateRack() {
-            components.forEach((c,i) => {
-                setTimeout(() => c.classList.add('active'), i*120);
+        function renderSwitches(count) {
+            [switchStackLive, switchStackClean].forEach(stack => {
+                stack.innerHTML = '';
+                for (let i=0; i<count; i++) {
+                    const unit = document.createElement('div');
+                    unit.className = 'switch-unit';
+                    setTimeout(()=> unit.classList.add('show'), 80*i);
+                    stack.appendChild(unit);
+                }
             });
+        }
+
+        function renderWires() {
+            const makeWires = (target, tidy=false) => {
+                target.innerHTML = '';
+                const wires = Math.max(3, Number(swRange.value));
+                for (let i=0;i<wires;i++) {
+                    const line = document.createElement('div');
+                    line.className = 'wire-line';
+                    const y = 40 + i*12;
+                    line.style.top = `${y}px`;
+                    line.style.left = `${12 + (i%2)*6}px`;
+                    line.style.right = `${12 + ((i+1)%2)*6}px`;
+                    if (!tidy) {
+                        if (messLevel === 'medium') line.classList.add('mess-medium');
+                        if (messLevel === 'critical') line.classList.add('mess-critical');
+                    }
+                    target.appendChild(line);
+                }
+            };
+            makeWires(document.querySelector('.wire-live'));
+            makeWires(document.querySelector('.wire-clean'), true);
+        }
+
+        function animateRack() {
+            renderSwitches(Number(swRange.value));
+            renderWires();
+            rackLive.classList.remove('mess-low','mess-medium','mess-critical');
+            rackLive.classList.add(`mess-${messLevel}`);
             pulse.style.animation = 'none';
             void pulse.offsetWidth; // reset
             pulse.style.animation = 'pulse 2.4s infinite';
@@ -441,19 +538,22 @@ header a:hover {
             }
             calc();
             const bodyLines = [
-                `Nombre: ${name}`,
+                `Name: ${name}`,
                 `Email: ${email}`,
                 `Switches (1U-4U): ${swRange.value}`,
-                `Nivel de desorden: ${messLevel}`,
-                `Ubicación: ${locationSel.value}`,
-                `Subtotal Field Services: ${subtotalEl.textContent}`,
-                `Recargo ubicación: ${locAdjEl.textContent}`,
-                `Estimado total: ${totalEl.textContent}`,
-                `Nota: Estimado preliminar sujeto a visita técnica en Tri-State.`
+                `Cable mess level: ${messLevel}`,
+                `Location: ${locationSel.value}`,
+                `Field services subtotal: ${subtotalEl.textContent}`,
+                `Location uplift: ${locAdjEl.textContent}`,
+                `Total estimate: ${totalEl.textContent}`,
+                `Note: Preliminary estimate; final proposal after on-site survey.`
             ];
             const subject = encodeURIComponent(`Nueva Solicitud de Estimado Network - ${name}`);
             const body = encodeURIComponent(bodyLines.join('\\n'));
             window.location.href = `mailto:networkconnectit@gmail.com?subject=${subject}&body=${body}`;
+
+            rackLive.classList.add('submitted');
+            setTimeout(()=> rackLive.classList.remove('submitted'), 1200);
         });
 
         // init

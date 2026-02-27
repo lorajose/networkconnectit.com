@@ -211,8 +211,11 @@ a:hover {
 .header .navbar {
     background: rgba(11, 18, 32, 0.92) !important;
     backdrop-filter: blur(10px);
-    z-index: 1200;
-    position: relative;
+    z-index: 2000;
+    position: fixed;
+    top: 0;
+    left: 0;
+    right: 0;
 }
 .header .navbar .navbar-toggler {
     border-color: rgba(255,255,255,0.6);
