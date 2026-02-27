@@ -580,20 +580,20 @@ header a:hover {
                 `Note: Preliminary estimate; final proposal after on-site survey.`
             ];
             const payload = {
+                name,
                 email,
-                cameras: Number(swRange.value),           // reuse endpoint field
-                security: messLevel,
-                size: locationSel.value,
+                switches: Number(swRange.value),
+                mess: messLevel,
+                location: locationSel.value,
                 materials: {},
                 totals: {
                     total: totalEl.textContent,
                     labor: subtotalEl.textContent,
                     support: locAdjEl.textContent
-                },
-                extras: [`Name: ${name}`]
+                }
             };
 
-            fetch('/php/estimate.php', {
+            fetch('/php/estimate-network.php', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
                 body: JSON.stringify(payload)

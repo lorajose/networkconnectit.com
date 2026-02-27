@@ -13,7 +13,6 @@
 body {
     background: radial-gradient(120% 120% at 20% 20%, #111933 0%, #0B1020 50%, #070910 100%);
     color: var(--mist-gray);
-    padding-top: 86px; /* keep fixed navbar clear of content */
 }
 
 a {
@@ -31,21 +30,12 @@ a:hover {
 .header {
     overflow: visible !important; /* allow mobile menu to extend */
     position: relative;
-    z-index: 1;
 }
 
 .navbar {
-    z-index: 9999;
-    background: rgba(11, 18, 32, 0.98) !important;
+    background: rgba(11, 18, 32, 0.95) !important;
     box-shadow: 0 6px 20px rgba(0,0,0,0.35);
-    pointer-events: auto !important;
-    width: 100%;
-    left: 0;
-    right: 0;
-    position: fixed;
-    top: 0;
 }
-.navbar * { pointer-events: auto; }
 .glass-card {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(18px);
@@ -71,7 +61,6 @@ a:hover {
     overflow: hidden;
     background: radial-gradient(140% 140% at 30% 10%, rgba(45, 212, 255, 0.18), rgba(15, 23, 42, 0.95)), linear-gradient(180deg, rgba(11, 16, 32, 0.7), rgba(11, 16, 32, 1));
     padding-top: 120px;
-    z-index: 0;
 }
 
 .network-canvas {
@@ -82,7 +71,6 @@ a:hover {
     pointer-events: none;
     mix-blend-mode: screen;
     opacity: 0.8;
-    z-index: 0;
 }
 
 .section-divider {
@@ -233,16 +221,12 @@ a:hover {
 .navbar .nav-link {
     color: #ffffff !important;
     text-shadow: 0 0 8px rgba(0,0,0,0.4);
-    padding: 0.75rem 1.1rem;
-    font-weight: 600;
-    display: inline-block;
 }
 .navbar .nav-link:hover,
 .navbar .nav-link:focus,
 .navbar .nav-link.active {
     color: var(--electric-blue) !important;
 }
-.navbar-brand img { max-height: 48px; }
 .header .navbar {
     background: rgba(11, 18, 32, 0.92) !important;
     backdrop-filter: blur(10px);
