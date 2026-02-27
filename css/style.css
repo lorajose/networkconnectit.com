@@ -13,6 +13,7 @@
 body {
     background: radial-gradient(120% 120% at 20% 20%, #111933 0%, #0B1020 50%, #070910 100%);
     color: var(--mist-gray);
+    padding-top: 86px; /* keep fixed navbar clear of content */
 }
 
 a {

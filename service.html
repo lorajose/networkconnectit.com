@@ -407,23 +407,28 @@ header a:hover {
         }
         .wires {
             position: absolute;
-            inset: 12px;
+            inset: 10px;
             pointer-events: none;
+            overflow: hidden;
         }
         .wire-line {
             position: absolute;
-            height: 2px;
+            height: 3px;
             background: linear-gradient(90deg,#2dd4ff,#7CFF4F);
-            opacity: 0.7;
-            border-radius: 2px;
-            transition: transform .6s ease, opacity .4s ease;
+            opacity: 0.8;
+            border-radius: 12px;
+            transition: transform .6s ease, opacity .4s ease, left .6s ease, right .6s ease;
+            filter: drop-shadow(0 0 4px rgba(0,0,0,0.25));
         }
-        .wire-line:nth-child(odd) { background: linear-gradient(90deg,#14b8a6,#2dd4ff); }
-        .wire-line.mess-medium { transform: skewX(8deg) translateY(2px); }
-        .wire-line.mess-critical { transform: skewX(14deg) translateY(6px) rotate(-2deg); opacity: 0.9; }
-        .live-rack.mess-medium .wire-line { transform: skewX(8deg) translateY(2px); }
-        .live-rack.mess-critical .wire-line { transform: skewX(14deg) translateY(6px) rotate(-2deg); opacity: 0.9; }
-        .wire-clean .wire-line { transform: translateY(0) skewX(0); opacity: 0.8; }
+        .wire-line.mess { opacity: 0.95; }
+        .wire-line.mess.medium { transform: skewX(10deg) translateY(2px); }
+        .wire-line.mess.critical { transform: skewX(18deg) translateY(6px) rotate(-4deg); opacity: 1; }
+        .wire-line.clean {
+            height: 2px;
+            background: linear-gradient(90deg,#1d4ed8,#60a5fa);
+            opacity: 0.9;
+            transform: none;
+        }
         .text-neon { color: #7CFF4F; }
         #smart-budget-network .btn-outline-light.active {
             background: #7CFF4F;
@@ -498,25 +503,44 @@ header a:hover {
         }
 
         function renderWires() {
-            const makeWires = (target, tidy=false) => {
-                target.innerHTML = '';
-                const wires = Math.max(3, Number(swRange.value));
-                for (let i=0;i<wires;i++) {
-                    const line = document.createElement('div');
-                    line.className = 'wire-line';
-                    const y = 40 + i*12;
-                    line.style.top = `${y}px`;
-                    line.style.left = `${12 + (i%2)*6}px`;
-                    line.style.right = `${12 + ((i+1)%2)*6}px`;
-                    if (!tidy) {
-                        if (messLevel === 'medium') line.classList.add('mess-medium');
-                        if (messLevel === 'critical') line.classList.add('mess-critical');
-                    }
-                    target.appendChild(line);
-                }
-            };
-            makeWires(document.querySelector('.wire-live'));
-            makeWires(document.querySelector('.wire-clean'), true);
+            const live = document.querySelector('.wire-live');
+            const clean = document.querySelector('.wire-clean');
+            live.innerHTML = '';
+            clean.innerHTML = '';
+
+            const colors = ['#f87171','#fb923c','#facc15','#2dd4ff','#7c3aed','#34d399'];
+            const count = Math.max(6, Number(swRange.value) * 2);
+
+            // Messy (live)
+            for (let i=0; i<count; i++) {
+                const line = document.createElement('div');
+                line.className = 'wire-line mess';
+                const color = colors[i % colors.length];
+                const y = 24 + Math.random()*260;
+                const left = 6 + Math.random()*40;
+                const right = 6 + Math.random()*40;
+                line.style.top = `${y}px`;
+                line.style.left = `${left}px`;
+                line.style.right = `${right}px`;
+                line.style.background = `linear-gradient(90deg,${color},#0ea5e9)`;
+                if (messLevel === 'medium') line.classList.add('medium');
+                if (messLevel === 'critical') line.classList.add('critical');
+                line.style.transform = `skewX(${messLevel==='critical'?18: messLevel==='medium'?10:4}deg) rotate(${(Math.random()*8-4)}deg)`;
+                live.appendChild(line);
+            }
+
+            // Clean (organized)
+            const cleanCount = Math.max(4, Number(swRange.value));
+            for (let i=0; i<cleanCount; i++) {
+                const line = document.createElement('div');
+                line.className = 'wire-line clean';
+                const y = 40 + i*12;
+                line.style.top = `${y}px`;
+                line.style.left = '12px';
+                line.style.right = '12px';
+                line.style.background = 'linear-gradient(90deg,#1d4ed8,#60a5fa)';
+                clean.appendChild(line);
+            }
         }
 
         function animateRack() {
