@@ -32,6 +32,11 @@ a:hover {
     overflow: visible !important; /* allow mobile menu to extend */
 }
 
+.navbar {
+    z-index: 5000;
+    background: rgba(11, 18, 32, 0.98) !important;
+    box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+}
 .glass-card {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(18px);
@@ -211,6 +216,15 @@ a:hover {
 }
 .header .navbar .nav-link:hover,
 .header .navbar .nav-link.active {
+    color: var(--electric-blue) !important;
+}
+.navbar .nav-link {
+    color: #f8fafc !important;
+    text-shadow: 0 0 8px rgba(0,0,0,0.4);
+}
+.navbar .nav-link:hover,
+.navbar .nav-link:focus,
+.navbar .nav-link.active {
     color: var(--electric-blue) !important;
 }
 .header .navbar {

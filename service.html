@@ -285,7 +285,8 @@ header a:hover {
                         <div class="small text-slate-400 mt-2">Preliminary only. Final proposal follows on-site survey and cabling path review.</div>
                     </div>
 
-                    <button id="sendQuote" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Send Quote</button>
+                    <button id="sendQuote" type="button" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Send Quote</button>
+                    <a id="mailtoLink" href="#" class="d-none" aria-hidden="true">mailto</a>
                 </div>
 
                 <div class="col-lg-6">
@@ -450,6 +451,7 @@ header a:hover {
         const nameEl = document.getElementById('clientName');
         const emailEl = document.getElementById('clientEmail');
         const sendBtn = document.getElementById('sendQuote');
+        const mailtoLink = document.getElementById('mailtoLink');
         const switchStackLive = document.getElementById('switchStackLive');
         const switchStackClean = document.getElementById('switchStackClean');
         const rackLive = document.getElementById('rackLive');
@@ -557,7 +559,7 @@ header a:hover {
             const name = nameEl.value.trim();
             const email = emailEl.value.trim();
             if (!name || !email || !email.includes('@')) {
-                alert('Ingresa un nombre y un email corporativo válido.');
+                alert('Please enter your name and a valid work email.');
                 return;
             }
             calc();
@@ -575,14 +577,9 @@ header a:hover {
             const subject = encodeURIComponent(`New Network Estimate Request - ${name}`);
             const body = encodeURIComponent(bodyLines.join('\\n'));
             const mailtoUrl = `mailto:networkconnectit@gmail.com?subject=${subject}&body=${body}`;
-            // double trigger for mobile reliability
-            window.location.href = mailtoUrl;
-            const tmp = document.createElement('a');
-            tmp.href = mailtoUrl;
-            tmp.style.display = 'none';
-            document.body.appendChild(tmp);
-            tmp.click();
-            document.body.removeChild(tmp);
+            mailtoLink.setAttribute('href', mailtoUrl);
+            // trigger within same user gesture
+            mailtoLink.click();
 
             rackLive.classList.add('submitted');
             setTimeout(()=> rackLive.classList.remove('submitted'), 1200);
