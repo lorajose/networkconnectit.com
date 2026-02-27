@@ -283,11 +283,19 @@ header a:hover {
                             <span id="fsTotal" class="fw-bold text-neon">$0</span>
                         </div>
                         <div class="small text-slate-400 mt-2">Preliminary only. Final proposal follows on-site survey and cabling path review.</div>
+                        <hr class="border border-slate-700">
+                        <div class="small text-slate-300 fw-semibold mb-1">Estimated materials</div>
+                        <ul class="small text-slate-300 mb-0 ps-3">
+                            <li>Cat6 boxes: <span id="matBoxes">-</span></li>
+                            <li>RJ45 connectors: <span id="matRj45">-</span></li>
+                            <li>Patch panels: <span id="matPatchPanels">-</span></li>
+                            <li>Cable managers: <span id="matCableManagers">-</span></li>
+                            <li>Patch cords: <span id="matPatchCords">-</span></li>
+                        </ul>
                     </div>
 
                     <button id="sendQuote" type="button" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Send Quote</button>
                     <div id="sendStatus" class="small text-slate-300 mt-2" aria-live="polite"></div>
-                    <a id="mailtoLink" href="#" class="d-none" aria-hidden="true">mailto</a>
                 </div>
 
                 <div class="col-lg-6">
@@ -448,12 +456,16 @@ header a:hover {
         const subtotalEl = document.getElementById('fsSubtotal');
         const locAdjEl = document.getElementById('locAdj');
         const totalEl = document.getElementById('fsTotal');
+        const matBoxesEl = document.getElementById('matBoxes');
+        const matRj45El = document.getElementById('matRj45');
+        const matPatchPanelsEl = document.getElementById('matPatchPanels');
+        const matCableManagersEl = document.getElementById('matCableManagers');
+        const matPatchCordsEl = document.getElementById('matPatchCords');
         const pulse = document.getElementById('healthPulse');
         const nameEl = document.getElementById('clientName');
         const emailEl = document.getElementById('clientEmail');
         const sendBtn = document.getElementById('sendQuote');
         const sendStatus = document.getElementById('sendStatus');
-        const mailtoLink = document.getElementById('mailtoLink');
         const switchStackLive = document.getElementById('switchStackLive');
         const switchStackClean = document.getElementById('switchStackClean');
         const rackLive = document.getElementById('rackLive');
@@ -464,8 +476,11 @@ header a:hover {
         };
         const messMult = { low: 1.0, medium: 1.35, critical: 1.75 };
         const locMult = { NYC: 1.20, NY: 1.10, NJ: 1.00, CT: 1.00 };
+        const portRatio = { low: 0.55, medium: 0.70, critical: 0.85 };
+        const avgRunFt = { low: 30, medium: 40, critical: 50 };
 
         let messLevel = 'low';
+        let currentMaterials = {};
 
         messBtns.forEach(btn => btn.addEventListener('click', () => {
             messBtns.forEach(b => b.classList.remove('active'));
@@ -492,6 +507,29 @@ header a:hover {
             subtotalEl.textContent = `$${(base * messMult[messLevel]).toFixed(0)}`;
             locAdjEl.textContent = `$${locAdj.toFixed(0)}`;
             totalEl.textContent = `$${total.toFixed(0)}`;
+            currentMaterials = calcMaterials(count, messLevel);
+            matBoxesEl.textContent = currentMaterials.boxes;
+            matRj45El.textContent = currentMaterials.rj45;
+            matPatchPanelsEl.textContent = currentMaterials.patch_panels;
+            matCableManagersEl.textContent = currentMaterials.cable_managers;
+            matPatchCordsEl.textContent = currentMaterials.patch_cords;
+        }
+
+        function calcMaterials(count, mess) {
+            const level = portRatio[mess] ? mess : 'low';
+            const drops = Math.max(24, Math.ceil(count * 48 * portRatio[level]));
+            const cat6Boxes = Math.max(1, Math.ceil((drops * avgRunFt[level]) / 1000));
+            return {
+                boxes: cat6Boxes,
+                rj45: drops * 2,
+                patch_panels: Math.max(1, Math.ceil(count / 2)),
+                cable_managers: Math.max(2, Math.ceil(count / 2)),
+                patch_cords: drops,
+                keystones: drops,
+                labels: drops,
+                velcro_rolls: Math.max(1, Math.ceil(drops / 80)),
+                misc: `Keystones: ${drops}, labels: ${drops}, velcro rolls: ${Math.max(1, Math.ceil(drops / 80))}`
+            };
         }
 
         function renderSwitches(count) {
@@ -568,24 +606,13 @@ header a:hover {
             sendBtn.textContent = 'Sending...';
             sendStatus.textContent = 'Sending your estimate securely...';
             calc();
-            const bodyLines = [
-                `Name: ${name}`,
-                `Email: ${email}`,
-                `Switches (1U-4U): ${swRange.value}`,
-                `Cable mess level: ${messLevel}`,
-                `Location: ${locationSel.value}`,
-                `Field services subtotal: ${subtotalEl.textContent}`,
-                `Location uplift: ${locAdjEl.textContent}`,
-                `Total estimate: ${totalEl.textContent}`,
-                `Note: Preliminary estimate; final proposal after on-site survey.`
-            ];
             const payload = {
                 name,
                 email,
                 switches: Number(swRange.value),
                 mess: messLevel,
                 location: locationSel.value,
-                materials: {},
+                materials: currentMaterials,
                 totals: {
                     total: totalEl.textContent,
                     labor: subtotalEl.textContent,

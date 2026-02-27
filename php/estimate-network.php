@@ -14,13 +14,54 @@ if (!$payload) {
     exit('Invalid JSON');
 }
 
+function calculate_materials($switchCount, $messLevel) {
+    $mess = strtolower(trim($messLevel));
+    if (!in_array($mess, ['low', 'medium', 'critical'], true)) {
+        $mess = 'low';
+    }
+
+    $portRatio = [
+        'low' => 0.55,
+        'medium' => 0.70,
+        'critical' => 0.85
+    ];
+    $avgRunFt = [
+        'low' => 30,
+        'medium' => 40,
+        'critical' => 50
+    ];
+
+    $activeDrops = max(24, (int)ceil($switchCount * 48 * $portRatio[$mess]));
+    $cat6Boxes = max(1, (int)ceil(($activeDrops * $avgRunFt[$mess]) / 1000));
+    $rj45 = $activeDrops * 2;
+    $patchPanels = max(1, (int)ceil($switchCount / 2));
+    $cableManagers = max(2, (int)ceil($switchCount / 2));
+    $patchCords = $activeDrops;
+    $keystones = $activeDrops;
+    $labels = $activeDrops;
+    $velcroRolls = max(1, (int)ceil($activeDrops / 80));
+
+    return [
+        'boxes' => $cat6Boxes,
+        'rj45' => $rj45,
+        'patch_panels' => $patchPanels,
+        'cable_managers' => $cableManagers,
+        'patch_cords' => $patchCords,
+        'keystones' => $keystones,
+        'labels' => $labels,
+        'velcro_rolls' => $velcroRolls,
+        'misc' => "Patch panels: {$patchPanels}, cable managers: {$cableManagers}, patch cords: {$patchCords}, keystones: {$keystones}, labels: {$labels}, velcro rolls: {$velcroRolls}"
+    ];
+}
+
 $name      = trim($payload['name'] ?? '');
 $email     = filter_var($payload['email'] ?? '', FILTER_VALIDATE_EMAIL);
 $switches  = intval($payload['switches'] ?? 0);
-$messLevel = htmlspecialchars($payload['mess'] ?? $payload['security'] ?? '');
-$location  = htmlspecialchars($payload['location'] ?? '');
+$messLevelRaw = (string)($payload['mess'] ?? $payload['security'] ?? 'low');
+$messLevel = htmlspecialchars($messLevelRaw);
+$location  = htmlspecialchars((string)($payload['location'] ?? ''));
 $totals    = $payload['totals'] ?? [];
-$materials = $payload['materials'] ?? [];
+$materials = calculate_materials($switches, $messLevelRaw);
 
 if (!$email || $switches <= 0) {
     http_response_code(400);
@@ -43,7 +84,13 @@ $body = "<h2>Network Rack Preliminary Estimate</h2>
 <ul>
   <li>Cat6 boxes: " . htmlspecialchars($materials['boxes'] ?? '-') . "</li>
   <li>RJ45 connectors: " . htmlspecialchars($materials['rj45'] ?? '-') . "</li>
-  <li>Misc parts: " . htmlspecialchars($materials['misc'] ?? '-') . "</li>
+  <li>Patch panels: " . htmlspecialchars($materials['patch_panels'] ?? '-') . "</li>
+  <li>Cable managers: " . htmlspecialchars($materials['cable_managers'] ?? '-') . "</li>
+  <li>Patch cords: " . htmlspecialchars($materials['patch_cords'] ?? '-') . "</li>
+  <li>Keystone jacks: " . htmlspecialchars($materials['keystones'] ?? '-') . "</li>
+  <li>Cable labels: " . htmlspecialchars($materials['labels'] ?? '-') . "</li>
+  <li>Velcro rolls: " . htmlspecialchars($materials['velcro_rolls'] ?? '-') . "</li>
+  <li>Misc parts summary: " . htmlspecialchars($materials['misc'] ?? '-') . "</li>
 </ul>
 <h3>Totals (USD)</h3>
 <ul>
@@ -94,7 +141,7 @@ if (!$sent) {
 
 header('Content-Type: application/json');
 if ($sent) {
-    echo json_encode(["status" => "ok"]);
+    echo json_encode(["status" => "ok", "materials" => $materials]);
 } else {
     http_response_code(500);
     echo json_encode(["status" => "error", "message" => $errorMsg ?: "Mail failed"]);

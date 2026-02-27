@@ -387,6 +387,15 @@ a:hover {
     transition: 0.5s;
 }
 
+/* Tailwind preflight defines `.collapse { visibility: collapse; }`.
+   Reset it so Bootstrap navbar collapse works in pages that load Tailwind. */
+.collapse {
+    visibility: visible !important;
+}
+.navbar-collapse.collapse {
+    visibility: visible !important;
+}
+
 @media (max-width: 992px) {
     nav.bg-transparent {
         position: absolute;
