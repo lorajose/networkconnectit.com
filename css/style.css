@@ -33,10 +33,12 @@ a:hover {
 }
 
 .navbar {
-    z-index: 5000;
+    z-index: 9999;
     background: rgba(11, 18, 32, 0.98) !important;
     box-shadow: 0 6px 20px rgba(0,0,0,0.35);
+    pointer-events: auto !important;
 }
+.navbar * { pointer-events: auto; }
 .glass-card {
     background: rgba(255, 255, 255, 0.08);
     backdrop-filter: blur(18px);
@@ -61,6 +63,7 @@ a:hover {
     position: relative;
     overflow: hidden;
     background: radial-gradient(140% 140% at 30% 10%, rgba(45, 212, 255, 0.18), rgba(15, 23, 42, 0.95)), linear-gradient(180deg, rgba(11, 16, 32, 0.7), rgba(11, 16, 32, 1));
+    padding-top: 120px;
 }
 
 .network-canvas {

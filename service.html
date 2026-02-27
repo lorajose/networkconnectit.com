@@ -286,6 +286,7 @@ header a:hover {
                     </div>
 
                     <button id="sendQuote" type="button" class="btn btn-success mt-3 px-4 py-2 fw-semibold" style="background:#7CFF4F; color:#0b1220; border:none;">Send Quote</button>
+                    <div id="sendStatus" class="small text-slate-300 mt-2" aria-live="polite"></div>
                     <a id="mailtoLink" href="#" class="d-none" aria-hidden="true">mailto</a>
                 </div>
 
@@ -451,6 +452,7 @@ header a:hover {
         const nameEl = document.getElementById('clientName');
         const emailEl = document.getElementById('clientEmail');
         const sendBtn = document.getElementById('sendQuote');
+        const sendStatus = document.getElementById('sendStatus');
         const mailtoLink = document.getElementById('mailtoLink');
         const switchStackLive = document.getElementById('switchStackLive');
         const switchStackClean = document.getElementById('switchStackClean');
@@ -562,6 +564,8 @@ header a:hover {
                 alert('Please enter your name and a valid work email.');
                 return;
             }
+            sendBtn.disabled = true;
+            sendStatus.textContent = 'Opening your email app...';
             calc();
             const bodyLines = [
                 `Name: ${name}`,
@@ -583,6 +587,10 @@ header a:hover {
 
             rackLive.classList.add('submitted');
             setTimeout(()=> rackLive.classList.remove('submitted'), 1200);
+            setTimeout(()=> {
+                sendBtn.disabled = false;
+                sendStatus.textContent = 'If your email app did not open, please try again or copy this address: networkconnectit@gmail.com';
+            }, 2500);
         });
 
         // init
