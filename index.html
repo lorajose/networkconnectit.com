@@ -417,149 +417,519 @@
 
 
     <!-- Certification Start -->
-    <div class="container-fluid testimonial py-5">
-        <div class="container py-5">
-            <div class="text-center mx-auto mb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 900px;">
-                <h4 class="text-primary">Certifications</h4>
-                <h1 class="display-5 mb-4">About specific certifications</h1>
-                <p class="mb-0">Cisco certifications are designed to validate the skills and knowledge of IT professionals, focusing on networking, security, data center, and collaboration technologies. Here’s a brief overview of some key Cisco certifications:</p>
+    <section id="certification-showcase" class="container-fluid py-5">
+        <style>
+            #certification-showcase {
+                position: relative;
+                overflow: hidden;
+                background:
+                    radial-gradient(circle at 12% 18%, rgba(45, 212, 255, 0.18), transparent 26%),
+                    radial-gradient(circle at 88% 22%, rgba(158, 255, 0, 0.12), transparent 24%),
+                    linear-gradient(135deg, #071122 0%, #102544 48%, #0a1529 100%);
+            }
+            #certification-showcase::before,
+            #certification-showcase::after {
+                content: "";
+                position: absolute;
+                border-radius: 50%;
+                filter: blur(8px);
+                opacity: 0.5;
+                pointer-events: none;
+            }
+            #certification-showcase::before {
+                width: 240px;
+                height: 240px;
+                top: -80px;
+                left: -60px;
+                background: rgba(45, 212, 255, 0.10);
+                animation: certFloat 14s ease-in-out infinite;
+            }
+            #certification-showcase::after {
+                width: 320px;
+                height: 320px;
+                right: -120px;
+                bottom: -140px;
+                background: rgba(158, 255, 0, 0.08);
+                animation: certFloat 18s ease-in-out infinite reverse;
+            }
+            @keyframes certFloat {
+                0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+                50% { transform: translate3d(0, 18px, 0) scale(1.05); }
+            }
+            .cert-eyebrow {
+                display: inline-flex;
+                align-items: center;
+                gap: 10px;
+                padding: 8px 14px;
+                border-radius: 999px;
+                background: rgba(255, 255, 255, 0.08);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                color: #c7f6ff;
+                font-size: 0.8rem;
+                font-weight: 700;
+                letter-spacing: 0.08em;
+                text-transform: uppercase;
+            }
+            .cert-overview {
+                padding: 1.6rem;
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.06);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                backdrop-filter: blur(14px);
+                box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+            }
+            .cert-stat {
+                padding: 1rem 1.1rem;
+                border-radius: 18px;
+                background: rgba(7, 17, 34, 0.48);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .cert-stat-number {
+                display: block;
+                color: #ffffff;
+                font-size: 1.7rem;
+                line-height: 1;
+                font-weight: 700;
+            }
+            .cert-stat-label {
+                display: block;
+                margin-top: 0.4rem;
+                color: rgba(226, 232, 240, 0.85);
+                font-size: 0.84rem;
+            }
+            .certification-carousel .owl-stage-outer {
+                padding: 18px 0 30px;
+            }
+            .certification-carousel .owl-nav {
+                margin-top: 20px;
+                display: flex;
+                justify-content: center;
+                gap: 14px;
+            }
+            .certification-carousel .owl-nav button {
+                width: 52px;
+                height: 52px;
+                border-radius: 50%;
+                border: 1px solid rgba(255, 255, 255, 0.14) !important;
+                background: rgba(255, 255, 255, 0.06) !important;
+                color: #dbeafe !important;
+                transition: all 0.25s ease;
+            }
+            .certification-carousel .owl-nav button:hover {
+                transform: translateY(-2px);
+                background: rgba(45, 212, 255, 0.16) !important;
+                border-color: rgba(45, 212, 255, 0.45) !important;
+            }
+            .certification-carousel .owl-dots {
+                display: flex;
+                justify-content: center;
+                align-items: center;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-top: 12px;
+            }
+            .certification-carousel .owl-dot {
+                width: 64px;
+                height: 64px;
+                border-radius: 18px;
+                border: 1px solid rgba(255, 255, 255, 0.12) !important;
+                background: rgba(255, 255, 255, 0.05) !important;
+                overflow: hidden;
+                transition: all 0.25s ease;
+            }
+            .certification-carousel .owl-dot.active {
+                transform: translateY(-4px);
+                border-color: rgba(45, 212, 255, 0.5) !important;
+                box-shadow: 0 16px 30px rgba(0, 0, 0, 0.25);
+            }
+            .cert-dot-thumb {
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                width: 100%;
+                height: 100%;
+                padding: 10px;
+            }
+            .cert-dot-thumb img {
+                max-width: 100%;
+                max-height: 100%;
+                object-fit: contain;
+            }
+            .cert-slide {
+                padding: 0 4px;
+            }
+            .cert-card {
+                position: relative;
+                padding: 2rem;
+                border-radius: 28px;
+                background:
+                    linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03)),
+                    rgba(7, 17, 34, 0.78);
+                border: 1px solid rgba(255, 255, 255, 0.12);
+                backdrop-filter: blur(16px);
+                box-shadow: 0 28px 70px rgba(3, 8, 20, 0.36);
+                overflow: hidden;
+            }
+            .cert-card::before {
+                content: "";
+                position: absolute;
+                inset: 0 auto 0 0;
+                width: 4px;
+                background: linear-gradient(180deg, #2dd4ff 0%, #9eff00 100%);
+            }
+            .cert-card::after {
+                content: "";
+                position: absolute;
+                inset: auto -15% -45% auto;
+                width: 240px;
+                height: 240px;
+                border-radius: 50%;
+                background: radial-gradient(circle, rgba(45, 212, 255, 0.14) 0%, rgba(45, 212, 255, 0) 70%);
+                animation: certPulse 5s ease-in-out infinite;
+            }
+            @keyframes certPulse {
+                0%, 100% { transform: scale(1); opacity: 0.55; }
+                50% { transform: scale(1.12); opacity: 0.8; }
+            }
+            .cert-brand {
+                position: relative;
+                z-index: 1;
+                display: flex;
+                flex-direction: column;
+                align-items: center;
+                justify-content: center;
+                min-height: 100%;
+                padding: 1.6rem;
+                border-radius: 24px;
+                background: rgba(255, 255, 255, 0.05);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                text-align: center;
+            }
+            .cert-brand-ring {
+                width: 126px;
+                height: 126px;
+                padding: 16px;
+                border-radius: 50%;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                background: linear-gradient(145deg, rgba(45, 212, 255, 0.2), rgba(255, 255, 255, 0.08));
+                border: 1px solid rgba(45, 212, 255, 0.35);
+                box-shadow: 0 0 0 10px rgba(45, 212, 255, 0.05);
+            }
+            .cert-brand-ring img {
+                width: 100%;
+                height: 100%;
+                object-fit: contain;
+                border-radius: 50%;
+                background: rgba(255, 255, 255, 0.94);
+            }
+            .cert-track {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                margin-top: 1.25rem;
+                padding: 8px 12px;
+                border-radius: 999px;
+                background: rgba(45, 212, 255, 0.1);
+                color: #c7f6ff;
+                font-size: 0.78rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+            .cert-copy {
+                position: relative;
+                z-index: 1;
+            }
+            .cert-level {
+                display: inline-flex;
+                align-items: center;
+                gap: 8px;
+                padding: 7px 12px;
+                border-radius: 999px;
+                background: rgba(158, 255, 0, 0.12);
+                color: #d7ffb8;
+                font-size: 0.78rem;
+                font-weight: 700;
+                text-transform: uppercase;
+                letter-spacing: 0.08em;
+            }
+            .cert-copy h3 {
+                margin: 1rem 0 0.8rem;
+                color: #ffffff;
+                font-size: clamp(1.5rem, 2vw, 2rem);
+                line-height: 1.2;
+            }
+            .cert-copy p {
+                color: rgba(226, 232, 240, 0.9);
+                margin-bottom: 1.15rem;
+            }
+            .cert-tags {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 10px;
+                margin-bottom: 1.2rem;
+            }
+            .cert-tags span {
+                padding: 8px 12px;
+                border-radius: 999px;
+                font-size: 0.82rem;
+                font-weight: 600;
+                color: #dbeafe;
+                background: rgba(255, 255, 255, 0.07);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+            }
+            .cert-applied {
+                display: flex;
+                align-items: flex-start;
+                gap: 12px;
+                padding: 1rem 1.1rem;
+                border-radius: 18px;
+                background: rgba(7, 17, 34, 0.48);
+                border: 1px solid rgba(255, 255, 255, 0.08);
+                color: rgba(226, 232, 240, 0.88);
+            }
+            .cert-applied i {
+                margin-top: 2px;
+                color: #2dd4ff;
+            }
+            @media (max-width: 991.98px) {
+                .cert-card {
+                    padding: 1.5rem;
+                }
+                .cert-brand {
+                    margin-bottom: 1.25rem;
+                }
+            }
+            @media (max-width: 575.98px) {
+                .certification-carousel .owl-dot {
+                    width: 54px;
+                    height: 54px;
+                    border-radius: 14px;
+                }
+                .cert-overview {
+                    padding: 1.1rem;
+                }
+                .cert-stat-number {
+                    font-size: 1.4rem;
+                }
+            }
+        </style>
+        <div class="container py-5 position-relative">
+            <div class="row g-4 align-items-end mb-5">
+                <div class="col-lg-7 wow fadeInLeft" data-wow-delay="0.1s">
+                    <span class="cert-eyebrow"><i class="fas fa-award"></i> Certified Credentials</span>
+                    <h2 class="display-5 text-white mt-3 mb-3">Recognized credentials. Lower-risk execution.</h2>
+                    <p class="mb-0 text-light opacity-75">The certifications shown below reflect the core credentials represented in our delivery profile: Cisco foundation, enterprise-level specialization, vendor-neutral troubleshooting, and New York field-compliance awareness. For decision-makers, that translates into stronger design discipline, cleaner change control, and work performed with professional accountability.</p>
+                </div>
+                <div class="col-lg-5 wow fadeInRight" data-wow-delay="0.2s">
+                    <div class="cert-overview">
+                        <div class="row g-3">
+                            <div class="col-4">
+                                <div class="cert-stat text-center">
+                                    <span class="cert-stat-number">6</span>
+                                    <span class="cert-stat-label">Listed credentials</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="cert-stat text-center">
+                                    <span class="cert-stat-number">2</span>
+                                    <span class="cert-stat-label">Cisco specialist tracks</span>
+                                </div>
+                            </div>
+                            <div class="col-4">
+                                <div class="cert-stat text-center">
+                                    <span class="cert-stat-number">1</span>
+                                    <span class="cert-stat-label">State compliance focus</span>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
             </div>
-            <div class="testimonial-carousel owl-carousel wow zoomInDown" data-wow-delay="0.2s">
-                    <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/ccna_600.png' alt=''>">
-                        <div class="testimonial-inner text-center p-5">
-                            <div class="d-flex align-items-center justify-content-center mb-4">
-                                <div class="testimonial-inner-img border border-primary border-3 me-4"
-                                    style="width: 100px; height: 100px; border-radius: 50%;">
-                                    <img src="img/ccna_600.png" class="img-fluid rounded-circle" alt="">
-                                    <div>
-                                        <h5 class="mb-2">Cisco Certified Network Associate (CCNA)"</h5>
-                                        <p class="mb-0">New York, USA</p>
+            <div class="certification-carousel owl-carousel wow fadeInUp" data-wow-delay="0.25s">
+                <div class="cert-slide" data-dot="<span class='cert-dot-thumb'><img src='img/ccna_600.png' alt='CCNA'></span>">
+                    <div class="cert-card">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-4">
+                                <div class="cert-brand">
+                                    <div class="cert-brand-ring">
+                                        <img src="img/ccna_600.png" alt="Cisco CCNA badge">
                                     </div>
-                                    <p class="fs-7">This is an entry-level certification that covers networking fundamentals, IP services,
-                                        security, automation, and programmability. It's a popular starting point for IT professionals looking to
-                                        build a career in networking.</p>
-                                    <div class="text-center">
-                                        <div class="d-flex justify-content-center">
-                                            <i class="fas fa-star text-primary"></i>
-                                            <i class="fas fa-star text-primary"></i>
-                                            <i class="fas fa-star text-primary"></i>
-                                            <i class="fas fa-star text-primary"></i>
-                                            <i class="fas fa-star text-primary"></i>
-                                        </div>
+                                    <span class="cert-track"><i class="fas fa-network-wired"></i> Foundational</span>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="cert-copy">
+                                    <span class="cert-level"><i class="fas fa-shield-alt"></i> Cisco Foundation</span>
+                                    <h3>Cisco Certified Network Associate (CCNA)</h3>
+                                    <p>The CCNA validates practical competence in switching, routing, IP services, security fundamentals, and day-to-day network operations. For clients, that means baseline configurations are handled with structure, accepted standards, and a disciplined troubleshooting approach.</p>
+                                    <div class="cert-tags">
+                                        <span>Routing &amp; Switching</span>
+                                        <span>IP Services</span>
+                                        <span>Security Fundamentals</span>
+                                        <span>Operations</span>
                                     </div>
-                             </div>
-                    </div>
-                    <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/CCNP_Enterprise_large.png' alt=''>">
-                        <div class="testimonial-inner text-center p-5">
-                            <div class="d-flex align-items-center justify-content-center mb-4">
-                                <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                    <img src="img/CCNP_Enterprise_large.png" class="img-fluid rounded-circle" alt="">
-                                </div>
-                                <div>
-                                    <h5 class="mb-2">Cisco Certified Network Professional (CCNP)</h5>
-                                    <p class="mb-0">New York, USA</p>
-                                </div>
-                            </div>
-                            <p class="fs-7">A professional-level certification that demonstrates more advanced knowledge of networking concepts. The CCNP certification offers various specializations, such as enterprise, security, collaboration, and data center.</p>
-                            <div class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
+                                    <div class="cert-applied">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Applied to site turn-ups, VLAN segmentation, switch provisioning, and first-line fault isolation with repeatable process.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/Cisco_Specialist_600.png' alt=''>">
-                        <div class="testimonial-inner text-center p-5">
-                            <div class="d-flex align-items-center justify-content-center mb-4">
-                                <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                    <img src="img/Cisco_Specialist_600.png" class="img-fluid rounded-circle" alt="">
-                                </div>
-                                <div>
-                                    <h5 class="mb-2">The Cisco Certified Specialist - Enterprise Advanced Infrastructure Implementation</h5>
-                                    <p class="mb-0">New York, USA</p>
-                                </div>
-                            </div>
-                            <p class="fs-7">Certification focuses on validating an individual's ability to implement advanced enterprise network solutions. This certification is intended for professionals who work with complex network infrastructures in enterprise environments.</p>
-                            <div class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
+                </div>
+                <div class="cert-slide" data-dot="<span class='cert-dot-thumb'><img src='img/CCNP_Enterprise_large.png' alt='CCNP'></span>">
+                    <div class="cert-card">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-4">
+                                <div class="cert-brand">
+                                    <div class="cert-brand-ring">
+                                        <img src="img/CCNP_Enterprise_large.png" alt="Cisco CCNP Enterprise badge">
+                                    </div>
+                                    <span class="cert-track"><i class="fas fa-server"></i> Professional</span>
                                 </div>
                             </div>
-                        </div>
-                    </div>
-                    <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/Cisco_Specialist_600.png' alt=''>">
-                        <div class="testimonial-inner text-center p-5">
-                            <div class="d-flex align-items-center justify-content-center mb-4">
-                                <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                    <img src="img/Cisco_Specialist_600.png" class="img-fluid rounded-circle" alt="">
-                                </div>
-                                <div>
-                                    <h5 class="mb-2">The Cisco Certified Specialist - Enterprise Core</h5>
-                                    <p class="mb-0">New York, USA</p>
-                                </div>
-                            </div>
-                            <p class="fs-7">Certification is designed for professionals who are skilled in implementing and managing core enterprise network technologies. This certification focuses on the foundational knowledge and skills needed to work with Cisco enterprise networking solutions, covering key areas such as routing, switching, security, and automation.</p>
-                            <div class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
+                            <div class="col-lg-8">
+                                <div class="cert-copy">
+                                    <span class="cert-level"><i class="fas fa-layer-group"></i> Enterprise Depth</span>
+                                    <h3>Cisco Certified Network Professional Enterprise (CCNP Enterprise)</h3>
+                                    <p>CCNP Enterprise reflects advanced capability in enterprise architecture, resilient routing, policy-driven changes, and complex troubleshooting across production environments. It signals readiness for higher-stakes networks where uptime, scalability, and technical control matter.</p>
+                                    <div class="cert-tags">
+                                        <span>Enterprise Architecture</span>
+                                        <span>Advanced Routing</span>
+                                        <span>Advanced Troubleshooting</span>
+                                        <span>Resiliency</span>
+                                    </div>
+                                    <div class="cert-applied">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Applied to multi-site upgrades, core design decisions, escalation handling, and performance optimization in business-critical environments.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/Cisco_Specialist_600.png' alt=''>">
-                        <div class="testimonial-inner text-center p-5">
-                            <div class="d-flex align-items-center justify-content-center mb-4">
-                                <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                    <img src="img/Cisco_Specialist_600.png" class="img-fluid rounded-circle" alt="">
-                                </div>
-                                <div>
-                                    <h5 class="mb-2">The CompTIA Network+</h5>
-                                    <p class="mb-0">New York, USA</p>
+                </div>
+                <div class="cert-slide" data-dot="<span class='cert-dot-thumb'><img src='img/Cisco_Specialist_600.png' alt='Cisco Specialist'></span>">
+                    <div class="cert-card">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-4">
+                                <div class="cert-brand">
+                                    <div class="cert-brand-ring">
+                                        <img src="img/Cisco_Specialist_600.png" alt="Cisco Enterprise Advanced Infrastructure Implementation credential">
+                                    </div>
+                                    <span class="cert-track"><i class="fas fa-tools"></i> Implementation</span>
                                 </div>
                             </div>
-                            <p class="fs-7">Certification is a globally recognized credential that validates foundational networking skills and knowledge. It is designed for professionals who want to build a career in IT infrastructure, with a focus on managing, configuring, and troubleshooting networks.</p>
-                            <div class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
+                            <div class="col-lg-8">
+                                <div class="cert-copy">
+                                    <span class="cert-level"><i class="fas fa-cogs"></i> Advanced Delivery</span>
+                                    <h3>Cisco Certified Specialist - Enterprise Advanced Infrastructure Implementation</h3>
+                                    <p>This specialist credential is centered on advanced implementation work: translating approved designs into stable production changes with attention to deployment accuracy, validation, and controlled cutovers.</p>
+                                    <div class="cert-tags">
+                                        <span>Implementation</span>
+                                        <span>Cutovers</span>
+                                        <span>Validation</span>
+                                        <span>Migration Control</span>
+                                    </div>
+                                    <div class="cert-applied">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Relevant to switch stack replacements, planned migrations, staged implementations, and infrastructure changes where minimizing disruption is essential.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
                     </div>
-                    <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/NYS-security-guard-license.png' alt=''>">
-                        <div class="testimonial-inner text-center p-5">
-                            <div class="d-flex align-items-center justify-content-center mb-4">
-                                <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                    <img src="img/NYS-security-guard-license.png" class="img-fluid rounded-circle" alt="">
-                                </div>
-                                <div>
-                                    <h5 class="mb-2">Security or Fire Alarm Installer</h5>
-                                    <p class="mb-0">New York, USA</p>
+                </div>
+                <div class="cert-slide" data-dot="<span class='cert-dot-thumb'><img src='img/Cisco_Specialist_600.png' alt='Enterprise Core'></span>">
+                    <div class="cert-card">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-4">
+                                <div class="cert-brand">
+                                    <div class="cert-brand-ring">
+                                        <img src="img/Cisco_Specialist_600.png" alt="Cisco Enterprise Core credential">
+                                    </div>
+                                    <span class="cert-track"><i class="fas fa-project-diagram"></i> Architecture</span>
                                 </div>
                             </div>
-                            <p class="fs-7">Businesses that install or maintain security or fire alarm systems need a license. This license is from the New York State Department of State (NYSDOS).</p>
-                            <div class="text-center">
-                                <div class="d-flex justify-content-center">
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
-                                    <i class="fas fa-star text-primary"></i>
+                            <div class="col-lg-8">
+                                <div class="cert-copy">
+                                    <span class="cert-level"><i class="fas fa-sitemap"></i> Enterprise Core</span>
+                                    <h3>Cisco Certified Specialist - Enterprise Core</h3>
+                                    <p>This certification confirms competency in core enterprise technologies, including routed access, campus switching, infrastructure security, automation concepts, and end-to-end operational thinking.</p>
+                                    <div class="cert-tags">
+                                        <span>Core Technologies</span>
+                                        <span>Campus Networking</span>
+                                        <span>Infrastructure Security</span>
+                                        <span>Automation</span>
+                                    </div>
+                                    <div class="cert-applied">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Gives clients confidence that core network decisions are grounded in current enterprise standards, not improvised configuration habits.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cert-slide" data-dot="<span class='cert-dot-thumb'><img src='img/Cisco_Specialist_600.png' alt='Network Plus'></span>">
+                    <div class="cert-card">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-4">
+                                <div class="cert-brand">
+                                    <div class="cert-brand-ring">
+                                        <img src="img/Cisco_Specialist_600.png" alt="CompTIA Network+ credential placeholder">
+                                    </div>
+                                    <span class="cert-track"><i class="fas fa-ethernet"></i> Vendor Neutral</span>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="cert-copy">
+                                    <span class="cert-level"><i class="fas fa-globe"></i> Cross-Platform</span>
+                                    <h3>CompTIA Network+</h3>
+                                    <p>CompTIA Network+ adds a vendor-neutral foundation in topology, media, support operations, and troubleshooting best practices. It strengthens clear diagnosis and practical decision-making across mixed environments, not just a single vendor stack.</p>
+                                    <div class="cert-tags">
+                                        <span>Vendor-Neutral</span>
+                                        <span>Troubleshooting</span>
+                                        <span>Topology</span>
+                                        <span>Support</span>
+                                    </div>
+                                    <div class="cert-applied">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Especially valuable for SMB environments, hybrid networks, and onsite triage where fast, accurate diagnosis builds trust quickly.</span>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <div class="cert-slide" data-dot="<span class='cert-dot-thumb'><img src='img/NYS-security-guard-license.png' alt='NYS license'></span>">
+                    <div class="cert-card">
+                        <div class="row g-4 align-items-center">
+                            <div class="col-lg-4">
+                                <div class="cert-brand">
+                                    <div class="cert-brand-ring">
+                                        <img src="img/NYS-security-guard-license.png" alt="New York State security or fire alarm installer credential">
+                                    </div>
+                                    <span class="cert-track"><i class="fas fa-id-badge"></i> Compliance Aware</span>
+                                </div>
+                            </div>
+                            <div class="col-lg-8">
+                                <div class="cert-copy">
+                                    <span class="cert-level"><i class="fas fa-clipboard-check"></i> Regulated Work</span>
+                                    <h3>New York State Security or Fire Alarm Installer License</h3>
+                                    <p>This licensing credential supports work involving security and alarm-related installations where regulated execution, proper documentation, and professional field accountability are expected by clients and authorities.</p>
+                                    <div class="cert-tags">
+                                        <span>State Compliance</span>
+                                        <span>Field Documentation</span>
+                                        <span>Site Coordination</span>
+                                        <span>Client Assurance</span>
+                                    </div>
+                                    <div class="cert-applied">
+                                        <i class="fas fa-bolt"></i>
+                                        <span>Important for CCTV, access, and alarm-adjacent projects where trust, compliance, and documented execution directly affect the buying decision.</span>
+                                    </div>
                                 </div>
                             </div>
                         </div>
@@ -567,7 +937,7 @@
                 </div>
             </div>
         </div>
-    </div>
+    </section>
     <!-- certification End -->
 
 

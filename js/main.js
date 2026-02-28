@@ -42,11 +42,12 @@
     });
 
 
-    // International carousel
-    $(".testimonial-carousel").owlCarousel({
+    // Certification carousel
+    $(".certification-carousel").owlCarousel({
         autoplay: true,
+        autoplayHoverPause: true,
         items: 1,
-        smartSpeed: 1500,
+        smartSpeed: 1200,
         dots: true,
         dotsData: true,
         loop: true,
@@ -80,10 +81,13 @@
     // testimonial carousel
     $(".testimonial-carousel").owlCarousel({
         autoplay: true,
-        smartSpeed: 1000,
-        center: true,
+        autoplayHoverPause: true,
+        items: 1,
+        smartSpeed: 1200,
         dots: true,
+        dotsData: true,
         loop: true,
+        margin: 25,
         nav : true,
         navText : [
             '<i class="bi bi-arrow-left"></i>',

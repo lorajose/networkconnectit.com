@@ -108,109 +108,506 @@
 
 
               <!-- Testimonial Start -->
-              <div class="container-fluid testimonial py-5">
-                <div class="container py-5">
-                    <div class="text-center mx-auto mb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 900px;">
-                        <h4 class="text-primary">Client Outcomes</h4>
-                        <h1 class="display-5 mb-4">Resilient networks, AI-ready CCTV, happier ops teams.</h1>
-                        <p class="mb-0">Cisco/UniFi architectures with VLAN segmentation, dual-WAN failover, and proactive patching—these are the wins our customers highlight: fewer outages, faster incident response, and secure video evidence available when it matters.</p>
+              <section id="testimonial-proof" class="container-fluid py-5">
+                <style>
+                    #testimonial-proof {
+                        position: relative;
+                        overflow: hidden;
+                        background:
+                            radial-gradient(circle at 14% 20%, rgba(45, 212, 255, 0.16), transparent 24%),
+                            radial-gradient(circle at 82% 18%, rgba(158, 255, 0, 0.10), transparent 22%),
+                            linear-gradient(135deg, #071122 0%, #102544 48%, #0a1529 100%);
+                    }
+                    #testimonial-proof::before,
+                    #testimonial-proof::after {
+                        content: "";
+                        position: absolute;
+                        border-radius: 50%;
+                        pointer-events: none;
+                        opacity: 0.48;
+                        filter: blur(10px);
+                    }
+                    #testimonial-proof::before {
+                        width: 260px;
+                        height: 260px;
+                        top: -90px;
+                        left: -70px;
+                        background: rgba(45, 212, 255, 0.10);
+                        animation: proofFloat 14s ease-in-out infinite;
+                    }
+                    #testimonial-proof::after {
+                        width: 320px;
+                        height: 320px;
+                        right: -110px;
+                        bottom: -150px;
+                        background: rgba(158, 255, 0, 0.08);
+                        animation: proofFloat 18s ease-in-out infinite reverse;
+                    }
+                    @keyframes proofFloat {
+                        0%, 100% { transform: translate3d(0, 0, 0) scale(1); }
+                        50% { transform: translate3d(0, 16px, 0) scale(1.04); }
+                    }
+                    .proof-eyebrow {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 10px;
+                        padding: 8px 14px;
+                        border-radius: 999px;
+                        background: rgba(255, 255, 255, 0.08);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        color: #c7f6ff;
+                        font-size: 0.8rem;
+                        font-weight: 700;
+                        letter-spacing: 0.08em;
+                        text-transform: uppercase;
+                    }
+                    .proof-overview {
+                        padding: 1.5rem;
+                        border-radius: 24px;
+                        background: rgba(255, 255, 255, 0.06);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        backdrop-filter: blur(14px);
+                        box-shadow: 0 24px 60px rgba(0, 0, 0, 0.25);
+                    }
+                    .proof-stat {
+                        padding: 1rem 1.1rem;
+                        border-radius: 18px;
+                        background: rgba(7, 17, 34, 0.48);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .proof-stat-number {
+                        display: block;
+                        color: #ffffff;
+                        font-size: 1.6rem;
+                        line-height: 1;
+                        font-weight: 700;
+                    }
+                    .proof-stat-label {
+                        display: block;
+                        margin-top: 0.45rem;
+                        color: rgba(226, 232, 240, 0.84);
+                        font-size: 0.84rem;
+                    }
+                    .proof-note {
+                        margin-top: 1rem;
+                        padding: 0.9rem 1rem;
+                        border-radius: 16px;
+                        background: rgba(45, 212, 255, 0.08);
+                        border: 1px solid rgba(45, 212, 255, 0.12);
+                        color: rgba(226, 232, 240, 0.86);
+                        font-size: 0.88rem;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-stage-outer {
+                        padding: 18px 0 30px;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-nav {
+                        margin-top: 20px;
+                        display: flex;
+                        justify-content: center;
+                        gap: 14px;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-nav button {
+                        width: 52px;
+                        height: 52px;
+                        border-radius: 50%;
+                        border: 1px solid rgba(255, 255, 255, 0.14) !important;
+                        background: rgba(255, 255, 255, 0.06) !important;
+                        color: #dbeafe !important;
+                        transition: all 0.25s ease;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-nav button:hover {
+                        transform: translateY(-2px);
+                        background: rgba(45, 212, 255, 0.16) !important;
+                        border-color: rgba(45, 212, 255, 0.45) !important;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-dots {
+                        display: flex;
+                        justify-content: center;
+                        align-items: center;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                        margin-top: 12px;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-dot {
+                        border: 0 !important;
+                        background: transparent !important;
+                    }
+                    .proof-dot {
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        min-width: 92px;
+                        padding: 10px 14px;
+                        border-radius: 999px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        color: rgba(226, 232, 240, 0.82);
+                        font-size: 0.8rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.06em;
+                        transition: all 0.25s ease;
+                    }
+                    #testimonial-proof .testimonial-carousel .owl-dot.active .proof-dot {
+                        transform: translateY(-3px);
+                        border-color: rgba(45, 212, 255, 0.48);
+                        background: rgba(45, 212, 255, 0.14);
+                        color: #ffffff;
+                        box-shadow: 0 14px 26px rgba(0, 0, 0, 0.22);
+                    }
+                    .proof-slide {
+                        padding: 0 4px;
+                    }
+                    .proof-card {
+                        position: relative;
+                        padding: 2rem;
+                        border-radius: 28px;
+                        background:
+                            linear-gradient(160deg, rgba(255, 255, 255, 0.09), rgba(255, 255, 255, 0.03)),
+                            rgba(7, 17, 34, 0.78);
+                        border: 1px solid rgba(255, 255, 255, 0.12);
+                        backdrop-filter: blur(16px);
+                        box-shadow: 0 28px 70px rgba(3, 8, 20, 0.36);
+                        overflow: hidden;
+                    }
+                    .proof-card::before {
+                        content: "";
+                        position: absolute;
+                        inset: 0 auto 0 0;
+                        width: 4px;
+                        background: linear-gradient(180deg, #2dd4ff 0%, #9eff00 100%);
+                    }
+                    .proof-card::after {
+                        content: "";
+                        position: absolute;
+                        inset: auto -12% -44% auto;
+                        width: 220px;
+                        height: 220px;
+                        border-radius: 50%;
+                        background: radial-gradient(circle, rgba(45, 212, 255, 0.14) 0%, rgba(45, 212, 255, 0) 70%);
+                        animation: proofPulse 5.4s ease-in-out infinite;
+                    }
+                    @keyframes proofPulse {
+                        0%, 100% { transform: scale(1); opacity: 0.5; }
+                        50% { transform: scale(1.1); opacity: 0.78; }
+                    }
+                    .proof-profile {
+                        position: relative;
+                        z-index: 1;
+                        height: 100%;
+                        padding: 1.5rem;
+                        border-radius: 24px;
+                        background: rgba(255, 255, 255, 0.05);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .proof-avatar {
+                        width: 86px;
+                        height: 86px;
+                        border-radius: 50%;
+                        display: inline-flex;
+                        align-items: center;
+                        justify-content: center;
+                        background: linear-gradient(145deg, rgba(45, 212, 255, 0.2), rgba(255, 255, 255, 0.08));
+                        border: 1px solid rgba(45, 212, 255, 0.35);
+                        box-shadow: 0 0 0 10px rgba(45, 212, 255, 0.05);
+                        color: #dff8ff;
+                        font-size: 1.6rem;
+                    }
+                    .proof-role {
+                        margin-top: 1rem;
+                        color: #ffffff;
+                        font-size: 1.12rem;
+                        font-weight: 700;
+                    }
+                    .proof-sector {
+                        color: rgba(226, 232, 240, 0.8);
+                        font-size: 0.9rem;
+                    }
+                    .proof-badge {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        margin-top: 1rem;
+                        padding: 8px 12px;
+                        border-radius: 999px;
+                        background: rgba(45, 212, 255, 0.1);
+                        color: #c7f6ff;
+                        font-size: 0.78rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                    }
+                    .proof-list {
+                        margin: 1rem 0 0;
+                        padding: 0;
+                        list-style: none;
+                    }
+                    .proof-list li {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 10px;
+                        color: rgba(226, 232, 240, 0.84);
+                        font-size: 0.9rem;
+                    }
+                    .proof-list li + li {
+                        margin-top: 0.7rem;
+                    }
+                    .proof-list i {
+                        margin-top: 3px;
+                        color: #9eff00;
+                    }
+                    .proof-copy {
+                        position: relative;
+                        z-index: 1;
+                    }
+                    .proof-tag {
+                        display: inline-flex;
+                        align-items: center;
+                        gap: 8px;
+                        padding: 7px 12px;
+                        border-radius: 999px;
+                        background: rgba(158, 255, 0, 0.12);
+                        color: #d7ffb8;
+                        font-size: 0.78rem;
+                        font-weight: 700;
+                        text-transform: uppercase;
+                        letter-spacing: 0.08em;
+                    }
+                    .proof-copy h3 {
+                        margin: 1rem 0 0.8rem;
+                        color: #ffffff;
+                        font-size: clamp(1.5rem, 2vw, 2rem);
+                        line-height: 1.2;
+                    }
+                    .proof-quote {
+                        margin-bottom: 1.2rem;
+                        color: rgba(226, 232, 240, 0.92);
+                        font-size: 1rem;
+                        line-height: 1.75;
+                    }
+                    .proof-chips {
+                        display: flex;
+                        flex-wrap: wrap;
+                        gap: 10px;
+                        margin-bottom: 1.2rem;
+                    }
+                    .proof-chips span {
+                        padding: 8px 12px;
+                        border-radius: 999px;
+                        font-size: 0.82rem;
+                        font-weight: 600;
+                        color: #dbeafe;
+                        background: rgba(255, 255, 255, 0.07);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                    }
+                    .proof-trust {
+                        display: flex;
+                        align-items: flex-start;
+                        gap: 12px;
+                        padding: 1rem 1.1rem;
+                        border-radius: 18px;
+                        background: rgba(7, 17, 34, 0.48);
+                        border: 1px solid rgba(255, 255, 255, 0.08);
+                        color: rgba(226, 232, 240, 0.88);
+                    }
+                    .proof-trust i {
+                        margin-top: 2px;
+                        color: #2dd4ff;
+                    }
+                    @media (max-width: 991.98px) {
+                        .proof-card {
+                            padding: 1.5rem;
+                        }
+                        .proof-profile {
+                            margin-bottom: 1.25rem;
+                        }
+                    }
+                    @media (max-width: 575.98px) {
+                        .proof-dot {
+                            min-width: 78px;
+                            padding: 9px 12px;
+                            font-size: 0.74rem;
+                        }
+                        .proof-overview {
+                            padding: 1.1rem;
+                        }
+                    }
+                </style>
+                <div class="container py-5 position-relative">
+                    <div class="row g-4 align-items-end mb-5">
+                        <div class="col-lg-7 wow fadeInLeft" data-wow-delay="0.1s">
+                            <span class="proof-eyebrow"><i class="fas fa-handshake"></i> Client Confidence</span>
+                            <h1 class="display-5 text-white mt-3 mb-3">What clients remember most: clarity, stability, and follow-through.</h1>
+                            <p class="mb-0 text-light opacity-75">Strong testimonials do not come from flashy installs alone. They come from predictable outcomes: stable networks, cleaner field execution, responsive support, and documentation that gives business owners confidence long after the project is finished.</p>
+                        </div>
+                        <div class="col-lg-5 wow fadeInRight" data-wow-delay="0.2s">
+                            <div class="proof-overview">
+                                <div class="row g-3">
+                                    <div class="col-4">
+                                        <div class="proof-stat text-center">
+                                            <span class="proof-stat-number">4</span>
+                                            <span class="proof-stat-label">Common outcomes</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="proof-stat text-center">
+                                            <span class="proof-stat-number">1</span>
+                                            <span class="proof-stat-label">Accountable partner</span>
+                                        </div>
+                                    </div>
+                                    <div class="col-4">
+                                        <div class="proof-stat text-center">
+                                            <span class="proof-stat-number">24/7</span>
+                                            <span class="proof-stat-label">Reliability mindset</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="proof-note">
+                                    To respect client confidentiality, several testimonials below are presented by role and industry rather than by full company name. The focus is on the result: dependable service, professional execution, and reduced operational risk.
+                                </div>
+                            </div>
+                        </div>
                     </div>
-                    <div class="testimonial-carousel owl-carousel wow zoomInDown" data-wow-delay="0.2s">
-                        <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/costumer.png' alt=''>">
-                            <div class="testimonial-inner text-center p-5">
-                                <div class="d-flex align-items-center justify-content-center mb-4">
-                                    <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                        <img src="img/costumer.png" class="img-fluid rounded-circle" alt="">
+                    <div class="testimonial-carousel owl-carousel wow fadeInUp" data-wow-delay="0.25s">
+                        <div class="proof-slide" data-dot="<span class='proof-dot'>Retail</span>">
+                            <div class="proof-card">
+                                <div class="row g-4 align-items-center">
+                                    <div class="col-lg-4">
+                                        <div class="proof-profile">
+                                            <div class="proof-avatar"><i class="fas fa-store"></i></div>
+                                            <div class="proof-role">Operations Manager</div>
+                                            <div class="proof-sector">Multi-Site Retail & Payments</div>
+                                            <span class="proof-badge"><i class="fas fa-check-circle"></i> Representative Client Feedback</span>
+                                            <ul class="proof-list">
+                                                <li><i class="fas fa-check"></i><span>Needed card terminals and business traffic to stay stable during peak hours.</span></li>
+                                                <li><i class="fas fa-check"></i><span>Wanted a partner who could explain technical work in clear business terms.</span></li>
+                                            </ul>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h5 class="mb-2">EZ Payment Solution</h5>
-                                        <p class="mb-0">Fintech · New York</p>
-                                    </div>
-                                </div>
-                                <p class="fs-7">“They segmented POS, CCTV, and guest Wi‑Fi into VLANs and added SD-WAN failover. Card terminals stopped timing out and our SOC now reviews AI-tagged incidents in minutes instead of hours.”</p>
-                                <div class="text-center">
-                                    <div class="d-flex justify-content-center">
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                    </div>
-                                </div>
-                            </div>
-                        </div>
-                        <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/costumer.png' alt=''>">
-                            <div class="testimonial-inner text-center p-5">
-                                <div class="d-flex align-items-center justify-content-center mb-4">
-                                    <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                        <img src="img/costumer.png" class="img-fluid rounded-circle" alt="">
-                                    </div>
-                                    <div>
-                                        <h5 class="mb-2">Billfold</h5>
-                                        <p class="mb-0">Events & Hospitality · NY</p>
-                                    </div>
-                                </div>
-                                <p class="fs-7">“4K cameras now ride on a dedicated CCTV VLAN with QoS; guest Wi‑Fi is isolated. Dual-ISP failover kept ticketing online during a fiber cut. Their 24/7 monitoring opened a ticket before staff even called.”</p>
-                                <div class="text-center">
-                                    <div class="d-flex justify-content-center">
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
+                                    <div class="col-lg-8">
+                                        <div class="proof-copy">
+                                            <span class="proof-tag"><i class="fas fa-network-wired"></i> Stability First</span>
+                                            <h3>“The environment feels controlled now, not fragile.”</h3>
+                                            <p class="proof-quote">“NetworkConnectIT separated POS, guest Wi-Fi, back-office devices, and CCTV into the right network segments, cleaned up switch configurations, and documented the work clearly. The biggest difference for us is confidence: fewer interruptions, fewer unknowns, and a network our team no longer has to worry about every day.”</p>
+                                            <div class="proof-chips">
+                                                <span>VLAN Segmentation</span>
+                                                <span>POS Stability</span>
+                                                <span>Clear Documentation</span>
+                                            </div>
+                                            <div class="proof-trust">
+                                                <i class="fas fa-shield-alt"></i>
+                                                <span>Why this builds trust: the work reduced risk without creating confusion for management or front-line staff.</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/costumer.png' alt=''>">
-                            <div class="testimonial-inner text-center p-5">
-                                <div class="d-flex align-items-center justify-content-center mb-4">
-                                    <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                        <img src="img/costumer.png" class="img-fluid rounded-circle" alt="">
+                        <div class="proof-slide" data-dot="<span class='proof-dot'>Warehouse</span>">
+                            <div class="proof-card">
+                                <div class="row g-4 align-items-center">
+                                    <div class="col-lg-4">
+                                        <div class="proof-profile">
+                                            <div class="proof-avatar"><i class="fas fa-warehouse"></i></div>
+                                            <div class="proof-role">Warehouse Supervisor</div>
+                                            <div class="proof-sector">Distribution & Logistics</div>
+                                            <span class="proof-badge"><i class="fas fa-check-circle"></i> Representative Client Feedback</span>
+                                            <ul class="proof-list">
+                                                <li><i class="fas fa-check"></i><span>Scanner drops and inconsistent wireless coverage were slowing floor operations.</span></li>
+                                                <li><i class="fas fa-check"></i><span>Camera reliability mattered for incident review and operational oversight.</span></li>
+                                            </ul>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h5 class="mb-2">TechLink Logistics</h5>
-                                        <p class="mb-0">Logistics · New Jersey</p>
-                                    </div>
-                                </div>
-                                <p class="fs-7">“Warehouse Wi‑Fi used to drop forklifts’ scanners. With heatmap-based AP placement and roaming tuning, mis-picks dropped and shift productivity rose. CCTV recording now survives ISP outages via local NVR + cloud sync.”</p>
-                                <div class="text-center">
-                                    <div class="d-flex justify-content-center">
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
+                                    <div class="col-lg-8">
+                                        <div class="proof-copy">
+                                            <span class="proof-tag"><i class="fas fa-wifi"></i> Operational Continuity</span>
+                                            <h3>“They approached the job methodically and the improvement was immediate.”</h3>
+                                            <p class="proof-quote">“After the wireless redesign and camera network cleanup, our handheld devices stopped dropping sessions in key aisles and video access became much more reliable. What stood out was the way the project was handled: site issues were identified early, the cutover was organized, and the team left the environment cleaner and better documented than before.”</p>
+                                            <div class="proof-chips">
+                                                <span>Warehouse Wi-Fi</span>
+                                                <span>Camera Reliability</span>
+                                                <span>Cutover Control</span>
+                                            </div>
+                                            <div class="proof-trust">
+                                                <i class="fas fa-shield-alt"></i>
+                                                <span>Why this builds trust: operational teams value providers who solve the issue and reduce future troubleshooting at the same time.</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
-                        <div class="testimonial-item" data-dot="<img class='img-fluid' src='img/costumer.png' alt=''>">
-                            <div class="testimonial-inner text-center p-5">
-                                <div class="d-flex align-items-center justify-content-center mb-4">
-                                    <div class="testimonial-inner-img border border-primary border-3 me-4" style="width: 100px; height: 100px; border-radius: 50%;">
-                                        <img src="img/costumer.png" class="img-fluid rounded-circle" alt="">
+                        <div class="proof-slide" data-dot="<span class='proof-dot'>Office</span>">
+                            <div class="proof-card">
+                                <div class="row g-4 align-items-center">
+                                    <div class="col-lg-4">
+                                        <div class="proof-profile">
+                                            <div class="proof-avatar"><i class="fas fa-building"></i></div>
+                                            <div class="proof-role">Office Administrator</div>
+                                            <div class="proof-sector">Professional Services</div>
+                                            <span class="proof-badge"><i class="fas fa-check-circle"></i> Representative Client Feedback</span>
+                                            <ul class="proof-list">
+                                                <li><i class="fas fa-check"></i><span>Needed standardization, secure remote access, and less dependence on ad-hoc fixes.</span></li>
+                                                <li><i class="fas fa-check"></i><span>Non-technical stakeholders needed visibility without jargon.</span></li>
+                                            </ul>
+                                        </div>
                                     </div>
-                                    <div>
-                                        <h5 class="mb-2">Field Nation</h5>
-                                        <p class="mb-0">Field Services · Nationwide</p>
+                                    <div class="col-lg-8">
+                                        <div class="proof-copy">
+                                            <span class="proof-tag"><i class="fas fa-briefcase"></i> Clear Communication</span>
+                                            <h3>“They made technical decisions feel understandable and low-risk.”</h3>
+                                            <p class="proof-quote">“We were looking for a provider who could standardize our switching, improve security, and communicate clearly throughout the process. NetworkConnectIT did exactly that. Issues were addressed quickly, the recommendations were practical, and the final result feels stable, organized, and professionally managed.”</p>
+                                            <div class="proof-chips">
+                                                <span>Switch Standardization</span>
+                                                <span>Remote Access</span>
+                                                <span>Executive Clarity</span>
+                                            </div>
+                                            <div class="proof-trust">
+                                                <i class="fas fa-shield-alt"></i>
+                                                <span>Why this builds trust: buyers remember providers who reduce uncertainty, not just providers who install hardware.</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
-                                <p class="fs-7">“They standardized our branch stack: Cisco core + UniFi edge, zero-touch turn-ups, and monthly firmware windows. Mean time to repair dropped by ~90% because telemetry and runbooks are unified.”</p>
-                                <div class="text-center">
-                                    <div class="d-flex justify-content-center">
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
-                                        <i class="fas fa-star text-primary"></i>
+                            </div>
+                        </div>
+                        <div class="proof-slide" data-dot="<span class='proof-dot'>Security</span>">
+                            <div class="proof-card">
+                                <div class="row g-4 align-items-center">
+                                    <div class="col-lg-4">
+                                        <div class="proof-profile">
+                                            <div class="proof-avatar"><i class="fas fa-video"></i></div>
+                                            <div class="proof-role">Facilities & Security Lead</div>
+                                            <div class="proof-sector">Commercial Property / Mixed Use</div>
+                                            <span class="proof-badge"><i class="fas fa-check-circle"></i> Representative Client Feedback</span>
+                                            <ul class="proof-list">
+                                                <li><i class="fas fa-check"></i><span>Needed professional CCTV execution with reliable follow-up and minimal rework.</span></li>
+                                                <li><i class="fas fa-check"></i><span>Documentation and accountability were part of the buying decision.</span></li>
+                                            </ul>
+                                        </div>
+                                    </div>
+                                    <div class="col-lg-8">
+                                        <div class="proof-copy">
+                                            <span class="proof-tag"><i class="fas fa-clipboard-check"></i> Professional Execution</span>
+                                            <h3>“The project was handled with the kind of discipline that gives ownership peace of mind.”</h3>
+                                            <p class="proof-quote">“The CCTV and network refresh was organized from planning through closeout. Device placement, cabling, and follow-up recommendations were handled professionally, and the documentation made it easy to understand what was installed and how it should be maintained. That level of follow-through is what makes us comfortable recommending them.”</p>
+                                            <div class="proof-chips">
+                                                <span>CCTV Refresh</span>
+                                                <span>Field Discipline</span>
+                                                <span>Follow-Through</span>
+                                            </div>
+                                            <div class="proof-trust">
+                                                <i class="fas fa-shield-alt"></i>
+                                                <span>Why this builds trust: strong onsite execution reduces rework, protects timelines, and reassures decision-makers that the job was done correctly.</span>
+                                            </div>
+                                        </div>
                                     </div>
                                 </div>
                             </div>
                         </div>
                     </div>
                 </div>
-            </div>
+            </section>
             <!-- Testimonial End -->
 
        <!-- Footer Start -->
