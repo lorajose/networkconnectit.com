@@ -1,1399 +1,593 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en" class="scroll-smooth">
 
-    <head>
-            <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6691470063784202"
-     crossorigin="anonymous"></script>
+<head>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6691470063784202"
+        crossorigin="anonymous"></script>
 
     <meta charset="utf-8">
-    <title>Blog | Network Security & CCTV Insights | NetworkConnectIT</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Premium Network Insights | NetworkConnectIT</title>
+    <meta name="description"
+        content="Apple-inspired premium blog for enterprise Network Architecture, AI-CCTV, VLAN Segmentation, and Failover Strategies.">
     <link rel="icon" type="image/png" href="img/NetworkConnectIT Logo.png">
     <link rel="icon" sizes="32x32" href="img/favicon.png">
     <link rel="apple-touch-icon" href="img/favicon.png">
-    <meta content="width=device-width, initial-scale=1.0" name="viewport">
-    <meta content="network security blog, CCTV insights, Cisco certification, UniFi deployment, preventive maintenance, VLAN segmentation" name="keywords">
-    <meta content="Latest articles on network security, CCTV, Cisco/UniFi best practices, and preventive maintenance from NetworkConnectIT experts." name="description">
     <link rel="canonical" href="https://networkconnectit.com/blog.html">
-    <meta property="og:title" content="Blog | Network Security & CCTV Insights | NetworkConnectIT">
-    <meta property="og:description" content="Guides on VLAN segmentation, AI CCTV, dual-WAN resilience, and proactive maintenance from Cisco/UniFi certified engineers.">
-    <meta property="og:type" content="website">
-    <meta property="og:url" content="https://networkconnectit.com/blog.html">
-    <meta property="og:image" content="https://networkconnectit.com/img/hero-img-1.png">
-    <meta name="twitter:card" content="summary_large_image">
-    <meta name="twitter:title" content="Blog | NetworkConnectIT">
-    <meta name="twitter:description" content="Stay ahead on network resilience, CCTV security, and preventive operations.">
-    <meta name="twitter:image" content="https://networkconnectit.com/img/hero-img-1.png">
 
-        <!-- Google Web Fonts -->
-        <link rel="preconnect" href="https://fonts.googleapis.com">
-        <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-        <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Rubik:wght@400;500&display=swap" rel="stylesheet"> 
-
-        <!-- Icon Font Stylesheet -->
-        <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css"/>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
-
-        <!-- Libraries Stylesheet -->
-        <link href="lib/animate/animate.min.css" rel="stylesheet">
-        <link href="lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
-        <link href="lib/lightbox/css/lightbox.min.css" rel="stylesheet">
-
-
-        <!-- Customized Bootstrap Stylesheet -->
-        <link href="css/bootstrap.min.css" rel="stylesheet">
-
-        <!-- Template Stylesheet -->
-        <link href="css/style.css" rel="stylesheet">
-
-        <style>
-            :root {
-                --blog-bg-1: #040f1e;
-                --blog-bg-2: #081a32;
-                --blog-card: rgba(7, 20, 40, 0.66);
-                --blog-card-strong: rgba(10, 28, 53, 0.9);
-                --blog-border: rgba(114, 182, 255, 0.3);
-                --blog-text: #eaf2ff;
-                --blog-muted: #9db2ce;
-                --blog-accent: #1db5ff;
-                --blog-accent-2: #4effd1;
-                --blog-warning: #ffd86b;
-            }
-
-            .blog-page {
-                background:
-                    radial-gradient(1200px 600px at 100% 0%, rgba(29, 181, 255, 0.12), transparent 60%),
-                    radial-gradient(900px 500px at 0% 20%, rgba(78, 255, 209, 0.1), transparent 55%),
-                    linear-gradient(180deg, var(--blog-bg-1) 0%, var(--blog-bg-2) 100%);
-                color: var(--blog-text);
-            }
-
-            .reading-progress {
-                position: fixed;
-                top: 0;
-                left: 0;
-                width: 100%;
-                height: 4px;
-                z-index: 1200;
-                background: rgba(255, 255, 255, 0.06);
-            }
-
-            .reading-progress__bar {
-                display: block;
-                width: 100%;
-                height: 100%;
-                transform: scaleX(0);
-                transform-origin: left center;
-                background: linear-gradient(90deg, var(--blog-accent), var(--blog-accent-2));
-                box-shadow: 0 0 16px rgba(29, 181, 255, 0.85);
-                transition: transform 0.15s linear;
-            }
-
-            .blog-lab {
-                position: relative;
-                overflow: hidden;
-            }
-
-            .blog-lab::before {
-                content: "";
-                position: absolute;
-                inset: auto -10% -220px -10%;
-                height: 320px;
-                background: radial-gradient(circle, rgba(29, 181, 255, 0.2), transparent 66%);
-                pointer-events: none;
-                z-index: 0;
-            }
-
-            .blog-lab .container {
-                position: relative;
-                z-index: 2;
-            }
-
-            .blog-lab__intro {
-                margin-bottom: 2rem;
-            }
-
-            .blog-kicker {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.4rem;
-                padding: 0.45rem 1rem;
-                border-radius: 999px;
-                color: #cfe4ff;
-                border: 1px solid rgba(114, 182, 255, 0.4);
-                background: rgba(6, 25, 47, 0.52);
-                letter-spacing: 0.04em;
-                font-size: 0.82rem;
-                text-transform: uppercase;
-                margin-bottom: 1rem;
-            }
-
-            .blog-lab__intro h2 {
-                color: #ffffff;
-                font-size: clamp(2rem, 4vw, 3.4rem);
-                line-height: 1.08;
-                max-width: 820px;
-                margin-bottom: 0.8rem;
-            }
-
-            .blog-lab__intro p {
-                color: var(--blog-muted);
-                max-width: 860px;
-                font-size: clamp(1rem, 1.7vw, 1.16rem);
-                margin-bottom: 1.2rem;
-            }
-
-            .blog-lab__chips {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.6rem;
-            }
-
-            .blog-chip {
-                padding: 0.35rem 0.85rem;
-                border-radius: 999px;
-                border: 1px solid rgba(114, 182, 255, 0.28);
-                background: rgba(7, 20, 40, 0.52);
-                color: #cfddf4;
-                font-size: 0.84rem;
-            }
-
-            .bento-grid {
-                display: grid;
-                grid-template-columns: repeat(12, minmax(0, 1fr));
-                gap: 1rem;
-                align-items: stretch;
-            }
-
-            .bento-card {
-                position: relative;
-                isolation: isolate;
-                overflow: hidden;
-                min-height: 290px;
-                border-radius: 22px;
-                border: 1px solid transparent;
-                display: flex;
-                flex-direction: column;
-                background: var(--blog-card);
-                box-shadow: 0 16px 48px rgba(2, 10, 24, 0.45);
-                backdrop-filter: blur(14px);
-                -webkit-backdrop-filter: blur(14px);
-                transition: transform 0.35s ease, box-shadow 0.35s ease;
-            }
-
-            .bento-card::before {
-                content: "";
-                position: absolute;
-                inset: -130%;
-                background: conic-gradient(from 120deg, rgba(29, 181, 255, 0), rgba(29, 181, 255, 0.96), rgba(78, 255, 209, 0.85), rgba(29, 181, 255, 0));
-                animation: border-spin 7s linear infinite;
-                opacity: 0.8;
-                z-index: -2;
-            }
-
-            .bento-card::after {
-                content: "";
-                position: absolute;
-                inset: 1px;
-                border-radius: 21px;
-                background: linear-gradient(165deg, rgba(10, 28, 53, 0.86), rgba(6, 17, 34, 0.76));
-                z-index: -1;
-            }
-
-            .bento-card:hover {
-                transform: translateY(-7px) scale(1.01);
-                box-shadow: 0 24px 55px rgba(6, 27, 54, 0.65);
-            }
-
-            .bento-card__media {
-                position: relative;
-                min-height: 160px;
-                overflow: hidden;
-            }
-
-            .bento-card__media img {
-                width: 100%;
-                height: 100%;
-                min-height: 160px;
-                object-fit: cover;
-                transform: scale(1.02);
-                transition: transform 0.6s ease;
-                filter: saturate(1.08) contrast(1.03);
-            }
-
-            .bento-card:hover .bento-card__media img {
-                transform: scale(1.09);
-            }
-
-            .bento-card__body {
-                display: flex;
-                flex: 1;
-                flex-direction: column;
-                gap: 0.75rem;
-                padding: 1rem 1rem 1.1rem;
-            }
-
-            .bento-card__meta {
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.45rem;
-            }
-
-            .meta-pill {
-                display: inline-flex;
-                align-items: center;
-                gap: 0.35rem;
-                padding: 0.3rem 0.65rem;
-                border-radius: 999px;
-                font-size: 0.74rem;
-                letter-spacing: 0.03em;
-                text-transform: uppercase;
-                color: #dce9ff;
-                border: 1px solid rgba(114, 182, 255, 0.36);
-                background: rgba(7, 20, 40, 0.45);
-            }
-
-            .meta-pill--read {
-                color: #ffe79d;
-                border-color: rgba(255, 216, 107, 0.45);
-            }
-
-            .bento-card h3 {
-                margin: 0;
-                color: #ffffff;
-                font-size: clamp(1.12rem, 1.45vw, 1.5rem);
-                line-height: 1.25;
-            }
-
-            .bento-card p {
-                color: #bdd0ea;
-                margin: 0;
-                line-height: 1.58;
-                font-size: 0.96rem;
-            }
-
-            .bento-card__actions {
-                margin-top: auto;
-                display: flex;
-                flex-wrap: wrap;
-                gap: 0.5rem;
-            }
-
-            .neon-btn,
-            .ghost-btn {
-                position: relative;
-                overflow: hidden;
-                border: 1px solid rgba(114, 182, 255, 0.42);
-                border-radius: 999px;
-                padding: 0.55rem 1rem;
-                color: #e6f0ff;
-                background: rgba(8, 22, 42, 0.62);
-                font-weight: 600;
-                font-size: 0.84rem;
-                transition: transform 0.25s ease, box-shadow 0.25s ease, border-color 0.25s ease;
-                text-decoration: none;
-            }
-
-            .neon-btn:hover,
-            .ghost-btn:hover {
-                transform: translateY(-2px);
-                border-color: rgba(78, 255, 209, 0.8);
-                box-shadow: 0 0 0 1px rgba(78, 255, 209, 0.24), 0 0 20px rgba(29, 181, 255, 0.36);
-                color: #ffffff;
-            }
-
-            .ghost-btn.is-active {
-                color: #ffccd5;
-                border-color: rgba(255, 130, 155, 0.72);
-                box-shadow: 0 0 16px rgba(255, 130, 155, 0.28);
-            }
-
-            .btn-icon {
-                margin-right: 0.35rem;
-            }
-
-            .ripple {
-                position: absolute;
-                width: 10px;
-                height: 10px;
-                border-radius: 50%;
-                pointer-events: none;
-                background: rgba(255, 255, 255, 0.48);
-                transform: translate(-50%, -50%) scale(0);
-                animation: ripple-wave 0.55s linear;
-            }
-
-            .bento-card--hero {
-                grid-column: span 8;
-                grid-row: span 2;
-            }
-
-            .bento-card--hero .bento-card__media {
-                min-height: 260px;
-            }
-
-            .bento-card--hero h3 {
-                font-size: clamp(1.35rem, 2.2vw, 2rem);
-            }
-
-            .bento-card--wide {
-                grid-column: span 6;
-            }
-
-            .bento-card--tall {
-                grid-column: span 4;
-                grid-row: span 2;
-            }
-
-            .bento-card--standard {
-                grid-column: span 4;
-            }
-
-            .bento-card--cta {
-                grid-column: span 6;
-                justify-content: center;
-                background: var(--blog-card-strong);
-            }
-
-            .bento-card--cta::after {
-                background:
-                    linear-gradient(145deg, rgba(9, 34, 61, 0.94), rgba(6, 17, 34, 0.9)),
-                    radial-gradient(circle at 100% 0%, rgba(78, 255, 209, 0.25), transparent 58%);
-            }
-
-            .bento-card--ad {
-                grid-column: span 6;
-                justify-content: center;
-            }
-
-            .ad-shell {
-                padding: 1rem 1.1rem 1.2rem;
-                border-radius: 18px;
-                border: 1px dashed rgba(114, 182, 255, 0.5);
-                background: rgba(7, 24, 44, 0.5);
-            }
-
-            .ad-shell small {
-                color: var(--blog-muted);
-                display: block;
-                margin-bottom: 0.45rem;
-                text-transform: uppercase;
-                letter-spacing: 0.08em;
-                font-size: 0.69rem;
-            }
-
-            .ad-shell p {
-                margin-bottom: 0;
-            }
-
-            .ad-placeholder {
-                margin-top: 0.9rem;
-                border-radius: 14px;
-                border: 1px dashed rgba(255, 255, 255, 0.28);
-                padding: 1rem;
-                text-align: center;
-                color: #cad9ee;
-                min-height: 96px;
-                display: grid;
-                place-items: center;
-                background: rgba(255, 255, 255, 0.04);
-            }
-
-            .reveal-card {
-                opacity: 0;
-                transform: translateY(34px);
-                transition: opacity 0.75s ease, transform 0.75s cubic-bezier(0.2, 0.68, 0, 1);
-                transition-delay: var(--stagger-delay, 0ms);
-            }
-
-            .reveal-card.is-visible {
-                opacity: 1;
-                transform: translateY(0);
-            }
-
-            .blog-modal,
-            .comments-drawer {
-                position: fixed;
-                inset: 0;
-                z-index: 1400;
-                display: grid;
-                pointer-events: none;
-                opacity: 0;
-                transition: opacity 0.25s ease;
-            }
-
-            .blog-modal.is-open,
-            .comments-drawer.is-open {
-                opacity: 1;
-                pointer-events: auto;
-            }
-
-            .blog-modal__backdrop,
-            .comments-drawer__backdrop {
-                position: absolute;
-                inset: 0;
-                background: rgba(3, 9, 20, 0.68);
-                backdrop-filter: blur(4px);
-                -webkit-backdrop-filter: blur(4px);
-            }
-
-            .blog-modal__panel {
-                position: relative;
-                margin: auto;
-                width: min(920px, calc(100% - 2rem));
-                max-height: calc(100dvh - 2rem);
-                overflow: auto;
-                border-radius: 22px;
-                border: 1px solid rgba(114, 182, 255, 0.36);
-                background: linear-gradient(165deg, rgba(8, 24, 46, 0.98), rgba(6, 16, 33, 0.98));
-                box-shadow: 0 24px 66px rgba(3, 12, 26, 0.7);
-                padding: 1.2rem;
-            }
-
-            .blog-modal__header {
-                display: flex;
-                justify-content: space-between;
-                gap: 1rem;
-                margin-bottom: 0.75rem;
-            }
-
-            .blog-modal__title {
-                color: #ffffff;
-                margin: 0;
-            }
-
-            .blog-modal__meta {
-                color: var(--blog-muted);
-                margin-bottom: 0.85rem;
-                font-size: 0.88rem;
-            }
-
-            .blog-modal__image {
-                width: 100%;
-                border-radius: 14px;
-                margin-bottom: 1rem;
-                max-height: 320px;
-                object-fit: cover;
-            }
-
-            .blog-modal__content p {
-                color: #d4e3f8;
-                line-height: 1.7;
-            }
-
-            .modal-close {
-                border: 1px solid rgba(114, 182, 255, 0.45);
-                width: 38px;
-                height: 38px;
-                border-radius: 50%;
-                display: inline-grid;
-                place-items: center;
-                color: #e8f2ff;
-                background: rgba(11, 29, 53, 0.65);
-            }
-
-            .comments-drawer {
-                grid-template-columns: 1fr min(500px, 94vw);
-            }
-
-            .comments-drawer__panel {
-                position: relative;
-                margin-left: auto;
-                height: 100dvh;
-                background: linear-gradient(180deg, rgba(8, 24, 46, 0.98), rgba(5, 15, 30, 0.98));
-                border-left: 1px solid rgba(114, 182, 255, 0.36);
-                box-shadow: -18px 0 48px rgba(3, 12, 26, 0.55);
-                display: flex;
-                flex-direction: column;
-                padding: 1.2rem 1.1rem;
-                transform: translateX(102%);
-                transition: transform 0.3s ease;
-            }
-
-            .comments-drawer.is-open .comments-drawer__panel {
-                transform: translateX(0);
-            }
-
-            .comments-head {
-                display: flex;
-                justify-content: space-between;
-                align-items: center;
-                gap: 0.7rem;
-                margin-bottom: 0.8rem;
-            }
-
-            .comments-list {
-                list-style: none;
-                margin: 0;
-                padding: 0;
-                flex: 1;
-                overflow: auto;
-                display: grid;
-                gap: 0.7rem;
-            }
-
-            .comments-list li {
-                border: 1px solid rgba(114, 182, 255, 0.26);
-                border-radius: 14px;
-                background: rgba(8, 24, 46, 0.66);
-                padding: 0.7rem;
-            }
-
-            .comment-author {
-                display: flex;
-                justify-content: space-between;
-                gap: 0.8rem;
-                font-size: 0.8rem;
-                color: #9ac0f1;
-                margin-bottom: 0.35rem;
-            }
-
-            .comment-body {
-                color: #deebff;
-                margin: 0;
-                line-height: 1.5;
-                font-size: 0.92rem;
-                word-break: break-word;
-            }
-
-            .comment-form {
-                margin-top: 0.8rem;
-                border-top: 1px solid rgba(114, 182, 255, 0.22);
-                padding-top: 0.8rem;
-            }
-
-            .comment-form .form-control {
-                border-radius: 12px;
-                border: 1px solid rgba(114, 182, 255, 0.3);
-                color: #e6f0ff;
-                background: rgba(6, 20, 39, 0.75);
-            }
-
-            .comment-form .form-control::placeholder {
-                color: #87a2c6;
-            }
-
-            .comment-empty {
-                color: #8fa9cb;
-                border: 1px dashed rgba(114, 182, 255, 0.3);
-                padding: 0.9rem;
-                border-radius: 12px;
-                text-align: center;
-            }
-
-            @media (max-width: 1199.98px) {
-                .bento-card--hero {
-                    grid-column: span 12;
-                    grid-row: span 1;
-                }
-
-                .bento-card--wide,
-                .bento-card--cta,
-                .bento-card--ad {
-                    grid-column: span 6;
-                }
-
-                .bento-card--standard,
-                .bento-card--tall {
-                    grid-column: span 6;
-                    grid-row: span 1;
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link
+        href="https://fonts.googleapis.com/css2?family=Manrope:wght@500;600;700;800&family=Plus+Jakarta+Sans:wght@400;500;600&display=swap"
+        rel="stylesheet">
+
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        charcoal: "#121212",
+                        electric: "#007AFF",
+                        slate0: "#0f1115",
+                        slate1: "#171a21",
+                        slate2: "#232833",
+                        slate3: "#8a96ab",
+                        slate4: "#c8d2e0"
+                    },
+                    fontFamily: {
+                        display: ["Manrope", "sans-serif"],
+                        body: ["Plus Jakarta Sans", "sans-serif"]
+                    },
+                    boxShadow: {
+                        soft: "0 14px 48px rgba(0, 0, 0, 0.38)",
+                        electric: "0 0 0 1px rgba(0,122,255,0.5), 0 14px 36px rgba(0,122,255,0.28)"
+                    }
                 }
             }
+        };
+    </script>
 
-            @media (max-width: 767.98px) {
-                .bento-grid {
-                    grid-template-columns: 1fr;
-                }
+    <style>
+        :root {
+            color-scheme: dark;
+        }
 
-                .bento-card--hero,
-                .bento-card--wide,
-                .bento-card--standard,
-                .bento-card--tall,
-                .bento-card--cta,
-                .bento-card--ad {
-                    grid-column: auto;
-                    grid-row: auto;
-                    min-height: 260px;
-                }
+        body {
+            font-family: "Plus Jakarta Sans", sans-serif;
+            background:
+                radial-gradient(1200px 500px at 85% -10%, rgba(0, 122, 255, 0.2), transparent 58%),
+                radial-gradient(900px 500px at -10% 20%, rgba(134, 146, 166, 0.12), transparent 55%),
+                #121212;
+            color: #e9eef7;
+            min-height: 100vh;
+        }
 
-                .bento-card__actions {
-                    gap: 0.42rem;
-                }
+        .reading-progress {
+            position: fixed;
+            inset: 0 0 auto 0;
+            height: 3px;
+            z-index: 80;
+            background: rgba(255, 255, 255, 0.07);
+        }
 
-                .neon-btn,
-                .ghost-btn {
-                    width: 100%;
-                    justify-content: center;
-                    text-align: center;
-                }
+        .reading-progress span {
+            display: block;
+            width: 100%;
+            height: 100%;
+            transform: scaleX(0);
+            transform-origin: left center;
+            background: linear-gradient(90deg, #007AFF, #4da3ff);
+            box-shadow: 0 0 16px rgba(0, 122, 255, 0.7);
+            transition: transform 140ms linear;
+        }
 
-                .blog-modal__panel {
-                    width: calc(100% - 1rem);
-                    padding: 1rem;
-                }
+        .grid-bento {
+            grid-auto-rows: minmax(200px, auto);
+        }
+
+        .glass-card {
+            position: relative;
+            overflow: hidden;
+            border: 1px solid rgba(153, 168, 192, 0.24);
+            border-radius: 1.15rem;
+            background: linear-gradient(150deg, rgba(29, 34, 44, 0.78), rgba(18, 20, 26, 0.9));
+            box-shadow: 0 16px 48px rgba(0, 0, 0, 0.35);
+            backdrop-filter: blur(10px);
+            -webkit-backdrop-filter: blur(10px);
+            transform-style: preserve-3d;
+            will-change: transform;
+        }
+
+        .glass-card::before {
+            content: "";
+            position: absolute;
+            inset: 0;
+            pointer-events: none;
+            background: linear-gradient(120deg, rgba(255, 255, 255, 0.1), transparent 34%);
+            opacity: 0.5;
+        }
+
+        .card-glare {
+            position: absolute;
+            inset: -40% -20% auto auto;
+            width: 220px;
+            height: 220px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.25), transparent 65%);
+            pointer-events: none;
+            mix-blend-mode: screen;
+            opacity: 0;
+        }
+
+        .reveal {
+            opacity: 0;
+            transform: translateY(26px);
+            transition: opacity 720ms ease, transform 720ms cubic-bezier(0.2, 0.68, 0, 1);
+        }
+
+        .reveal.is-visible {
+            opacity: 1;
+            transform: translateY(0);
+        }
+
+        .hero-glow {
+            position: absolute;
+            inset: auto -8% -170px auto;
+            width: 320px;
+            height: 320px;
+            border-radius: 999px;
+            background: radial-gradient(circle, rgba(0, 122, 255, 0.3), transparent 64%);
+            filter: blur(6px);
+            pointer-events: none;
+        }
+
+        .floating-audit {
+            position: fixed;
+            right: 1rem;
+            bottom: 1rem;
+            z-index: 70;
+            border-radius: 999px;
+            border: 1px solid rgba(104, 163, 255, 0.65);
+            background: linear-gradient(135deg, #007AFF, #2e8dff);
+            color: #fff;
+            padding: 0.75rem 1.2rem;
+            font-weight: 700;
+            letter-spacing: 0.01em;
+            box-shadow: 0 0 0 1px rgba(70, 146, 255, 0.35), 0 10px 28px rgba(0, 122, 255, 0.35);
+            transition: transform 220ms ease, box-shadow 220ms ease;
+        }
+
+        .floating-audit:hover {
+            transform: translateY(-3px);
+            box-shadow: 0 0 0 1px rgba(110, 171, 255, 0.62), 0 18px 36px rgba(0, 122, 255, 0.45);
+        }
+
+        @media (max-width: 1024px) {
+            .grid-bento {
+                grid-auto-rows: minmax(180px, auto);
             }
+        }
 
-            @keyframes border-spin {
-                to {
-                    transform: rotate(1turn);
-                }
+        @media (max-width: 768px) {
+            .floating-audit {
+                right: 0.75rem;
+                bottom: 0.75rem;
+                padding: 0.7rem 1rem;
+                font-size: 0.9rem;
             }
+        }
+    </style>
+</head>
 
-            @keyframes ripple-wave {
-                to {
-                    transform: translate(-50%, -50%) scale(18);
-                    opacity: 0;
-                }
-            }
-        </style>
-    </head>
+<body class="antialiased">
+    <div class="reading-progress" aria-hidden="true"><span id="readingProgressBar"></span></div>
 
-    <body class="blog-page">
-
-        <div class="reading-progress" aria-hidden="true">
-            <span class="reading-progress__bar" id="readingProgressBar"></span>
-        </div>
-
-        <!-- Spinner Start -->
-        <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
-            <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
-                <span class="sr-only">Loading...</span>
-            </div>
-        </div>
-        <!-- Spinner End -->
-
-
-    <!-- Navbar & Hero Start -->
-    <div class="container-fluid header position-relative overflow-hidden p-0 cyber-hero bg-cyber">
-        <nav class="navbar navbar-expand-lg navbar-dark fixed-top px-4 px-lg-5 py-3 py-lg-0">
-            <a href="index.html" class="navbar-brand p-0">
-                <img src="img/NetworkConnectIT Logo.png" alt="Logo">
-            </a>
-            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
-                <span class="fa fa-bars"></span>
-            </button>
-            <div class="collapse navbar-collapse" id="navbarCollapse">
-                <div class="navbar-nav ms-auto py-0">
-                    <a href="index.html" class="nav-item nav-link">Home</a>
-                    <a href="about.html" class="nav-item nav-link">About</a>
-                    <a href="service.html" class="nav-item nav-link">Services</a>
-                    <div class="nav-item dropdown">
-                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">More</a>
-                        <div class="dropdown-menu m-0">
-                            <a href="feature.html" class="dropdown-item">Features</a>
-                            <a href="pricing.html" class="dropdown-item">Pricing</a>
-                            <a href="blog.html" class="dropdown-item active">Blog</a>
-                            <a href="testimonial.html" class="dropdown-item">Testimonial</a>
-                        </div>
-                    </div>
-                    <a href="contact.html" class="nav-item nav-link">Contact Us</a>
-                </div>
-            </div>
-        </nav>
-
-        <!-- Hero Header Start -->
-        <div class="hero-header overflow-hidden px-5">
-            <canvas class="network-canvas" id="network-hero"></canvas>
-            <div class="rotate-img">
-                <img src="img/sty-1.png" class="img-fluid w-100" alt="">
-                <div class="rotate-sty-2"></div>
-            </div>
-            <div class="row gy-5 align-items-center">
-                <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
-                    <h1 data-wow-delay="0.3s">We shield your operations with world-class networks and intelligent security.</h1>
-                    <h3 data-wow-delay="0.3s">Cisco &amp; UniFi enterprise architectures engineered for uptime, performance, and growth.</h3>
-                    <p class="fs-4 mb-4 wow fadeInUp" data-wow-delay="0.5s">We design, deploy, and manage resilient network and CCTV ecosystems so your teams stay productive, your data stays protected, and your locations stay connected 24/7.</p>
-                    <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-5 wow fadeInUp" data-wow-delay="0.7s">Request Free Network Audit</a>
-                    <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5 wow fadeInUp ms-3" data-wow-delay="0.8s">Design My Infrastructure Pro</a>
-                </div>
-                <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
-                    <img src="img/hero-img-1.png" class="img-fluid w-100 h-100" alt="">
-                </div>
-            </div>
-        </div>
-        <!-- Hero Header End -->
-    </div>
-    <!-- Navbar & Hero End -->
-
-
-        <!-- Blog Start -->
-        <section class="container-fluid blog-lab py-5">
-            <div class="container py-5">
-                <div class="blog-lab__intro reveal-card">
-                    <span class="blog-kicker"><i class="fa fa-bolt"></i> Digital Security Journal</span>
-                    <h2>Un blog interactivo tipo revista para convertir visitas en leads y contratos.</h2>
-                    <p>Estrategias reales para uptime, seguridad y crecimiento: arquitectura de red, CCTV con IA, segmentacion por VLAN, failover y mantenimiento preventivo. Todo presentado en formato bento premium, con interacciones para aumentar tiempo de sesion.</p>
-                    <div class="blog-lab__chips">
-                        <span class="blog-chip">Bento Layout</span>
-                        <span class="blog-chip">Lead Capture Ready</span>
-                        <span class="blog-chip">AdSense Friendly</span>
-                        <span class="blog-chip">Interactive Cards</span>
-                    </div>
-                </div>
-                <div class="bento-grid" id="blogBentoGrid" aria-live="polite"></div>
-            </div>
-        </section>
-        <!-- Blog End -->
-
-        <div class="blog-modal" id="articleModal" aria-hidden="true">
-            <button class="blog-modal__backdrop" type="button" data-close-article></button>
-            <div class="blog-modal__panel" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle">
-                <div class="blog-modal__header">
-                    <h3 class="blog-modal__title" id="articleModalTitle"></h3>
-                    <button class="modal-close" type="button" data-close-article aria-label="Close article">
-                        <i class="fa fa-times"></i>
-                    </button>
-                </div>
-                <p class="blog-modal__meta" id="articleModalMeta"></p>
-                <img class="blog-modal__image" id="articleModalImage" src="" alt="">
-                <div class="blog-modal__content" id="articleModalContent"></div>
-            </div>
-        </div>
-
-        <div class="comments-drawer" id="commentsDrawer" aria-hidden="true">
-            <button class="comments-drawer__backdrop" type="button" data-close-comments></button>
-            <aside class="comments-drawer__panel" role="dialog" aria-modal="true" aria-labelledby="commentsTitle">
-                <div class="comments-head">
+    <div class="relative isolate">
+        <header class="sticky top-0 z-50 border-b border-white/10 bg-slate0/85 backdrop-blur-xl">
+            <nav class="mx-auto flex max-w-7xl items-center justify-between px-6 py-4 lg:px-8">
+                <a href="index.html" class="flex items-center gap-3">
+                    <img src="img/NetworkConnectIT Logo.png" alt="NetworkConnectIT" class="h-10 w-10 rounded-full object-cover">
                     <div>
-                        <h4 class="mb-1 text-white" id="commentsTitle">Comments</h4>
-                        <small class="text-secondary" id="commentsSubTitle"></small>
+                        <p class="font-display text-sm font-extrabold tracking-wide text-white">NETWORKCONNECTIT</p>
+                        <p class="text-xs text-slate3">Network and Security Journal</p>
                     </div>
-                    <button class="modal-close" type="button" data-close-comments aria-label="Close comments">
-                        <i class="fa fa-times"></i>
-                    </button>
+                </a>
+
+                <div class="hidden items-center gap-6 text-sm text-slate4 md:flex">
+                    <a href="index.html" class="transition hover:text-white">Home</a>
+                    <a href="service.html" class="transition hover:text-white">Services</a>
+                    <a href="pricing.html" class="transition hover:text-white">Pricing</a>
+                    <a href="contact.html" class="rounded-full border border-electric/60 px-4 py-2 font-semibold text-white shadow-electric transition hover:bg-electric/20">Contact</a>
                 </div>
 
-                <ul class="comments-list" id="commentsList"></ul>
+                <a href="contact.html" class="rounded-full border border-electric/60 px-3 py-1.5 text-xs font-semibold text-white md:hidden">
+                    Audit
+                </a>
+            </nav>
+        </header>
 
-                <form class="comment-form" id="commentForm">
-                    <div class="mb-2">
-                        <input class="form-control" type="text" id="commentName" maxlength="60" placeholder="Your name (optional)">
-                    </div>
-                    <div class="mb-2">
-                        <textarea class="form-control" id="commentMessage" rows="3" maxlength="500" placeholder="Write your comment..." required></textarea>
-                    </div>
-                    <button type="submit" class="neon-btn w-100 ripple-btn">Post Comment</button>
-                </form>
-            </aside>
-        </div>
+        <main>
+            <section class="relative mx-auto max-w-7xl px-6 pb-14 pt-14 lg:px-8 lg:pt-20">
+                <div class="hero-glow"></div>
+                <div class="grid items-start gap-8 lg:grid-cols-12">
+                    <div class="reveal lg:col-span-7">
+                        <p class="inline-flex items-center rounded-full border border-electric/50 bg-electric/10 px-4 py-1 text-xs font-semibold uppercase tracking-[0.18em] text-slate4">
+                            Luxury-grade technical intelligence
+                        </p>
+                        <h1 class="mt-5 font-display text-4xl font-extrabold leading-tight text-white sm:text-5xl lg:text-6xl">
+                            Enterprise network decisions, designed like a premium magazine.
+                        </h1>
+                        <p class="mt-5 max-w-2xl text-base leading-relaxed text-slate3 sm:text-lg">
+                            Explore strategic engineering pillars in plain language: Network Architecture, AI-CCTV, VLAN Segmentation, and Failover Strategies.
+                            Built for executives and technical teams that value uptime, clarity, and control.
+                        </p>
 
-        <!-- Footer Start -->
-        <div class="container-fluid footer py-5 wow fadeIn" data-wow-delay="0.2s">
-            <div class="container py-5">
-                <div class="row g-5">
-                    <div class="col-md-6 col-lg-6 col-xl-3">
-                        <div class="footer-item d-flex flex-column">
-                            <h4 class="text-dark mb-4">Company</h4>
-                            <a href="about.html"> Why NetworkConnectIt?</a>
-                            <a href="feature.html"> Our Features</a>
-                            <a href="service.html"> Our Portfolio</a>
-                            <a href="about.html"> About Us</a>
-                            <a href="blog.html"> Our Blog & News</a>
-                            <a href="contact.html"> Get In Touch</a>
+                        <div class="mt-7 flex flex-wrap gap-3">
+                            <a href="#insights" class="rounded-full border border-electric bg-electric px-5 py-3 text-sm font-semibold text-white transition hover:bg-blue-500">
+                                Explore Insights
+                            </a>
+                            <a href="contact.html" class="rounded-full border border-slate2 bg-slate1 px-5 py-3 text-sm font-semibold text-slate4 transition hover:border-slate3 hover:text-white">
+                                Schedule Architecture Review
+                            </a>
                         </div>
                     </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3">
-                        <div class="footer-item d-flex flex-column">
-                            <h4 class="mb-4 text-dark">Quick Links</h4>
-                            <a href="about.html"> About Us</a>
-                            <a href="contact.html"> Contact Us</a>
-                            <a href="index.html#privacy"> Privacy Policy</a>
-                            <a href="index.html#terms"> Terms & Conditions</a>
-                            <a href="blog.html"> Our Blog & News</a>
-                            <a href="about.html#team"> Our Team</a>
-                        </div>
+
+                    <div class="reveal lg:col-span-5">
+                        <article id="uptimeCounter"
+                            class="glass-card p-5 sm:p-6">
+                            <div class="card-glare"></div>
+                            <p class="text-xs uppercase tracking-[0.18em] text-slate3">Operational Reliability</p>
+                            <p id="uptimeValue" class="mt-3 font-display text-4xl font-extrabold text-white sm:text-5xl">99.100%</p>
+                            <p class="mt-2 text-sm text-slate3">Verified multi-site uptime performance across managed client infrastructure.</p>
+
+                            <div class="mt-5 h-2 rounded-full bg-slate2/90">
+                                <span id="uptimeBar" class="block h-full rounded-full bg-gradient-to-r from-electric to-blue-400" style="width:0%"></span>
+                            </div>
+
+                            <div class="mt-6 grid grid-cols-3 gap-3 text-center text-xs sm:text-sm">
+                                <div class="rounded-xl border border-slate2 bg-slate0/60 p-3">
+                                    <p class="text-slate3">Sites</p>
+                                    <p class="mt-1 font-display text-xl font-bold text-white" data-counter="48" data-suffix="+">0</p>
+                                </div>
+                                <div class="rounded-xl border border-slate2 bg-slate0/60 p-3">
+                                    <p class="text-slate3">Incidents</p>
+                                    <p class="mt-1 font-display text-xl font-bold text-white" data-counter="63" data-suffix="%">0</p>
+                                </div>
+                                <div class="rounded-xl border border-slate2 bg-slate0/60 p-3">
+                                    <p class="text-slate3">MTTR</p>
+                                    <p class="mt-1 font-display text-xl font-bold text-white" data-counter="32" data-suffix="min">0</p>
+                                </div>
+                            </div>
+                        </article>
                     </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3">
-                        <div class="footer-item d-flex flex-column">
-                            <h4 class="mb-4 text-dark">Services</h4>
-                            <a href="service.html"> All Services</a>
-                            <a href="service.html"> Network Installation & Optimization</a>
-                            <a href="service.html"> Network Maintenance & Support</a>
-                            <a href="service.html"> Fast, Reliable, and Secure Networking</a>
-                            <a href="service.html"> Cisco Solutions</a>
-                            <a href="service.html"> Ubiquiti UniFi Integration</a>
-                        </div>
+                </div>
+            </section>
+
+            <section id="insights" class="mx-auto max-w-7xl px-6 pb-20 lg:px-8">
+                <div class="reveal mb-8 flex flex-wrap items-end justify-between gap-4">
+                    <div>
+                        <p class="text-xs uppercase tracking-[0.16em] text-slate3">Editorial Grid</p>
+                        <h2 class="mt-2 font-display text-3xl font-bold text-white sm:text-4xl">Bento Intelligence Hub</h2>
                     </div>
-                    <div class="col-md-6 col-lg-6 col-xl-3">
-                        <div class="footer-item d-flex flex-column">
-                            <h4 class="mb-4 text-dark">Contact Info</h4>
-                            <a href=""><i class="fa fa-map-marker-alt me-2"></i> 117 Berkshire Dr, Farmingville, NY 11738, USA</a>
-                            <a href=""><i class="fas fa-envelope me-2"></i> Email us at:: network@networkconnectit.com</a>
-                            <!-- <a href=""><i class="fas fa-envelope me-2"></i> Email us at:: networkconnectit@gmail.com</a> -->
-                             <a href=""><i class="fas fa-phone me-2"></i>Call us at:: 1 917 403 7129 inglés and español</a>
-                            <!-- <a href=""><i class="fas fa-phone me-2"></i>Call us at:: 631 505 9244  español</a> -->
-                           <!-- <a href="" class="mb-3"><i class="fas fa-print me-2"></i> +012 345 67890</a> -->
-                            <div class="d-flex align-items-center">
-                                <i class="fas fa-share fa-2x text-secondary me-2"></i>
-                                <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.facebook.com/profile.php?id=61557354532955"><i class="fab fa-facebook-f"></i></a>
-                               <!-- <a class="btn-square btn btn-primary rounded-circle mx-1" href=""><i class="fab fa-twitter"></i></a> -->
-                                <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.instagram.com/networkconnectit/"><i class="fab fa-instagram"></i></a>
-                               <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.linkedin.com/in/network-connectit-6095b23a7/"><i class="fab fa-linkedin-in"></i></a>
+                    <p class="max-w-xl text-sm text-slate3 sm:text-base">
+                        Every card is engineered for deep reading, lead capture, and conversion momentum.
+                    </p>
+                </div>
+
+                <div class="grid grid-cols-1 gap-5 md:grid-cols-4 grid-bento">
+                    <article class="glass-card reveal tilt-card md:col-span-2 md:row-span-2" data-tilt="8">
+                        <div class="card-glare"></div>
+                        <div class="flex h-full flex-col p-5 sm:p-6">
+                            <div class="flex items-center justify-between">
+                                <span class="rounded-full border border-blue-300/30 bg-electric/10 px-3 py-1 text-xs font-semibold uppercase tracking-[0.14em] text-slate4">Featured Post</span>
+                                <span class="text-xs text-slate3">12 min read</span>
+                            </div>
+                            <h3 class="mt-4 font-display text-2xl font-bold text-white sm:text-3xl">Network Architecture for Zero-Trust Growth</h3>
+                            <p class="mt-3 max-w-2xl text-sm leading-relaxed text-slate3 sm:text-base">
+                                Build resilient enterprise architecture with segmented core, secure edge, and observability-first design. See how to align performance, compliance, and expansion without redesign debt.
+                            </p>
+                            <div class="mt-5 rounded-xl border border-slate2 bg-slate0/55 p-4">
+                                <p class="text-xs uppercase tracking-[0.12em] text-slate3">Key Insight</p>
+                                <p class="mt-2 text-sm text-slate4">Topology decisions made in year one determine 70% of future recovery speed during outages.</p>
+                            </div>
+                            <div class="mt-auto pt-5">
+                                <a href="contact.html" class="inline-flex items-center rounded-full border border-electric/70 bg-electric px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-500">
+                                    Read Full Architecture Playbook
+                                </a>
                             </div>
                         </div>
-                    </div>
+                    </article>
+
+                    <article class="glass-card reveal tilt-card md:col-span-1 md:row-span-1" data-tilt="10">
+                        <div class="card-glare"></div>
+                        <div class="flex h-full flex-col p-5">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.12em] text-slate3">AI-CCTV</p>
+                                <span class="text-xs text-slate3">6 min</span>
+                            </div>
+                            <h3 class="mt-3 font-display text-xl font-bold text-white">AI-CCTV That Does Not Choke the LAN</h3>
+                            <p class="mt-3 text-sm text-slate3">Camera AI workflows, smart bitrate rules, and retention tiers that preserve bandwidth for business-critical traffic.</p>
+                            <a href="service.html" class="mt-auto pt-4 text-sm font-semibold text-blue-300 hover:text-white">Read AI-CCTV blueprint</a>
+                        </div>
+                    </article>
+
+                    <article class="glass-card reveal tilt-card md:col-span-1 md:row-span-1" data-tilt="10">
+                        <div class="card-glare"></div>
+                        <div class="flex h-full flex-col p-5">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.12em] text-slate3">VLAN Segmentation</p>
+                                <span class="text-xs text-slate3">5 min</span>
+                            </div>
+                            <h3 class="mt-3 font-display text-xl font-bold text-white">VLAN Segmentation for POS, Guest, and Admin</h3>
+                            <p class="mt-3 text-sm text-slate3">Reduce attack surface and keep latency predictable by isolating traffic domains with policy-based routing.</p>
+                            <a href="service.html" class="mt-auto pt-4 text-sm font-semibold text-blue-300 hover:text-white">Review VLAN strategy</a>
+                        </div>
+                    </article>
+
+                    <article class="glass-card reveal tilt-card md:col-span-2 md:row-span-1" data-tilt="8">
+                        <div class="card-glare"></div>
+                        <div class="flex h-full flex-col p-5 sm:p-6">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.12em] text-slate3">Failover Strategies</p>
+                                <span class="text-xs text-slate3">8 min read</span>
+                            </div>
+                            <h3 class="mt-3 font-display text-2xl font-bold text-white">Dual-WAN Failover Strategies for Nonstop Operations</h3>
+                            <p class="mt-3 text-sm text-slate3">
+                                Architect deterministic failover for warehouses and branch offices with active health probes, policy steering, and role-based recovery paths.
+                            </p>
+                            <a href="service.html" class="mt-auto pt-4 text-sm font-semibold text-blue-300 hover:text-white">Open failover playbook</a>
+                        </div>
+                    </article>
+
+                    <article class="glass-card reveal tilt-card md:col-span-2 md:row-span-1" data-tilt="6">
+                        <div class="card-glare"></div>
+                        <div class="flex h-full flex-col p-5 sm:p-6">
+                            <div class="flex items-center justify-between">
+                                <p class="text-xs uppercase tracking-[0.12em] text-slate3">Lead Magnet</p>
+                                <span class="rounded-full border border-electric/40 bg-electric/10 px-3 py-1 text-xs text-slate4">High intent</span>
+                            </div>
+                            <h3 class="mt-3 font-display text-2xl font-bold text-white">Download the Security Whitepaper</h3>
+                            <p class="mt-3 text-sm text-slate3">Get the executive guide to network hardening, AI-CCTV governance, and zero-downtime architecture decisions.</p>
+
+                            <form id="whitepaperForm" class="mt-auto flex flex-col gap-3 pt-4 sm:flex-row">
+                                <label for="leadEmail" class="sr-only">Work email</label>
+                                <input id="leadEmail" type="email" required placeholder="Work email"
+                                    class="w-full rounded-full border border-slate2 bg-slate0 px-4 py-2.5 text-sm text-white outline-none ring-electric/40 placeholder:text-slate3 focus:ring">
+                                <button id="whitepaperBtn" type="submit"
+                                    class="rounded-full border border-electric/80 bg-electric px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-blue-500">
+                                    Send PDF
+                                </button>
+                            </form>
+                        </div>
+                    </article>
+
+                    <article class="glass-card reveal tilt-card md:col-span-2 md:row-span-1" data-tilt="6">
+                        <div class="card-glare"></div>
+                        <div class="flex h-full flex-col p-5 sm:p-6">
+                            <p class="text-xs uppercase tracking-[0.12em] text-slate3">Ad Monetization Zone</p>
+                            <h3 class="mt-3 font-display text-xl font-bold text-white">Sponsored Placement</h3>
+                            <p class="mt-2 text-sm text-slate3">AdSense display card integrated inside editorial flow for higher visibility without disrupting UX.</p>
+                            <div class="mt-4 rounded-xl border border-dashed border-slate2 bg-slate0/50 p-4">
+                                <ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6691470063784202"
+                                    data-ad-slot="2767296656" data-ad-format="auto" data-full-width-responsive="true"></ins>
+                            </div>
+                        </div>
+                    </article>
+                </div>
+            </section>
+        </main>
+
+        <footer class="border-t border-white/10 bg-slate0/60">
+            <div class="mx-auto flex max-w-7xl flex-col items-center justify-between gap-3 px-6 py-6 text-sm text-slate3 lg:flex-row lg:px-8">
+                <p>© 2026 NetworkConnectIT. Built for resilient business infrastructure.</p>
+                <div class="flex items-center gap-4">
+                    <a href="about.html" class="transition hover:text-white">About</a>
+                    <a href="service.html" class="transition hover:text-white">Services</a>
+                    <a href="contact.html" class="transition hover:text-white">Contact</a>
                 </div>
             </div>
-        </div>
-        <!-- Footer End -->
+        </footer>
+    </div>
 
-        
-         <!-- Copyright Start -->
-         <div class="container-fluid copyright py-4">
-            <div class="container">
-                <div class="row g-4 align-items-center">
-                    <div class="col-md-6 text-center text-md-start mb-md-0">
-                        <span class="text-white"><a href="#"><i class="fas fa-copyright text-light me-2"></i>Networkconnectit</a>, All right reserved.</span>
-                    </div>
-                    <div class="col-md-6 text-center text-md-end text-white">
-                        <!--/*** This template is free as long as you keep the below author’s credit link/attribution link/backlink. ***/-->
-                        <!--/*** If you'd like to use the template without the below author’s credit link/attribution link/backlink, ***/-->
-                        <!--/*** you can purchase the Credit Removal License from "https://htmlcodex.com/credit-removal". ***/-->
-                        Designed By <a class="border-bottom" href="https://ks-techconsulting.com/">2023</a> Distributed By <a class="border-bottom" href="https://ks-techconsulting.com/">ks-techconsulting</a>
-                    </div>
-                </div>
-            </div>
-        </div>
-        <!-- Copyright End -->
+    <a href="contact.html" class="floating-audit" aria-label="Book a Technical Audit">Book a Technical Audit</a>
 
-
-        <!-- Back to Top -->
-        <a href="#" class="btn btn-primary btn-lg-square back-to-top"><i class="fa fa-arrow-up"></i></a>   
-
-        
-    <!-- JavaScript Libraries -->
-    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="lib/wow/wow.min.js"></script>
-    <script src="lib/easing/easing.min.js"></script>
-    <script src="lib/waypoints/waypoints.min.js"></script>
-    <script src="lib/counterup/counterup.min.js"></script>
-    <script src="lib/owlcarousel/owl.carousel.min.js"></script>
-    <script src="lib/lightbox/js/lightbox.min.js"></script>
-    
-
-    <!-- Template Javascript -->
-    <script src="js/main.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/gsap/3.12.5/gsap.min.js"></script>
     <script>
         (function () {
-            const STORAGE_KEY = "ncit_blog_engagement_v2";
-            const ADSENSE_SLOT = "";
+            var progressBar = document.getElementById("readingProgressBar");
+            var uptimeValue = document.getElementById("uptimeValue");
+            var uptimeBar = document.getElementById("uptimeBar");
+            var uptimeCard = document.getElementById("uptimeCounter");
+            var whitepaperForm = document.getElementById("whitepaperForm");
+            var whitepaperBtn = document.getElementById("whitepaperBtn");
 
-            // Add new posts here. Required fields: id, layout, title, category, date, readTime, image, excerpt, likes, content[].
-            // layout options: hero | wide | tall | standard
-            const blogPosts = [
-                {
-                    id: "vlan-cctv-pos",
-                    layout: "hero",
-                    title: "VLAN segmentation that protects CCTV, POS and admin traffic",
-                    category: "Network Security",
-                    date: "2026-01-08",
-                    readTime: 8,
-                    image: "img/blog-4.png",
-                    excerpt: "A practical design for segmenting cameras, payment systems, guest Wi-Fi and management without adding latency.",
-                    likes: 47,
-                    content: [
-                        "When CCTV and POS systems share flat networks, a spike in one service can degrade every other process. The fix is segmentation with strict routing policy.",
-                        "Use separate VLANs for CCTV, POS, guest and admin traffic. Then apply inter-VLAN firewall rules: default deny, only open required ports.",
-                        "Enforce QoS on uplinks so real-time services stay stable under load. This keeps your operations online while reducing breach radius."
-                    ]
-                },
-                {
-                    id: "dual-wan-failover",
-                    layout: "tall",
-                    title: "Dual-WAN failover blueprint for warehouses and retail",
-                    category: "Business Continuity",
-                    date: "2025-12-14",
-                    readTime: 6,
-                    image: "img/blog-2.png",
-                    excerpt: "How to keep scanners, VoIP and monitoring online during ISP drops using policy routing and health checks.",
-                    likes: 33,
-                    content: [
-                        "High-availability internet starts with continuous link health monitoring and clear failover priorities.",
-                        "Set primary/secondary WAN policies by application type. Keep payments and voice on low-latency paths, offload non-critical traffic when needed.",
-                        "Validate recovery windows monthly with drill tests so your team trusts the architecture before incidents happen."
-                    ]
-                },
-                {
-                    id: "ai-cctv-lan-capacity",
-                    layout: "wide",
-                    title: "AI CCTV without saturating your LAN",
-                    category: "CCTV Engineering",
-                    date: "2025-11-22",
-                    readTime: 7,
-                    image: "img/blog-3.png",
-                    excerpt: "4K + AI can overwhelm links fast. Here is the bandwidth budget model and topology that keeps applications responsive.",
-                    likes: 39,
-                    content: [
-                        "AI camera rollouts fail when bitrate planning is ignored. Start with per-camera throughput and retention goals, then size uplinks and storage correctly.",
-                        "Place cameras in dedicated PoE domains and keep NVR traffic in CCTV VLANs. Avoid shared trunks with critical application traffic whenever possible.",
-                        "Use smart recording profiles and codec tuning to reduce congestion while preserving evidence quality."
-                    ]
-                },
-                {
-                    id: "wifi7-enterprise-readiness",
-                    layout: "standard",
-                    title: "Wi-Fi 7 readiness checklist for high-density spaces",
-                    category: "Wireless Design",
-                    date: "2025-10-05",
-                    readTime: 5,
-                    image: "img/blog-1.png",
-                    excerpt: "From RF planning to backhaul upgrades: what to verify before moving to next-generation wireless at scale.",
-                    likes: 26,
-                    content: [
-                        "Wi-Fi 7 performance is not a simple AP swap. RF planning, channel strategy and cabling all affect real-world gains.",
-                        "Audit your switching fabric for multigig support and PoE budget. Otherwise the wireless upgrade will be bottlenecked immediately.",
-                        "Pilot in one high-density area first, measure retries/latency, then scale with baseline metrics."
-                    ]
-                },
-                {
-                    id: "preventive-maintenance-sla",
-                    layout: "standard",
-                    title: "Preventive maintenance playbook for zero-surprise networks",
-                    category: "Operations",
-                    date: "2025-09-17",
-                    readTime: 6,
-                    image: "img/blog-2.png",
-                    excerpt: "Patch cycles, config backups, hardware lifecycle and monitoring routines that reduce emergency tickets.",
-                    likes: 31,
-                    content: [
-                        "Reactive maintenance is expensive and risky. A preventive schedule lowers downtime and protects compliance posture.",
-                        "Track firmware baselines, run staged updates, and maintain rollback points for every critical device.",
-                        "Pair this with monthly performance reviews and incident trend dashboards to keep improvements measurable."
-                    ]
-                },
-                {
-                    id: "network-security-audit",
-                    layout: "wide",
-                    title: "What a profitable network security audit includes in 2026",
-                    category: "Audit & Compliance",
-                    date: "2025-08-11",
-                    readTime: 9,
-                    image: "img/blog-4.png",
-                    excerpt: "A framework that maps technical findings to business impact so decision-makers approve remediation faster.",
-                    likes: 44,
-                    content: [
-                        "An effective audit does not stop at vulnerability lists. It ties each finding to operational and financial risk.",
-                        "Prioritize controls by exploitability, blast radius and recovery cost, then translate this into a phased implementation roadmap.",
-                        "When leadership sees cost-of-inaction metrics, budgets move faster and projects close with better outcomes."
-                    ]
-                }
-            ];
-
-            // Control the visual order of cards in the bento grid by adding/removing ids below.
-            const cardsLayout = [
-                { type: "post", id: "vlan-cctv-pos" },
-                { type: "post", id: "dual-wan-failover" },
-                { type: "post", id: "ai-cctv-lan-capacity" },
-                { type: "post", id: "wifi7-enterprise-readiness" },
-                { type: "cta" },
-                { type: "post", id: "preventive-maintenance-sla" },
-                { type: "ad" },
-                { type: "post", id: "network-security-audit" }
-            ];
-
-            const postMap = new Map(blogPosts.map(function (post) {
-                return [post.id, post];
-            }));
-
-            const grid = document.getElementById("blogBentoGrid");
-            const progressBar = document.getElementById("readingProgressBar");
-            const articleModal = document.getElementById("articleModal");
-            const commentsDrawer = document.getElementById("commentsDrawer");
-            if (!grid || !progressBar || !articleModal || !commentsDrawer) {
-                return;
+            function updateReadingProgress() {
+                var doc = document.documentElement;
+                var scrollTop = doc.scrollTop || document.body.scrollTop;
+                var maxScroll = doc.scrollHeight - doc.clientHeight;
+                var percent = maxScroll > 0 ? Math.min(scrollTop / maxScroll, 1) : 0;
+                progressBar.style.transform = "scaleX(" + percent + ")";
             }
 
-            let activeCommentsPostId = null;
-            const state = loadState();
+            updateReadingProgress();
+            window.addEventListener("scroll", updateReadingProgress, { passive: true });
+            window.addEventListener("resize", updateReadingProgress);
 
-            renderGrid();
-            hydrateAdSense();
-            initObserver();
-            initProgressBar();
-            initEvents();
+            var revealItems = Array.prototype.slice.call(document.querySelectorAll(".reveal"));
+            revealItems.forEach(function (item, index) {
+                item.style.transitionDelay = Math.min(index * 80, 500) + "ms";
+            });
 
-            function loadState() {
-                const raw = localStorage.getItem(STORAGE_KEY);
-                let parsed = {};
-                if (raw) {
-                    try {
-                        parsed = JSON.parse(raw) || {};
-                    } catch (error) {
-                        parsed = {};
-                    }
-                }
-
-                blogPosts.forEach(function (post) {
-                    if (!parsed[post.id] || typeof parsed[post.id] !== "object") {
-                        parsed[post.id] = {};
-                    }
-                    if (!Array.isArray(parsed[post.id].comments)) {
-                        parsed[post.id].comments = [];
-                    }
-                    if (typeof parsed[post.id].likes !== "number") {
-                        parsed[post.id].likes = post.likes;
-                    }
-                    if (typeof parsed[post.id].liked !== "boolean") {
-                        parsed[post.id].liked = false;
-                    }
-                });
-
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(parsed));
-                return parsed;
-            }
-
-            function saveState() {
-                localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            }
-
-            function formatDate(value) {
-                const date = new Date(value);
-                if (isNaN(date.getTime())) {
-                    return value;
-                }
-                return date.toLocaleDateString("en-US", { year: "numeric", month: "short", day: "numeric" });
-            }
-
-            function renderGrid() {
-                grid.innerHTML = cardsLayout.map(function (item) {
-                    if (item.type === "post") {
-                        const post = postMap.get(item.id);
-                        if (!post) {
-                            return "";
-                        }
-                        const itemState = state[post.id];
-                        const layoutClass = "bento-card--" + post.layout;
-                        const likedClass = itemState.liked ? "is-active" : "";
-                        return (
-                            '<article class="bento-card ' + layoutClass + ' reveal-card" data-post-id="' + post.id + '">' +
-                                '<div class="bento-card__media">' +
-                                    '<img src="' + post.image + '" alt="' + escapeHtml(post.title) + '">' +
-                                '</div>' +
-                                '<div class="bento-card__body">' +
-                                    '<div class="bento-card__meta">' +
-                                        '<span class="meta-pill"><i class="fa fa-bookmark"></i> ' + escapeHtml(post.category) + "</span>" +
-                                        '<span class="meta-pill"><i class="fa fa-calendar-alt"></i> ' + formatDate(post.date) + "</span>" +
-                                        '<span class="meta-pill meta-pill--read"><i class="fa fa-hourglass-half"></i> ' + post.readTime + " min read</span>" +
-                                    "</div>" +
-                                    "<h3>" + escapeHtml(post.title) + "</h3>" +
-                                    "<p>" + escapeHtml(post.excerpt) + "</p>" +
-                                    '<div class="bento-card__actions">' +
-                                        '<button type="button" class="neon-btn ripple-btn js-read-more" data-post-id="' + post.id + '"><i class="fa fa-arrow-right btn-icon"></i>Read More</button>' +
-                                        '<button type="button" class="ghost-btn ripple-btn js-like ' + likedClass + '" data-post-id="' + post.id + '">' +
-                                            '<i class="fa fa-heart btn-icon"></i><span data-like-count="' + post.id + '">' + itemState.likes + "</span>" +
-                                        "</button>" +
-                                        '<button type="button" class="ghost-btn ripple-btn js-open-comments" data-post-id="' + post.id + '">' +
-                                            '<i class="fa fa-comment btn-icon"></i><span data-comment-count="' + post.id + '">' + itemState.comments.length + "</span>" +
-                                        "</button>" +
-                                    "</div>" +
-                                "</div>" +
-                            "</article>"
-                        );
-                    }
-
-                    if (item.type === "cta") {
-                        return (
-                            '<article class="bento-card bento-card--cta reveal-card">' +
-                                '<div class="bento-card__body">' +
-                                    '<div class="bento-card__meta">' +
-                                        '<span class="meta-pill"><i class="fa fa-star"></i> Lead Generation</span>' +
-                                        '<span class="meta-pill meta-pill--read"><i class="fa fa-rocket"></i> Growth Ready</span>' +
-                                    "</div>" +
-                                    "<h3>Need this same architecture for your business?</h3>" +
-                                    "<p>Book a free audit and get a practical blueprint for secure connectivity, resilient CCTV and predictable uptime.</p>" +
-                                    '<div class="bento-card__actions">' +
-                                        '<a class="neon-btn ripple-btn" href="contact.html"><i class="fa fa-paper-plane btn-icon"></i>Request Free Audit</a>' +
-                                        '<a class="ghost-btn ripple-btn" href="service.html"><i class="fa fa-network-wired btn-icon"></i>View Services</a>' +
-                                    "</div>" +
-                                "</div>" +
-                            "</article>"
-                        );
-                    }
-
-                    return (
-                        '<article class="bento-card bento-card--ad reveal-card">' +
-                            '<div class="bento-card__body">' +
-                                '<div class="ad-shell">' +
-                                    "<small>Sponsored placement</small>" +
-                                    "<h3>Monetization Slot</h3>" +
-                                    "<p>Use this block for Google AdSense display ads without breaking the editorial flow of your magazine grid.</p>" +
-                                    '<div class="ad-placeholder" id="adsensePlaceholder"></div>' +
-                                "</div>" +
-                            "</div>" +
-                        "</article>"
-                    );
-                }).join("");
-            }
-
-            function hydrateAdSense() {
-                const placeholder = document.getElementById("adsensePlaceholder");
-                if (!placeholder) {
-                    return;
-                }
-
-                if (/^\d+$/.test(ADSENSE_SLOT)) {
-                    placeholder.innerHTML =
-                        '<ins class="adsbygoogle" style="display:block" data-ad-client="ca-pub-6691470063784202" data-ad-slot="' + ADSENSE_SLOT + '" data-ad-format="auto" data-full-width-responsive="true"></ins>';
-                    try {
-                        (window.adsbygoogle = window.adsbygoogle || []).push({});
-                    } catch (error) {
-                        placeholder.textContent = "AdSense is loaded but no ad was returned yet.";
-                    }
-                } else {
-                    placeholder.textContent = "Replace ADSENSE_SLOT in blog.html with your real AdSense slot ID.";
-                }
-            }
-
-            function initObserver() {
-                const revealCards = Array.prototype.slice.call(document.querySelectorAll(".reveal-card"));
-                revealCards.forEach(function (card, index) {
-                    card.style.setProperty("--stagger-delay", Math.min(index * 90, 720) + "ms");
-                });
-
-                if (!("IntersectionObserver" in window)) {
-                    revealCards.forEach(function (card) {
-                        card.classList.add("is-visible");
-                    });
-                    return;
-                }
-
-                const observer = new IntersectionObserver(function (entries) {
+            if ("IntersectionObserver" in window) {
+                var revealObserver = new IntersectionObserver(function (entries) {
                     entries.forEach(function (entry) {
                         if (entry.isIntersecting) {
                             entry.target.classList.add("is-visible");
-                            observer.unobserve(entry.target);
+                            revealObserver.unobserve(entry.target);
                         }
                     });
-                }, { threshold: 0.16, rootMargin: "0px 0px -56px 0px" });
+                }, { threshold: 0.18, rootMargin: "0px 0px -60px 0px" });
 
-                revealCards.forEach(function (card) {
-                    observer.observe(card);
+                revealItems.forEach(function (item) {
+                    revealObserver.observe(item);
+                });
+            } else {
+                revealItems.forEach(function (item) {
+                    item.classList.add("is-visible");
                 });
             }
 
-            function initProgressBar() {
-                function update() {
-                    const doc = document.documentElement;
-                    const max = doc.scrollHeight - doc.clientHeight;
-                    const progress = max > 0 ? Math.min(doc.scrollTop / max, 1) : 0;
-                    progressBar.style.transform = "scaleX(" + progress + ")";
+            function animateUptime() {
+                var start = 99.1;
+                var end = 99.999;
+                var duration = 2200;
+                var startTime = null;
+
+                function step(timestamp) {
+                    if (!startTime) {
+                        startTime = timestamp;
+                    }
+                    var elapsed = timestamp - startTime;
+                    var progress = Math.min(elapsed / duration, 1);
+                    var ease = 1 - Math.pow(1 - progress, 3);
+                    var current = start + (end - start) * ease;
+
+                    uptimeValue.textContent = current.toFixed(3) + "%";
+                    uptimeBar.style.width = (progress * 100) + "%";
+
+                    if (progress < 1) {
+                        window.requestAnimationFrame(step);
+                    }
                 }
 
-                update();
-                window.addEventListener("scroll", update, { passive: true });
-                window.addEventListener("resize", update);
+                window.requestAnimationFrame(step);
             }
 
-            function initEvents() {
-                grid.addEventListener("click", function (event) {
-                    const readButton = event.target.closest(".js-read-more");
-                    if (readButton) {
-                        openArticleModal(readButton.getAttribute("data-post-id"));
-                        return;
+            function animateStatCounters() {
+                var counters = document.querySelectorAll("[data-counter]");
+                counters.forEach(function (counter) {
+                    var target = parseInt(counter.getAttribute("data-counter"), 10) || 0;
+                    var suffix = counter.getAttribute("data-suffix") || "";
+                    var duration = 1500;
+                    var startTime = null;
+
+                    function step(timestamp) {
+                        if (!startTime) {
+                            startTime = timestamp;
+                        }
+                        var elapsed = timestamp - startTime;
+                        var progress = Math.min(elapsed / duration, 1);
+                        var ease = 1 - Math.pow(1 - progress, 3);
+                        var current = Math.floor(target * ease);
+                        counter.textContent = current + suffix;
+
+                        if (progress < 1) {
+                            window.requestAnimationFrame(step);
+                        }
                     }
 
-                    const likeButton = event.target.closest(".js-like");
-                    if (likeButton) {
-                        toggleLike(likeButton.getAttribute("data-post-id"));
-                        return;
-                    }
-
-                    const commentsButton = event.target.closest(".js-open-comments");
-                    if (commentsButton) {
-                        openComments(commentsButton.getAttribute("data-post-id"));
-                    }
+                    window.requestAnimationFrame(step);
                 });
+            }
 
-                document.addEventListener("click", function (event) {
-                    const rippleButton = event.target.closest(".ripple-btn");
-                    if (!rippleButton) {
-                        return;
-                    }
-                    createRipple(rippleButton, event);
-                });
-
-                document.querySelectorAll("[data-close-article]").forEach(function (button) {
-                    button.addEventListener("click", closeArticleModal);
-                });
-
-                document.querySelectorAll("[data-close-comments]").forEach(function (button) {
-                    button.addEventListener("click", closeComments);
-                });
-
-                document.addEventListener("keydown", function (event) {
-                    if (event.key === "Escape") {
-                        closeArticleModal();
-                        closeComments();
-                    }
-                });
-
-                const commentForm = document.getElementById("commentForm");
-                commentForm.addEventListener("submit", function (event) {
-                    event.preventDefault();
-                    if (!activeCommentsPostId || !postMap.has(activeCommentsPostId)) {
-                        return;
-                    }
-
-                    const nameInput = document.getElementById("commentName");
-                    const messageInput = document.getElementById("commentMessage");
-                    const name = nameInput.value.trim() || "Anonymous";
-                    const message = messageInput.value.trim();
-                    if (!message) {
-                        return;
-                    }
-
-                    state[activeCommentsPostId].comments.unshift({
-                        name: name.slice(0, 60),
-                        message: message.slice(0, 500),
-                        createdAt: new Date().toISOString()
+            var counterTriggered = false;
+            if ("IntersectionObserver" in window && uptimeCard) {
+                var counterObserver = new IntersectionObserver(function (entries) {
+                    entries.forEach(function (entry) {
+                        if (entry.isIntersecting && !counterTriggered) {
+                            counterTriggered = true;
+                            animateUptime();
+                            animateStatCounters();
+                            counterObserver.disconnect();
+                        }
                     });
-                    saveState();
-                    nameInput.value = "";
-                    messageInput.value = "";
-                    renderComments(activeCommentsPostId);
-                    syncCommentCounters(activeCommentsPostId);
+                }, { threshold: 0.4 });
+                counterObserver.observe(uptimeCard);
+            } else {
+                animateUptime();
+                animateStatCounters();
+            }
+
+            var tiltCards = document.querySelectorAll(".tilt-card");
+            tiltCards.forEach(function (card) {
+                var glare = card.querySelector(".card-glare");
+                var tiltPower = parseFloat(card.getAttribute("data-tilt") || "8");
+
+                card.addEventListener("mousemove", function (event) {
+                    var rect = card.getBoundingClientRect();
+                    var px = (event.clientX - rect.left) / rect.width;
+                    var py = (event.clientY - rect.top) / rect.height;
+                    var rotateY = (px - 0.5) * tiltPower * 2;
+                    var rotateX = (0.5 - py) * tiltPower * 2;
+
+                    gsap.to(card, {
+                        rotateX: rotateX,
+                        rotateY: rotateY,
+                        transformPerspective: 900,
+                        duration: 0.32,
+                        ease: "power2.out"
+                    });
+
+                    if (glare) {
+                        gsap.to(glare, {
+                            xPercent: (px * 80) - 40,
+                            yPercent: (py * 80) - 40,
+                            opacity: 0.9,
+                            duration: 0.28,
+                            ease: "power2.out"
+                        });
+                    }
+                });
+
+                card.addEventListener("mouseleave", function () {
+                    gsap.to(card, {
+                        rotateX: 0,
+                        rotateY: 0,
+                        duration: 0.52,
+                        ease: "power3.out"
+                    });
+
+                    if (glare) {
+                        gsap.to(glare, {
+                            opacity: 0,
+                            duration: 0.4,
+                            ease: "power2.out"
+                        });
+                    }
+                });
+            });
+
+            if (whitepaperForm && whitepaperBtn) {
+                whitepaperForm.addEventListener("submit", function (event) {
+                    event.preventDefault();
+
+                    var emailInput = document.getElementById("leadEmail");
+                    if (!emailInput || !emailInput.value.trim()) {
+                        return;
+                    }
+
+                    whitepaperBtn.textContent = "Sending...";
+                    whitepaperBtn.disabled = true;
+
+                    window.setTimeout(function () {
+                        whitepaperBtn.textContent = "PDF Sent";
+                        emailInput.value = "";
+                        window.setTimeout(function () {
+                            whitepaperBtn.textContent = "Send PDF";
+                            whitepaperBtn.disabled = false;
+                        }, 1800);
+                    }, 850);
                 });
             }
 
-            function createRipple(button, event) {
-                const rect = button.getBoundingClientRect();
-                const ripple = document.createElement("span");
-                ripple.className = "ripple";
-                ripple.style.left = (event.clientX - rect.left) + "px";
-                ripple.style.top = (event.clientY - rect.top) + "px";
-                button.appendChild(ripple);
-                window.setTimeout(function () {
-                    ripple.remove();
-                }, 620);
-            }
-
-            function openArticleModal(postId) {
-                const post = postMap.get(postId);
-                if (!post) {
-                    return;
-                }
-
-                document.getElementById("articleModalTitle").textContent = post.title;
-                document.getElementById("articleModalMeta").textContent = formatDate(post.date) + "  |  " + post.readTime + " min read  |  " + post.category;
-
-                const image = document.getElementById("articleModalImage");
-                image.src = post.image;
-                image.alt = post.title;
-
-                const content = document.getElementById("articleModalContent");
-                content.innerHTML = post.content.map(function (paragraph) {
-                    return "<p>" + escapeHtml(paragraph) + "</p>";
-                }).join("");
-
-                articleModal.classList.add("is-open");
-                articleModal.setAttribute("aria-hidden", "false");
-                document.body.style.overflow = "hidden";
-            }
-
-            function closeArticleModal() {
-                articleModal.classList.remove("is-open");
-                articleModal.setAttribute("aria-hidden", "true");
-                if (!commentsDrawer.classList.contains("is-open")) {
-                    document.body.style.overflow = "";
-                }
-            }
-
-            function toggleLike(postId) {
-                if (!state[postId]) {
-                    return;
-                }
-                const postState = state[postId];
-                postState.liked = !postState.liked;
-                postState.likes += postState.liked ? 1 : -1;
-                if (postState.likes < 0) {
-                    postState.likes = 0;
-                }
-                saveState();
-
-                document.querySelectorAll('[data-like-count="' + postId + '"]').forEach(function (counter) {
-                    counter.textContent = postState.likes;
-                });
-
-                document.querySelectorAll('.js-like[data-post-id="' + postId + '"]').forEach(function (button) {
-                    button.classList.toggle("is-active", postState.liked);
-                });
-            }
-
-            function openComments(postId) {
-                if (!postMap.has(postId)) {
-                    return;
-                }
-                activeCommentsPostId = postId;
-                const post = postMap.get(postId);
-                document.getElementById("commentsSubTitle").textContent = post.title;
-                renderComments(postId);
-                commentsDrawer.classList.add("is-open");
-                commentsDrawer.setAttribute("aria-hidden", "false");
-                document.body.style.overflow = "hidden";
-            }
-
-            function closeComments() {
-                commentsDrawer.classList.remove("is-open");
-                commentsDrawer.setAttribute("aria-hidden", "true");
-                if (!articleModal.classList.contains("is-open")) {
-                    document.body.style.overflow = "";
-                }
-            }
-
-            function renderComments(postId) {
-                const list = document.getElementById("commentsList");
-                list.innerHTML = "";
-
-                const comments = state[postId] ? state[postId].comments : [];
-                if (!comments || comments.length === 0) {
-                    const empty = document.createElement("li");
-                    empty.className = "comment-empty";
-                    empty.textContent = "No comments yet. Be the first one to comment.";
-                    list.appendChild(empty);
-                    return;
-                }
-
-                comments.forEach(function (comment) {
-                    const item = document.createElement("li");
-
-                    const authorRow = document.createElement("div");
-                    authorRow.className = "comment-author";
-
-                    const author = document.createElement("span");
-                    author.textContent = comment.name || "Anonymous";
-
-                    const date = document.createElement("span");
-                    date.textContent = formatDate(comment.createdAt || new Date().toISOString());
-
-                    const body = document.createElement("p");
-                    body.className = "comment-body";
-                    body.textContent = comment.message || "";
-
-                    authorRow.appendChild(author);
-                    authorRow.appendChild(date);
-                    item.appendChild(authorRow);
-                    item.appendChild(body);
-                    list.appendChild(item);
-                });
-            }
-
-            function syncCommentCounters(postId) {
-                const count = state[postId] && state[postId].comments ? state[postId].comments.length : 0;
-                document.querySelectorAll('[data-comment-count="' + postId + '"]').forEach(function (counter) {
-                    counter.textContent = count;
-                });
-            }
-
-            function escapeHtml(text) {
-                return String(text)
-                    .replace(/&/g, "&amp;")
-                    .replace(/</g, "&lt;")
-                    .replace(/>/g, "&gt;")
-                    .replace(/"/g, "&quot;")
-                    .replace(/'/g, "&#39;");
+            try {
+                (adsbygoogle = window.adsbygoogle || []).push({});
+            } catch (error) {
+                console.warn("AdSense block did not load yet.");
             }
         })();
     </script>
-    </body>
+</body>
 
 </html>
