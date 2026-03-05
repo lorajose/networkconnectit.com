@@ -204,6 +204,18 @@
                 box-shadow: 0 24px 55px rgba(6, 27, 54, 0.65);
             }
 
+            .bento-card--warning::before {
+                background: conic-gradient(from 120deg, rgba(255, 59, 48, 0), rgba(255, 59, 48, 0.96), rgba(255, 143, 108, 0.85), rgba(255, 59, 48, 0));
+            }
+
+            .bento-card--warning::after {
+                background: linear-gradient(165deg, rgba(47, 14, 18, 0.94), rgba(24, 9, 12, 0.9));
+            }
+
+            .bento-card--warning:hover {
+                box-shadow: 0 24px 56px rgba(78, 13, 18, 0.65);
+            }
+
             .bento-card__media {
                 position: relative;
                 min-height: 160px;
@@ -255,6 +267,12 @@
             .meta-pill--read {
                 color: #ffe79d;
                 border-color: rgba(255, 216, 107, 0.45);
+            }
+
+            .meta-pill--warning {
+                color: #ffd7d4;
+                border-color: rgba(255, 120, 112, 0.75);
+                background: rgba(70, 17, 20, 0.56);
             }
 
             .bento-card h3 {
@@ -478,6 +496,32 @@
             .blog-modal__content p {
                 color: #d4e3f8;
                 line-height: 1.7;
+            }
+
+            .blog-modal__content h2 {
+                color: #ffffff;
+                font-size: clamp(1.05rem, 1.6vw, 1.35rem);
+                margin: 1rem 0 0.45rem;
+                line-height: 1.32;
+            }
+
+            .blog-modal__content ul {
+                margin: 0.25rem 0 0.85rem 1.1rem;
+                color: #d4e3f8;
+                line-height: 1.7;
+            }
+
+            .blog-modal__content li {
+                margin-bottom: 0.35rem;
+            }
+
+            .blog-modal__content strong {
+                color: #ffffff;
+            }
+
+            .blog-modal__content a {
+                color: #7bc1ff;
+                text-decoration: underline;
             }
 
             .modal-close {
@@ -720,12 +764,12 @@
             <div class="container py-5">
                 <div class="blog-lab__intro reveal-card">
                     <span class="blog-kicker"><i class="fa fa-bolt"></i> Digital Security Journal</span>
-                    <h2>Un blog interactivo tipo revista para convertir visitas en leads y contratos.</h2>
-                    <p>Estrategias reales para uptime, seguridad y crecimiento: arquitectura de red, CCTV con IA, segmentacion por VLAN, failover y mantenimiento preventivo. Todo presentado en formato bento premium, con interacciones para aumentar tiempo de sesion.</p>
+                    <h2>NetworkConnectIt's commitment: keeping you informed, updated, and ready.</h2>
+                    <p>This interactive digital magazine is where we publish the most important developments in network infrastructure, CCTV, cybersecurity, and access control. Our goal is to keep your team ahead of emerging technologies and real-world risks, with practical guidance you can apply to protect uptime, security, and long-term growth.</p>
                     <div class="blog-lab__chips">
                         <span class="blog-chip">Bento Layout</span>
                         <span class="blog-chip">Lead Capture Ready</span>
-                        <span class="blog-chip">AdSense Friendly</span>
+                        <span class="blog-chip">Engagement Optimized</span>
                         <span class="blog-chip">Interactive Cards</span>
                     </div>
                 </div>
@@ -878,7 +922,8 @@
             const STORAGE_KEY = "ncit_blog_engagement_v2";
             const ADSENSE_SLOT = "2767296656";
 
-            // Add new posts here. Required fields: id, layout, title, category, date, readTime, image, excerpt, likes, content[].
+            // Add new posts here. Required fields: id, layout, title, category, date, readTime, image, excerpt, likes.
+            // Optional content fields: content[] for paragraph arrays or contentHtml for structured article markup.
             // layout options: hero | wide | tall | standard
             const blogPosts = [
                 {
@@ -976,12 +1021,169 @@
                         "Prioritize controls by exploitability, blast radius and recovery cost, then translate this into a phased implementation roadmap.",
                         "When leadership sees cost-of-inaction metrics, budgets move faster and projects close with better outcomes."
                     ]
+                },
+                {
+                    id: "cisco-c1300-12xs-backbone",
+                    layout: "wide",
+                    title: "The 10GbE Backbone: Why the Cisco C1300-12XS Is the New Standard for Mid-Market Resilience",
+                    category: "Core Infrastructure",
+                    date: "2026-03-05",
+                    readTime: 10,
+                    image: "img/blog-4.png",
+                    excerpt: "From 12-port 10GbE density to practical Layer 3 control, here is why this switch is a strategic uptime asset for SMB core layers.",
+                    likes: 52,
+                    contentHtml: `
+                        <h2>The 10GbE Backbone: Why the Cisco Catalyst C1300-12XS is the New Standard for Mid-Market Resilience</h2>
+                        <p>At NetworkConnectIt, we do not evaluate hardware as a spec sheet. We evaluate it as a business continuity instrument. The Cisco Catalyst C1300-12XS stands out as a strategic core-layer switch for SMB and mid-market environments that need secure growth, predictable performance, and measurable ROI.</p>
+
+                        <h2>Executive Summary</h2>
+                        <p>This 12-port 10GbE platform is a practical game-changer for SMB core layers because it closes the gap between affordability and enterprise-grade control. Based on the ServeTheHome technical review, the model delivers ten 10G SFP+ ports plus two combo 10G ports (SFP+ or 10GBase-T), giving teams a flexible migration path for mixed fiber and copper deployments.</p>
+                        <ul>
+                            <li>High-density 10GbE aggregation in a compact 1U form factor.</li>
+                            <li>Out-of-band management interface for cleaner operational control.</li>
+                            <li>Lab-tested line-rate behavior across all twelve 10GbE ports with no frame loss reported in RFC2544 testing.</li>
+                        </ul>
+
+                        <h2>Technical Edge</h2>
+                        <p>The Marvell-based switching architecture gives this platform strong packet handling efficiency, but the real differentiator is usability: Cisco Business Dashboard and guided configuration workflows (VLAN and ACL wizards) simplify deployment without sacrificing engineering depth.</p>
+                        <ul>
+                            <li><strong>Simple where it should be:</strong> Fast setup, clear visibility, and policy workflows for non-specialist teams.</li>
+                            <li><strong>Powerful where it matters:</strong> Robust Layer 3 capabilities, ACL control, QoS tuning, and operational instrumentation.</li>
+                            <li><strong>Built for lifecycle operations:</strong> Better day-2 manageability than low-cost generic 10GbE alternatives.</li>
+                        </ul>
+
+                        <h2>Strategic Deployment at NetworkConnectIt</h2>
+                        <p>We use this model as a smart 10GbE core in environments where CCTV/AI video, business applications, and secure operations must coexist without contention.</p>
+                        <ul>
+                            <li><strong>VLAN Segmentation:</strong> Isolate CCTV, admin, guest, and production traffic to reduce attack surface and keep latency stable.</li>
+                            <li><strong>High-Speed Uplinks:</strong> Use 10GbE uplinks for AI video/NVR workloads, security appliances, and virtualization/storage paths.</li>
+                            <li><strong>Operational Hardening:</strong> Pair ACL policy enforcement with OOB management to contain risk during incidents and maintenance windows.</li>
+                        </ul>
+
+                        <h2>The Verdict</h2>
+                        <p>For organizations building a failover-ready strategy, this is a high-confidence investment. It is not the cheapest switch in the segment, but its management maturity, throughput profile, and Cisco ecosystem support make it a strong ROI decision where downtime is expensive.</p>
+                        <p>Design note: it uses a single AC input, so for A/B power scenarios we recommend an ATS-PDU strategy in production-critical sites.</p>
+
+                        <h2>Conversion Hook</h2>
+                        <p><strong>Is your core network ready for 10G? Contact NetworkConnectIt for a full infrastructure audit.</strong></p>
+                        <p><strong>Source context:</strong> Analysis based on ServeTheHome technical review of the Cisco Catalyst C1300-12XS (<a href="https://www.servethehome.com/cisco-catalyst-c1300-12xs-review-a-neat-12-port-10gbe-marvell-managed-switch/" target="_blank" rel="noopener noreferrer">source link</a>).</p>
+                    `
+                },
+                {
+                    id: "critical-advisory-cisco-fmc-auth-bypass",
+                    layout: "tall",
+                    theme: "warning",
+                    title: "CRITICAL ADVISORY: Securing the Cisco FMC Authentication Bypass.",
+                    category: "Critical Advisory",
+                    date: "2026-03-05",
+                    readTime: 7,
+                    image: "img/blog-3.png",
+                    excerpt: "A calm, engineered response to a maximum-severity FMC authentication bypass scenario: patch fast, isolate management, and harden continuously.",
+                    likes: 61,
+                    contentHtml: `
+                        <h2 style="color:#FF6D63;">CRITICAL ADVISORY: Securing the Cisco FMC Authentication Bypass.</h2>
+                        <p>This is a high-urgency event, not a panic event. Security reporting flags a maximum-severity FMC risk profile tied to authentication bypass behavior. In field tracking, teams may reference <strong>CVE-2025-20216</strong>; public reporting on March 4, 2026 also cites CVE-2026-20079/CVE-2026-20131 for FMC-related critical exposure. Either way, the operational message is the same: act now.</p>
+
+                        <h2>Summary</h2>
+                        <p>Authentication bypass against a firewall management plane is a perimeter nightmare. If an attacker can bypass auth or leverage static credential paths, they can pivot from management access into policy manipulation, visibility blind spots, and potential command execution. That shifts risk from a single vulnerability to full trust-boundary collapse.</p>
+
+                        <h2>NetworkConnectIt's Added Value</h2>
+                        <p>We do more than update packages. We redesign exposure paths. NetworkConnectIt enforces <strong>VLAN Segmentation</strong> and strict <strong>ACL controls</strong> around management interfaces so FMC is not reachable from the public internet. Even when a new bug is discovered, the attacker cannot route directly to the management plane.</p>
+
+                        <h2>Action Plan</h2>
+                        <ul>
+                            <li><strong>1. Instant Patching:</strong> Emergency maintenance cycle with validated firmware path, rollback control, and post-update verification.</li>
+                            <li><strong>2. Management Isolation:</strong> Dedicated management VLAN, ACL restrictions, and zero direct internet exposure for FMC interfaces.</li>
+                            <li><strong>3. Neural-Network CCTV Monitoring:</strong> AI-assisted surveillance on physical access points (MDF/IDF/rack areas) to correlate physical and cyber anomalies in real time.</li>
+                        </ul>
+
+                        <h2>Why Us</h2>
+                        <p>Our <strong>Predictive Maintenance</strong> service includes automated patching workflows, security hardening baselines, exposure audits, and lifecycle monitoring designed specifically to neutralize maximum-severity threats before they become outages.</p>
+
+                        <p style="margin-top:1rem;border-top:1px solid rgba(255,255,255,0.16);padding-top:0.8rem;font-size:0.93rem;">
+                            <strong style="color:#FF8E86;">Source Credit:</strong>
+                            Analysis based on reporting by Pierluigi Paganini at Security Affairs (Source:
+                            [<a href="https://securityaffairs.com/188921/security/cisco-fixes-maximum-severity-secure-fmc-bugs-threatening-firewall-security.html" target="_blank" rel="noopener noreferrer">Link</a>])
+                        </p>
+                    `
+                },
+                {
+                    id: "architecting-ai-ready-infrastructure",
+                    layout: "wide",
+                    title: "Architecting the Future: Why Your Legacy Network is the Bottleneck for AI Adoption",
+                    category: "AI Infrastructure",
+                    date: "2026-03-05",
+                    readTime: 12,
+                    image: "img/hero-img-1.png",
+                    excerpt: "If your network was built for 2018 workloads, it will not sustain 2026 AI operations. Here is the blueprint for low-latency, edge-ready, fiber-segmented scalability.",
+                    likes: 58,
+                    contentHtml: `
+                        <h2 style="color:#00E5FF;">Architecting the Future: Why Your Legacy Network is the Bottleneck for AI Adoption</h2>
+                        <p>If your core network was built in 2018 for email, file sharing, and video calls, it is not prepared for 2026 AI workloads. Local LLM pipelines and real-time AI video analytics do not simply require more bandwidth; they require lower latency, cleaner jitter behavior, and deterministic delivery under sustained load.</p>
+                        <p><strong>Visionary CTO perspective:</strong> AI is only as fast as the network path between compute, cameras, sensors, and the decision layer. Legacy networks optimize throughput. AI environments demand intelligence-grade transport.</p>
+
+                        <h2>01 • Bandwidth vs. Intelligence</h2>
+                        <p>The most common misconception is: “We have fast internet, so we are AI-ready.” In reality, AI performance depends on latency consistency inside the LAN, not only internet speed. Once you add multi-stream CCTV inference, IoT telemetry, and east-west traffic between compute and storage, 1GbE-era assumptions collapse quickly.</p>
+                        <p><strong>Engineering reality:</strong> AI-ready environments typically move from 1GbE to 10GbE/40GbE core architectures, often leveraging Cisco Catalyst-class switching for stable latency, QoS control, and backplane headroom.</p>
+
+                        <h2>02 • Edge Computing Integration</h2>
+                        <p>Cloud AI remains valuable, but real-time operations need edge-first design. NetworkConnectIt restructures infrastructure to process critical data locally (CCTV inference, IoT event streams, anomaly detection) and forward only high-value outputs upstream.</p>
+                        <ul>
+                            <li><strong>Lower cloud cost:</strong> Keep raw high-frequency data on-prem and sync insights, not noise.</li>
+                            <li><strong>Faster response:</strong> Reduce round-trip latency for security and operational decisions where milliseconds matter.</li>
+                        </ul>
+
+                        <h2>03 • The Backbone Upgrade</h2>
+                        <p>AI traffic is heavy and bursty. If it shares the same lanes as standard business workloads, congestion and performance collapse are predictable outcomes. This is why fiber optic backbones and VLAN segmentation are now mandatory, not optional.</p>
+                        <ul>
+                            <li>Isolate AI video, IoT, guest, and corporate traffic domains with VLAN + ACL policy boundaries.</li>
+                            <li>Protect business applications while sustaining inference and storage replication traffic.</li>
+                            <li>Create cleaner security zones and better operational fault isolation.</li>
+                        </ul>
+
+                        <h2>04 • Scalability: The 5–7 Year Path</h2>
+                        <p>When the core is designed correctly now, expansion becomes incremental instead of disruptive. Our approach prioritizes structured capacity: fiber pathways, switching headroom, segmentation strategy, and modular growth plans that support AI adoption over the next five to seven years.</p>
+
+                        <h2>Technical Specs (Executive Sidebar)</h2>
+                        <ul>
+                            <li><strong>Core Throughput:</strong> 10GbE/40GbE uplink path where east-west AI traffic exists.</li>
+                            <li><strong>Latency/Jitter:</strong> Measured under production load, not idle conditions.</li>
+                            <li><strong>Backbone:</strong> Fiber distribution for high-density camera and compute zones.</li>
+                            <li><strong>Segmentation:</strong> VLAN + ACL isolation for AI video, IoT, guest, and corporate traffic.</li>
+                            <li><strong>QoS:</strong> Prioritize control-plane and critical apps over bulk replication streams.</li>
+                            <li><strong>Edge Nodes:</strong> Local inference appliances/NVR AI to reduce cloud dependency.</li>
+                        </ul>
+
+                        <h2>Visual • Old vs New Topology (Interactive SVG Placeholder)</h2>
+                        <p>Replace this with your interactive topology asset to compare “flat 1GbE legacy” versus “segmented fiber + 10/40GbE core + edge inference.”</p>
+                        <div style="border:1px solid rgba(255,255,255,0.18); border-radius:14px; padding:12px; background:rgba(0,0,0,0.34);">
+                            <svg viewBox="0 0 900 250" style="width:100%; height:auto;" role="img" aria-label="Old vs New network topology placeholder">
+                                <rect x="16" y="18" width="410" height="210" rx="14" fill="rgba(255,255,255,0.04)" stroke="rgba(255,255,255,0.2)"></rect>
+                                <rect x="474" y="18" width="410" height="210" rx="14" fill="rgba(0,229,255,0.08)" stroke="rgba(0,229,255,0.42)"></rect>
+                                <text x="36" y="46" fill="#d8e4f5" font-size="14">Old (2018) - Flat 1GbE</text>
+                                <text x="494" y="46" fill="#00E5FF" font-size="14">New (2026) - AI Ready Core</text>
+                                <line x1="98" y1="122" x2="330" y2="122" stroke="rgba(255,255,255,0.35)" stroke-width="2"></line>
+                                <line x1="556" y1="94" x2="804" y2="94" stroke="#00E5FF" stroke-width="2"></line>
+                                <line x1="556" y1="126" x2="804" y2="126" stroke="#76d9ff" stroke-width="2"></line>
+                                <line x1="556" y1="158" x2="804" y2="158" stroke="#9ef4ff" stroke-width="2"></line>
+                                <text x="566" y="88" fill="#a6f7ff" font-size="11">AI VLAN</text>
+                                <text x="566" y="120" fill="#b7e8ff" font-size="11">Corporate VLAN</text>
+                                <text x="566" y="152" fill="#d7fbff" font-size="11">Mgmt VLAN</text>
+                            </svg>
+                        </div>
+
+                        <h2>Final CTA</h2>
+                        <p><strong>Don't let your cables hold back your intelligence. Schedule an AI-Ready Readiness Assessment with NetworkConnectIt.</strong></p>
+                    `
                 }
             ];
 
             // Control the visual order of cards in the bento grid by adding/removing ids below.
             const cardsLayout = [
                 { type: "post", id: "vlan-cctv-pos" },
+                { type: "post", id: "critical-advisory-cisco-fmc-auth-bypass" },
+                { type: "post", id: "cisco-c1300-12xs-backbone" },
+                { type: "post", id: "architecting-ai-ready-infrastructure" },
                 { type: "post", id: "dual-wan-failover" },
                 { type: "post", id: "ai-cctv-lan-capacity" },
                 { type: "post", id: "wifi7-enterprise-readiness" },
@@ -1063,15 +1265,17 @@
                         }
                         const itemState = state[post.id];
                         const layoutClass = "bento-card--" + post.layout;
+                        const themeClass = post.theme === "warning" ? " bento-card--warning" : "";
                         const likedClass = itemState.liked ? "is-active" : "";
+                        const categoryPillClass = post.theme === "warning" ? "meta-pill meta-pill--warning" : "meta-pill";
                         return (
-                            '<article class="bento-card ' + layoutClass + ' reveal-card" data-post-id="' + post.id + '">' +
+                            '<article class="bento-card ' + layoutClass + themeClass + ' reveal-card" data-post-id="' + post.id + '">' +
                                 '<div class="bento-card__media">' +
                                     '<img src="' + post.image + '" alt="' + escapeHtml(post.title) + '">' +
                                 '</div>' +
                                 '<div class="bento-card__body">' +
                                     '<div class="bento-card__meta">' +
-                                        '<span class="meta-pill"><i class="fa fa-bookmark"></i> ' + escapeHtml(post.category) + "</span>" +
+                                        '<span class="' + categoryPillClass + '"><i class="fa fa-bookmark"></i> ' + escapeHtml(post.category) + "</span>" +
                                         '<span class="meta-pill"><i class="fa fa-calendar-alt"></i> ' + formatDate(post.date) + "</span>" +
                                         '<span class="meta-pill meta-pill--read"><i class="fa fa-hourglass-half"></i> ' + post.readTime + " min read</span>" +
                                     "</div>" +
@@ -1114,9 +1318,9 @@
                         '<article class="bento-card bento-card--ad reveal-card">' +
                             '<div class="bento-card__body">' +
                                 '<div class="ad-shell">' +
-                                    "<small>Sponsored placement</small>" +
-                                    "<h3>Monetization Slot</h3>" +
-                                    "<p>Use this block for Google AdSense display ads without breaking the editorial flow of your magazine grid.</p>" +
+                                    "<small>Featured Insight</small>" +
+                                    "<h3>Infrastructure Growth Spotlight</h3>" +
+                                    "<p>Explore strategic updates, implementation highlights, and field-proven practices without interrupting the premium editorial experience.</p>" +
                                     '<div class="ad-placeholder" id="adsensePlaceholder"></div>' +
                                 "</div>" +
                             "</div>" +
@@ -1137,10 +1341,10 @@
                     try {
                         (window.adsbygoogle = window.adsbygoogle || []).push({});
                     } catch (error) {
-                        placeholder.textContent = "AdSense is loaded but no ad was returned yet.";
+                        placeholder.textContent = "Module is active and waiting for content.";
                     }
                 } else {
-                    placeholder.textContent = "Replace ADSENSE_SLOT in blog.html with your real AdSense slot ID.";
+                    placeholder.textContent = "Set ADSENSE_SLOT in blog.html to activate this module.";
                 }
             }
 
@@ -1281,9 +1485,15 @@
                 image.alt = post.title;
 
                 const content = document.getElementById("articleModalContent");
-                content.innerHTML = post.content.map(function (paragraph) {
-                    return "<p>" + escapeHtml(paragraph) + "</p>";
-                }).join("");
+                if (typeof post.contentHtml === "string" && post.contentHtml.trim() !== "") {
+                    content.innerHTML = post.contentHtml;
+                } else if (Array.isArray(post.content)) {
+                    content.innerHTML = post.content.map(function (paragraph) {
+                        return "<p>" + escapeHtml(paragraph) + "</p>";
+                    }).join("");
+                } else {
+                    content.innerHTML = "<p>Article content is not available yet.</p>";
+                }
 
                 articleModal.classList.add("is-open");
                 articleModal.setAttribute("aria-hidden", "false");
