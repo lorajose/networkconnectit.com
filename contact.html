@@ -77,6 +77,7 @@
                             <a href="pricing.html" class="dropdown-item">Pricing</a>
                             <a href="blog.html" class="dropdown-item">Blog</a>
                             <a href="testimonial.html" class="dropdown-item">Testimonial</a>
+                            <a href="installation-partner-support.html" class="dropdown-item">Partner Support</a>
                         </div>
                     </div>
                     <a href="contact.html" class="nav-item nav-link active">Contact Us</a>
@@ -93,11 +94,11 @@
             </div>
             <div class="row gy-5 align-items-center">
                 <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
-                    <h1 data-wow-delay="0.3s">We shield your operations with world-class networks and intelligent security.</h1>
-                    <h3 data-wow-delay="0.3s">Cisco &amp; UniFi enterprise architectures engineered for uptime, performance, and growth.</h3>
-                    <p class="fs-4 mb-4 wow fadeInUp" data-wow-delay="0.5s">We design, deploy, and manage resilient network and CCTV ecosystems so your teams stay productive, your data stays protected, and your locations stay connected 24/7.</p>
-                    <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-5 wow fadeInUp" data-wow-delay="0.7s">Request Free Network Audit</a>
-                    <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5 wow fadeInUp ms-3" data-wow-delay="0.8s">Design My Infrastructure Pro</a>
+                    <h1 data-wow-delay="0.3s">Tell us about your project. We’ll help scope the deployment.</h1>
+                    <h3 data-wow-delay="0.3s">Commercial quotes, field technician support, rollout planning, and installation project coordination.</h3>
+                    <p class="fs-4 mb-4 wow fadeInUp" data-wow-delay="0.5s">Use this page to discuss installation contracts, subcontracting opportunities, CCTV and access control work, network infrastructure projects, rack builds, cable management, structured cabling, and multi-site commercial deployments.</p>
+                    <a href="#project-inquiry-form" class="btn btn-primary rounded-pill py-3 px-5 wow fadeInUp" data-wow-delay="0.7s">Request Installation Support</a>
+                    <a href="#project-inquiry-form" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5 wow fadeInUp ms-3" data-wow-delay="0.8s">Talk About Your Project</a>
                 </div>
                 <div class="col-lg-6 wow fadeInRight" data-wow-delay="0.2s">
                     <img src="img/hero-img-1.png" class="img-fluid w-100 h-100" alt="">
@@ -110,53 +111,110 @@
 
 
         <!-- Contact Start -->
-        <div class="container-fluid contact py-5">
+        <div class="container-fluid contact py-5" id="project-inquiry-form">
             <div class="container py-5">
                 <div class="text-center mx-auto mb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 900px;">
-                    <h4 class="text-primary mb-4">Cisco / UniFi Certified · Dual-WAN · AI CCTV</h4>
-                    <h1 class="display-5 mb-4">Tell us about your sites. We’ll design for uptime.</h1>
-                    <p class="mb-0">We respond with a tailored network + CCTV blueprint: VLANs to isolate CCTV from admin traffic, dual-ISP failover, QoS for voice/POS/video, and a maintenance plan with 24/7 monitoring.</p>
+                    <h4 class="text-primary mb-4">Project Inquiry · Commercial Quotes · Integrator Support</h4>
+                    <h1 class="display-5 mb-4">Start the conversation about your next installation project</h1>
+                    <p class="mb-0">Share the scope, number of locations, timeline, and regional coverage you need. NetworkConnectIT can respond for direct commercial work or partner-led installation support.</p>
                 </div>
                 <div class="row g-5 align-items-center">
                     <div class="col-lg-6 wow fadeInLeft" data-wow-delay="0.1s">
-                        <h2 class="display-5 mb-2">Share your environment</h2>
-                        <p class="mb-4">Tell us cameras, square footage, critical apps, and ISP setup. We’ll map segmentation, failover, and AI-ready storage so you get zero unplanned downtime.</p>
+                        <h2 class="display-5 mb-2">Share your project details</h2>
+                        <p class="mb-4">Tell us what you are building, where the work is located, how many sites are involved, and the kind of field support you need. We will review the scope and respond with the right next step.</p>
+                        <div class="partner-check-list mb-4">
+                            <div class="partner-check-item">
+                                <i class="fas fa-check-circle text-secondary"></i>
+                                <span>Use this form for installation contracts, subcontracting needs, commercial rollouts, and field technician support.</span>
+                            </div>
+                            <div class="partner-check-item">
+                                <i class="fas fa-check-circle text-secondary"></i>
+                                <span>Helpful details include project location, project type, site count, timeline, and any commercial scheduling requirements.</span>
+                            </div>
+                        </div>
                         <form action="/php/sendmail.php" method="POST">
                             <div class="row g-3">
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name" required>
-                                        <label for="name">Your Name</label>
+                                        <input type="text" class="form-control" id="company_name" name="company_name" placeholder="Company Name">
+                                        <label for="company_name">Company Name</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="email" class="form-control" id="email" name="email" placeholder="Your Email" required>
-                                        <label for="email">Your Email</label>
+                                        <input type="text" class="form-control" id="name" name="name" placeholder="Your Name" required>
+                                        <label for="name">Contact Name</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-6">
+                                    <div class="form-floating">
+                                        <input type="email" class="form-control" id="email" name="email" placeholder="Work Email" required>
+                                        <label for="email">Work Email</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
                                         <input type="tel" class="form-control" id="phone" name="phone" placeholder="Phone" required>
-                                        <label for="phone">Your Phone</label>
+                                        <label for="phone">Phone</label>
                                     </div>
                                 </div>
                                 <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="project" name="project" placeholder="e.g., 40 cams, 2 ISPs, 3 VLANs" required>
+                                        <input type="text" class="form-control" id="project_location" name="project_location" placeholder="Project Location">
+                                        <label for="project_location">Project Location</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-6">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="project" name="project" placeholder="e.g., 40 cameras, access retrofit, 4-site rollout" required>
                                         <label for="project">Project / Scope</label>
                                     </div>
                                 </div>
-                                <div class="col-12">
+                                <div class="col-lg-12 col-xl-6">
                                     <div class="form-floating">
-                                        <input type="text" class="form-control" id="subject" name="subject" placeholder="Keep warehouses online / CCTV upgrade" required>
-                                        <label for="subject">Objective</label>
+                                        <select class="form-select" id="project_type" name="project_type" aria-label="Type of Project">
+                                            <option value="" selected>Select project type</option>
+                                            <option value="CCTV Installations">CCTV Installations</option>
+                                            <option value="Access Control">Access Control</option>
+                                            <option value="Network Infrastructure">Network Infrastructure</option>
+                                            <option value="Structured Cabling">Structured Cabling</option>
+                                            <option value="Rack Builds">Rack Builds</option>
+                                            <option value="Cable Management">Cable Management</option>
+                                            <option value="Commercial Rollout">Commercial Rollout</option>
+                                            <option value="Field Technician Support">Field Technician Support</option>
+                                        </select>
+                                        <label for="project_type">Type of Project</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-3">
+                                    <div class="form-floating">
+                                        <input type="text" class="form-control" id="number_of_sites" name="number_of_sites" placeholder="Number of Sites">
+                                        <label for="number_of_sites">Number of Sites</label>
+                                    </div>
+                                </div>
+                                <div class="col-lg-12 col-xl-3">
+                                    <div class="form-floating">
+                                        <select class="form-select" id="estimated_timeline" name="estimated_timeline" aria-label="Estimated Timeline">
+                                            <option value="" selected>Select timeline</option>
+                                            <option value="Immediate">Immediate</option>
+                                            <option value="Within 30 Days">Within 30 Days</option>
+                                            <option value="30-60 Days">30-60 Days</option>
+                                            <option value="60-90 Days">60-90 Days</option>
+                                            <option value="Planning Future Rollout">Planning Future Rollout</option>
+                                        </select>
+                                        <label for="estimated_timeline">Estimated Timeline</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
                                     <div class="form-floating">
-                                        <textarea class="form-control" placeholder="Sites, ISPs, pain points (e.g., drops on forklifts, CCTV lag)" id="message" name="message" style="height: 160px" required></textarea>
-                                        <label for="message">Details</label>
+                                        <input type="text" class="form-control" id="subject" name="subject" placeholder="Request a commercial quote / discuss a deployment" value="Request a commercial quote" required>
+                                        <label for="subject">Inquiry Goal</label>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="form-floating">
+                                        <textarea class="form-control" placeholder="Share locations, field scope, site conditions, install type, and any scheduling or subcontracting requirements." id="message" name="message" style="height: 160px" required></textarea>
+                                        <label for="message">Message / Scope Details</label>
                                     </div>
                                 </div>
                                 <div class="col-12">
@@ -166,7 +224,7 @@
                                 <input type="text" name="website" style="display:none">
 
                                 <div class="col-12">
-                                    <button type="submit" class="btn btn-primary w-100 py-3">Get my uptime plan</button>
+                                    <button type="submit" class="btn btn-primary w-100 py-3">Request a Commercial Quote</button>
                                 </div>
                             </div>
                         </form>
@@ -259,6 +317,7 @@
                         <a href="service.html"> Fast, Reliable, and Secure Networking</a>
                         <a href="service.html"> Cisco Solutions</a>
                         <a href="service.html"> Ubiquiti UniFi Integration</a>
+                        <a href="installation-partner-support.html"> Installation Partner Support</a>
                     </div>
                 </div>
                 <div class="col-md-6 col-lg-6 col-xl-3">

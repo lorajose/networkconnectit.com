@@ -843,6 +843,562 @@ a:hover {
 /*** Hero Header End ***/
 
 
+/*** Homepage B2B Extension Start ***/
+.hero-kicker {
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    margin-bottom: 1.25rem;
+    padding: 9px 16px;
+    border-radius: 999px;
+    background: rgba(45, 212, 255, 0.12);
+    border: 1px solid rgba(45, 212, 255, 0.25);
+    color: #c7f6ff;
+    font-size: 0.86rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.hero-service-pills {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+    margin-bottom: 2rem;
+}
+
+.hero-service-pills span,
+.coverage-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 9px 14px;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.08);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: #f8fafc;
+    font-size: 0.9rem;
+    font-weight: 600;
+}
+
+.b2b-shell,
+.coverage-item,
+.partner-card {
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(3, 8, 20, 0.24);
+    transition: transform 0.3s ease, border-color 0.3s ease, box-shadow 0.3s ease;
+}
+
+.coverage-item:hover,
+.partner-card:hover,
+.b2b-shell:hover {
+    transform: translateY(-6px);
+    border-color: rgba(45, 212, 255, 0.35);
+    box-shadow: 0 26px 65px rgba(3, 8, 20, 0.32);
+}
+
+.b2b-trust,
+.b2b-coverage,
+.b2b-partners,
+.b2b-cta-band {
+    position: relative;
+    overflow: hidden;
+}
+
+.b2b-trust::before,
+.b2b-coverage::before,
+.b2b-partners::before,
+.b2b-cta-band::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.02), rgba(255, 255, 255, 0));
+}
+
+.b2b-trust h2,
+.b2b-coverage h2,
+.b2b-partners h2,
+.b2b-shell h5,
+.partner-card h4,
+.b2b-cta-panel h2 {
+    color: #ffffff;
+}
+
+.b2b-trust p,
+.b2b-coverage p,
+.b2b-partners p,
+.b2b-shell p,
+.partner-card p,
+.b2b-cta-panel p {
+    color: rgba(226, 232, 240, 0.9);
+}
+
+.b2b-list-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 16px;
+    margin-bottom: 1.5rem;
+    padding-bottom: 1.5rem;
+    border-bottom: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.coverage-item {
+    height: 100%;
+}
+
+.coverage-item p {
+    margin-top: 1rem;
+}
+
+.partner-card i {
+    display: inline-flex;
+}
+
+.b2b-cta-band {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(45, 212, 255, 0.12), transparent 28%),
+        radial-gradient(circle at 88% 20%, rgba(158, 255, 0, 0.10), transparent 24%);
+}
+
+.b2b-cta-panel {
+    background: linear-gradient(135deg, rgba(7, 17, 34, 0.94), rgba(16, 37, 68, 0.88));
+    border-color: rgba(45, 212, 255, 0.22);
+}
+
+@media (max-width: 767.98px) {
+    .hero-service-pills {
+        gap: 10px;
+    }
+
+    .hero-service-pills span,
+    .coverage-label {
+        font-size: 0.82rem;
+    }
+
+    .b2b-shell,
+    .coverage-item,
+    .partner-card {
+        border-radius: 20px;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .hero-kicker {
+        font-size: 0.76rem;
+        letter-spacing: 0.04em;
+    }
+
+    .hero-header .btn + .btn {
+        margin-left: 0 !important;
+        margin-top: 1rem;
+    }
+}
+/*** Homepage B2B Extension End ***/
+
+
+/*** Partner Support Page Start ***/
+.partner-hero-panel img {
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.partner-metric {
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(7, 17, 34, 0.48);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    text-align: center;
+}
+
+.partner-metric-number {
+    display: block;
+    color: #ffffff;
+    font-size: 1.8rem;
+    line-height: 1;
+    font-weight: 700;
+}
+
+.partner-metric-label {
+    display: block;
+    margin-top: 0.45rem;
+    color: rgba(226, 232, 240, 0.84);
+    font-size: 0.88rem;
+}
+
+.partner-check-list {
+    display: flex;
+    flex-direction: column;
+    gap: 1rem;
+}
+
+.partner-check-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 1rem 1.1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(226, 232, 240, 0.92);
+}
+
+.partner-check-item i {
+    margin-top: 3px;
+}
+
+.partner-focus-card,
+.partner-inquiry-panel,
+.partner-form-shell,
+.partner-region-card {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(3, 8, 20, 0.24);
+}
+
+.partner-focus-card h4,
+.partner-inquiry-panel h3 {
+    color: #ffffff;
+}
+
+.partner-focus-card p,
+.partner-inquiry-panel p,
+.partner-region-card p {
+    color: rgba(226, 232, 240, 0.88);
+}
+
+.partner-coverage-shell {
+    background:
+        radial-gradient(circle at 10% 10%, rgba(45, 212, 255, 0.12), transparent 28%),
+        linear-gradient(145deg, rgba(7, 17, 34, 0.92), rgba(16, 37, 68, 0.72));
+}
+
+.partner-region-grid {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 1rem;
+}
+
+.partner-region-card {
+    padding: 1.25rem;
+}
+
+.partner-region-card .coverage-label {
+    margin-bottom: 0.95rem;
+}
+
+.partner-region-card-wide {
+    grid-column: 1 / -1;
+}
+
+.partner-contact-chip {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 1rem;
+    padding: 0.95rem 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    color: rgba(226, 232, 240, 0.92);
+}
+
+.partner-form-shell {
+    background: rgba(255, 255, 255, 0.04);
+}
+
+.partner-form-shell .form-control {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.partner-form-shell .form-select {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.partner-form-shell .form-control:focus {
+    border-color: var(--electric-blue);
+    box-shadow: 0 0 0 0.25rem rgba(45, 212, 255, 0.15);
+}
+
+.partner-form-shell .form-select:focus {
+    border-color: var(--electric-blue);
+    box-shadow: 0 0 0 0.25rem rgba(45, 212, 255, 0.15);
+}
+
+.partner-form-shell .form-floating > label {
+    color: #475569;
+}
+
+@media (max-width: 991.98px) {
+    .partner-region-grid {
+        grid-template-columns: 1fr;
+    }
+}
+
+@media (max-width: 575.98px) {
+    .partner-metric-number {
+        font-size: 1.45rem;
+    }
+
+    .partner-focus-card,
+    .partner-inquiry-panel,
+    .partner-form-shell,
+    .partner-region-card {
+        border-radius: 20px;
+    }
+}
+/*** Partner Support Page End ***/
+
+
+/*** Commercial Portfolio Start ***/
+.portfolio-showcase {
+    position: relative;
+    overflow: hidden;
+    background: linear-gradient(180deg, rgba(15, 23, 42, 0.04), rgba(15, 23, 42, 0));
+}
+
+.portfolio-showcase::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+    background:
+        radial-gradient(circle at 10% 12%, rgba(45, 212, 255, 0.08), transparent 24%),
+        radial-gradient(circle at 86% 14%, rgba(158, 255, 0, 0.08), transparent 22%);
+}
+
+.portfolio-note {
+    color: #64748b;
+}
+
+.portfolio-chip-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 12px;
+}
+
+.portfolio-chip {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 10px 16px;
+    border-radius: 999px;
+    background: #ffffff;
+    border: 1px solid rgba(15, 23, 42, 0.08);
+    box-shadow: 0 12px 30px rgba(15, 23, 42, 0.08);
+    color: #0f172a;
+    font-size: 0.92rem;
+    font-weight: 600;
+}
+
+.portfolio-overview {
+    border-radius: 28px;
+    background: linear-gradient(160deg, rgba(7, 17, 34, 0.96), rgba(16, 37, 68, 0.88));
+    border: 1px solid rgba(45, 212, 255, 0.18);
+    box-shadow: 0 28px 70px rgba(3, 8, 20, 0.22);
+}
+
+.portfolio-overview-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 14px;
+    padding: 0.95rem 0;
+    color: rgba(226, 232, 240, 0.9);
+}
+
+.portfolio-overview-item + .portfolio-overview-item {
+    border-top: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portfolio-card {
+    height: 100%;
+    overflow: hidden;
+    border-radius: 28px;
+    background: linear-gradient(160deg, rgba(7, 17, 34, 0.96), rgba(16, 37, 68, 0.88));
+    border: 1px solid rgba(255, 255, 255, 0.10);
+    box-shadow: 0 28px 70px rgba(3, 8, 20, 0.22);
+}
+
+.portfolio-media {
+    position: relative;
+    height: 100%;
+    min-height: 280px;
+    background: #0b1220;
+    overflow: hidden;
+}
+
+.portfolio-media::after {
+    content: "";
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(180deg, rgba(11, 18, 32, 0.15), rgba(11, 18, 32, 0.55));
+}
+
+.portfolio-media img {
+    width: 100%;
+    height: 100%;
+    min-height: 280px;
+    object-fit: cover;
+    display: block;
+}
+
+.portfolio-media-badge {
+    position: absolute;
+    top: 18px;
+    left: 18px;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 8px 12px;
+    border-radius: 999px;
+    background: rgba(7, 17, 34, 0.78);
+    border: 1px solid rgba(45, 212, 255, 0.25);
+    color: #e2f8ff;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.05em;
+    text-transform: uppercase;
+}
+
+.portfolio-content {
+    height: 100%;
+}
+
+.portfolio-content h3 {
+    color: #ffffff;
+    font-size: clamp(1.45rem, 2vw, 1.8rem);
+    line-height: 1.2;
+}
+
+.portfolio-content p {
+    color: rgba(226, 232, 240, 0.88);
+}
+
+.portfolio-meta-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 10px 18px;
+    margin-bottom: 1rem;
+}
+
+.portfolio-meta-row span {
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+    color: rgba(226, 232, 240, 0.86);
+    font-size: 0.92rem;
+    font-weight: 500;
+}
+
+.portfolio-scope-block h5 {
+    margin-bottom: 0.9rem;
+    color: #c7f6ff;
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.08em;
+    text-transform: uppercase;
+}
+
+.portfolio-scope-list {
+    list-style: none;
+    padding: 0;
+    margin: 0 0 1.25rem;
+}
+
+.portfolio-scope-list li {
+    position: relative;
+    padding-left: 1.4rem;
+    margin-bottom: 0.65rem;
+    color: rgba(226, 232, 240, 0.88);
+}
+
+.portfolio-scope-list li::before {
+    content: "";
+    position: absolute;
+    left: 0;
+    top: 0.55rem;
+    width: 8px;
+    height: 8px;
+    border-radius: 50%;
+    background: var(--cyber-lime);
+    box-shadow: 0 0 0 4px rgba(158, 255, 0, 0.08);
+}
+
+.portfolio-results {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 12px;
+}
+
+.portfolio-result {
+    padding: 1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.portfolio-result-label {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    padding: 6px 10px;
+    border-radius: 999px;
+    background: rgba(45, 212, 255, 0.12);
+    color: #c7f6ff;
+    font-size: 0.74rem;
+    font-weight: 700;
+    letter-spacing: 0.06em;
+    text-transform: uppercase;
+}
+
+.portfolio-result p {
+    margin: 0.75rem 0 0;
+}
+
+.portfolio-cta {
+    background:
+        radial-gradient(circle at 12% 18%, rgba(45, 212, 255, 0.12), transparent 26%),
+        radial-gradient(circle at 88% 20%, rgba(158, 255, 0, 0.10), transparent 22%);
+}
+
+.portfolio-cta-panel {
+    border-radius: 30px;
+    background: linear-gradient(145deg, rgba(7, 17, 34, 0.94), rgba(16, 37, 68, 0.88));
+    border: 1px solid rgba(45, 212, 255, 0.18);
+    box-shadow: 0 28px 70px rgba(3, 8, 20, 0.22);
+}
+
+.portfolio-cta-panel p {
+    color: rgba(226, 232, 240, 0.88);
+}
+
+@media (max-width: 991.98px) {
+    .portfolio-media,
+    .portfolio-media img {
+        min-height: 240px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .portfolio-results {
+        grid-template-columns: 1fr;
+    }
+
+    .portfolio-card,
+    .portfolio-overview,
+    .portfolio-cta-panel {
+        border-radius: 22px;
+    }
+}
+/*** Commercial Portfolio End ***/
+
+
 /*** Service Start ***/
 .service .service-item {
     box-shadow: 0 0 45px rgba(0, 0, 0, 0.1);

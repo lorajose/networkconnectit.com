@@ -20,6 +20,11 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
     $project = htmlspecialchars(trim($_POST['project'] ?? ''));
     $subject = htmlspecialchars(trim($_POST['subject'] ?? ''));
     $message = htmlspecialchars(trim($_POST['message'] ?? ''));
+    $companyName = htmlspecialchars(trim($_POST['company_name'] ?? ''));
+    $projectLocation = htmlspecialchars(trim($_POST['project_location'] ?? ''));
+    $projectType = htmlspecialchars(trim($_POST['project_type'] ?? ''));
+    $numberOfSites = htmlspecialchars(trim($_POST['number_of_sites'] ?? ''));
+    $estimatedTimeline = htmlspecialchars(trim($_POST['estimated_timeline'] ?? ''));
 
     // Validación de campos
     if (!empty($email) && !empty($message) && isset($responseKeys["success"]) && $responseKeys["success"]) {
@@ -37,8 +42,25 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
         // Configuración del email
         $to = "networkconnectit@gmail.com";
         $subjectLine = "New Contact Form Submission: " . $subject;
+        $extraFieldsHtml = '';
+        if (!empty($companyName)) {
+            $extraFieldsHtml .= "<p><strong>Company Name:</strong> $companyName</p>";
+        }
+        if (!empty($projectLocation)) {
+            $extraFieldsHtml .= "<p><strong>Project Location:</strong> $projectLocation</p>";
+        }
+        if (!empty($projectType)) {
+            $extraFieldsHtml .= "<p><strong>Type of Project:</strong> $projectType</p>";
+        }
+        if (!empty($numberOfSites)) {
+            $extraFieldsHtml .= "<p><strong>Number of Sites:</strong> $numberOfSites</p>";
+        }
+        if (!empty($estimatedTimeline)) {
+            $extraFieldsHtml .= "<p><strong>Estimated Timeline:</strong> $estimatedTimeline</p>";
+        }
         $bodyHtml = "
             <h2>Contact Form Details</h2>
+            $extraFieldsHtml
             <p><strong>Name:</strong> $name</p>
             <p><strong>Email:</strong> $email</p>
             <p><strong>Phone:</strong> $phone</p>
