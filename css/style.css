@@ -1809,3 +1809,133 @@ a:hover {
     background: var(--bs-dark) !important;
 }
 /*** copyright end ***/
+
+/*** Tools Calculator Start ***/
+.tool-status-badge-live {
+    background: rgba(45, 212, 255, 0.16);
+    border: 1px solid rgba(45, 212, 255, 0.28);
+    color: #d9faff;
+    box-shadow: 0 0 18px rgba(45, 212, 255, 0.18);
+}
+
+.tool-panel-shell {
+    height: 100%;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 24px 60px rgba(3, 8, 20, 0.24);
+}
+
+.tool-panel-shell .form-control,
+.tool-panel-shell .form-select {
+    background: rgba(255, 255, 255, 0.96);
+    border: 1px solid rgba(15, 23, 42, 0.12);
+}
+
+.tool-panel-shell .form-control:focus,
+.tool-panel-shell .form-select:focus {
+    border-color: var(--electric-blue);
+    box-shadow: 0 0 0 0.25rem rgba(45, 212, 255, 0.15);
+}
+
+.tool-panel-shell .form-label,
+.tool-panel-shell .form-text,
+.tool-panel-shell .text-muted {
+    color: rgba(226, 232, 240, 0.88) !important;
+}
+
+.tool-group-heading {
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.tool-helper-text {
+    display: block;
+    margin-top: 0.45rem;
+    color: rgba(203, 213, 225, 0.82);
+    font-size: 0.9rem;
+}
+
+.tool-validation-message {
+    padding: 0.9rem 1rem;
+    border-radius: 16px;
+    background: rgba(248, 113, 113, 0.12);
+    border: 1px solid rgba(248, 113, 113, 0.24);
+    color: #fecaca;
+}
+
+.tool-empty-state {
+    padding: 1.4rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px dashed rgba(203, 213, 225, 0.18);
+    color: rgba(226, 232, 240, 0.85);
+}
+
+.tool-result-item {
+    height: 100%;
+    padding: 1.25rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.tool-result-label {
+    display: block;
+    margin-bottom: 0.55rem;
+    color: rgba(203, 213, 225, 0.78);
+    font-size: 0.88rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.tool-result-value {
+    display: block;
+    color: #ffffff;
+    font-size: 1.2rem;
+    font-weight: 700;
+    line-height: 1.4;
+}
+
+.tool-result-text {
+    margin: 0;
+    color: rgba(226, 232, 240, 0.92);
+}
+
+/*** Network Rack Builder Tool Start ***/
+.tool-result-item-featured {
+    background: linear-gradient(180deg, rgba(45, 212, 255, 0.14), rgba(255, 255, 255, 0.05));
+    border-color: rgba(45, 212, 255, 0.24);
+    box-shadow: 0 18px 42px rgba(45, 212, 255, 0.12);
+}
+
+.tool-result-item-featured .tool-result-label {
+    color: rgba(217, 250, 255, 0.86);
+}
+
+.tool-result-item-featured .tool-result-value {
+    font-size: 1.5rem;
+}
+/*** Network Rack Builder Tool End ***/
+
+.tool-disclaimer-shell {
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    border-radius: 24px;
+}
+
+@media (max-width: 575.98px) {
+    .tool-panel-shell,
+    .tool-disclaimer-shell {
+        border-radius: 20px;
+    }
+
+    .tool-result-item {
+        border-radius: 16px;
+    }
+}
+/*** Tools Calculator End ***/

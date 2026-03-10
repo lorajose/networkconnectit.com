@@ -1,0 +1,438 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6691470063784202"
+        crossorigin="anonymous"></script>
+
+    <meta charset="utf-8">
+    <title>Network Rack Builder Tool | NetworkConnectIT</title>
+    <link rel="icon" type="image/png" href="/img/NetworkConnectIT Logo.png">
+    <link rel="icon" sizes="32x32" href="/img/favicon.png">
+    <link rel="apple-touch-icon" href="/img/favicon.png">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="network rack builder tool, rack sizing calculator, rack planning for security deployments, commercial rack planning" name="keywords">
+    <meta content="Estimate rack size, rack units, spare capacity, power needs, and heat load for network and security deployments." name="description">
+    <link rel="canonical" href="https://networkconnectit.com/tools/network-rack-builder/">
+    <meta property="og:title" content="Network Rack Builder Tool | NetworkConnectIT">
+    <meta property="og:description" content="Estimate rack size, rack units, spare capacity, power demand, and heat load for commercial head-end planning.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://networkconnectit.com/tools/network-rack-builder/">
+    <meta property="og:image" content="https://networkconnectit.com/img/hero-img-1.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="Network Rack Builder Tool | NetworkConnectIT">
+    <meta name="twitter:description" content="Professional rack planning support for network and security deployments.">
+    <meta name="twitter:image" content="https://networkconnectit.com/img/hero-img-1.png">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&family=Rubik:wght@400;500&display=swap" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="/lib/animate/animate.min.css" rel="stylesheet">
+    <link href="/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="/lib/lightbox/css/lightbox.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Spinner Start -->
+    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <!-- Spinner End -->
+
+    <!-- Header Start -->
+    <div class="container-fluid header position-relative overflow-hidden p-0 cyber-hero bg-cyber">
+        <nav class="navbar navbar-expand-lg navbar-dark fixed-top px-4 px-lg-5 py-3 py-lg-0">
+            <a href="/index.html" class="navbar-brand p-0">
+                <img src="/img/NetworkConnectIT Logo.png" alt="Logo">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span class="fa fa-bars"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto py-0">
+                    <a href="/index.html" class="nav-item nav-link">Home</a>
+                    <a href="/about.html" class="nav-item nav-link">About</a>
+                    <a href="/service.html" class="nav-item nav-link">Services</a>
+                    <a href="/tools/" class="nav-item nav-link active">Tools</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">More</a>
+                        <div class="dropdown-menu m-0">
+                            <a href="/feature.html" class="dropdown-item">Features</a>
+                            <a href="/pricing.html" class="dropdown-item">Pricing</a>
+                            <a href="/blog.html" class="dropdown-item">Blog</a>
+                            <a href="/testimonial.html" class="dropdown-item">Testimonial</a>
+                            <a href="/installation-partner-support.html" class="dropdown-item">Partner Support</a>
+                        </div>
+                    </div>
+                    <a href="/contact.html" class="nav-item nav-link">Contact Us</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Start -->
+        <div class="hero-header overflow-hidden px-5">
+            <canvas class="network-canvas" id="network-hero"></canvas>
+            <div class="rotate-img">
+                <img src="/img/sty-1.png" class="img-fluid w-100" alt="">
+                <div class="rotate-sty-2"></div>
+            </div>
+            <div class="row gy-5 align-items-center">
+                <div class="col-lg-7 wow fadeInLeft" data-wow-delay="0.1s">
+                    <span class="hero-kicker wow fadeInUp" data-wow-delay="0.2s">NetworkConnectIT Tools</span>
+                    <h1 data-wow-delay="0.3s">Network Rack Builder Tool</h1>
+                    <p class="fs-4 mb-4 wow fadeInUp" data-wow-delay="0.5s">Estimate rack size, rack units, spare capacity, power needs, and heat load for network and security deployments. This planning tool helps integrators and project teams organize head-end equipment before installation.</p>
+                    <div class="d-grid gap-3 d-sm-flex wow fadeInUp" data-wow-delay="0.7s">
+                        <a href="#rack-inputs" class="btn btn-primary rounded-pill py-3 px-5">Build Rack Plan</a>
+                        <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Talk About Your Project</a>
+                    </div>
+                </div>
+                <div class="col-lg-5 wow fadeInRight" data-wow-delay="0.2s">
+                    <img src="/img/hero-img-1.png" class="img-fluid w-100 h-100" alt="Network rack planning support for commercial installations">
+                </div>
+            </div>
+        </div>
+        <!-- Hero End -->
+    </div>
+    <!-- Header End -->
+
+    <!-- Intro Start -->
+    <div class="container-fluid overflow-hidden py-5" style="margin-top: 6rem;">
+        <div class="container py-5">
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.1s">
+                    <h4 class="mb-1 text-primary">Planning Support</h4>
+                    <h2 class="display-5 mb-4 text-white">What this tool helps you estimate</h2>
+                    <p class="mb-0 fs-5">Use this rack planning tool to create a practical starting point for network and security infrastructure builds. Based on your selected equipment, rack type, and expansion allowance, the tool estimates recommended rack size, used rack units, spare capacity, power demand, heat output, and cable management guidance.</p>
+                </div>
+                <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.2s">
+                    <div class="partner-check-list">
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Rack size recommendation</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Rack unit usage summary</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Power and heat estimates</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Cable management planning notes</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Intro End -->
+
+    <!-- Calculator Start -->
+    <div class="container-fluid py-5 section-divider" id="rack-inputs">
+        <div class="container py-5">
+            <div class="row g-4">
+                <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="tool-panel-shell p-4 p-lg-5">
+                        <h2 class="display-6 text-white mb-4">Rack Inputs</h2>
+                        <form id="rackBuilderForm" novalidate>
+                            <div id="rackBuilderValidation" class="tool-validation-message d-none mb-4" role="alert"></div>
+
+                            <div class="row g-4">
+                                <div class="col-12">
+                                    <h3 class="tool-group-heading mb-0">Rack Type</h3>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="rackType">Rack Type</label>
+                                    <select class="form-select" id="rackType" name="rackType" required>
+                                        <option value="">Select rack type</option>
+                                        <option value="Wall Mount Rack">Wall Mount Rack</option>
+                                        <option value="Floor Rack">Floor Rack</option>
+                                        <option value="Enclosed Cabinet">Enclosed Cabinet</option>
+                                    </select>
+                                    <span class="tool-helper-text">Choose the rack style that best matches the deployment environment.</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="expansionAllowance">Expansion Allowance</label>
+                                    <select class="form-select" id="expansionAllowance" name="expansionAllowance" required>
+                                        <option value="">Select expansion allowance</option>
+                                        <option value="10%">10%</option>
+                                        <option value="20%">20%</option>
+                                        <option value="30%">30%</option>
+                                    </select>
+                                    <span class="tool-helper-text">Expansion allowance reserves extra capacity for growth and future changes.</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="needBlankingPanels">Need Blanking Panels?</label>
+                                    <select class="form-select" id="needBlankingPanels" name="needBlankingPanels" required>
+                                        <option value="">Select an option</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                    <span class="tool-helper-text">Blanking panels can improve organization and airflow planning.</span>
+                                </div>
+
+                                <div class="col-12 pt-2">
+                                    <h3 class="tool-group-heading mb-0">Equipment Counts</h3>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfSwitches">Number of Switches</label>
+                                    <input class="form-control" type="number" id="numberOfSwitches" name="numberOfSwitches" placeholder="e.g. 2" min="0" step="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfPatchPanels">Number of Patch Panels</label>
+                                    <input class="form-control" type="number" id="numberOfPatchPanels" name="numberOfPatchPanels" placeholder="e.g. 4" min="0" step="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfNVRs">Number of NVRs</label>
+                                    <input class="form-control" type="number" id="numberOfNVRs" name="numberOfNVRs" placeholder="e.g. 1" min="0" step="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfUPSUnits">Number of UPS Units</label>
+                                    <input class="form-control" type="number" id="numberOfUPSUnits" name="numberOfUPSUnits" placeholder="e.g. 1" min="0" step="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfShelves">Number of Shelves</label>
+                                    <input class="form-control" type="number" id="numberOfShelves" name="numberOfShelves" placeholder="e.g. 2" min="0" step="1">
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfCableManagers">Number of Cable Managers</label>
+                                    <input class="form-control" type="number" id="numberOfCableManagers" name="numberOfCableManagers" placeholder="e.g. 3" min="0" step="1">
+                                </div>
+
+                                <div class="col-12 pt-2">
+                                    <h3 class="tool-group-heading mb-0">Optional Supporting Equipment</h3>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="addPDUUnits">Add PDU Units?</label>
+                                    <select class="form-select" id="addPDUUnits" name="addPDUUnits" required>
+                                        <option value="">Select an option</option>
+                                        <option value="Yes">Yes</option>
+                                        <option value="No">No</option>
+                                    </select>
+                                    <span class="tool-helper-text">PDU planning is helpful for rack-mounted power distribution.</span>
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label" for="numberOfSmallDevices">Number of Small Devices on Shelves</label>
+                                    <input class="form-control" type="number" id="numberOfSmallDevices" name="numberOfSmallDevices" placeholder="e.g. 3" min="0" step="1">
+                                    <span class="tool-helper-text">Examples: gateways, modems, small controllers, adapters, or miscellaneous support devices.</span>
+                                </div>
+
+                                <div class="col-12 pt-2">
+                                    <h3 class="tool-group-heading mb-0">Actions</h3>
+                                </div>
+                                <div class="col-12">
+                                    <div class="d-grid gap-3 d-sm-flex">
+                                        <button type="submit" class="btn btn-primary rounded-pill py-3 px-5">Build Rack Plan</button>
+                                        <button type="button" id="rackBuilderResetButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Reset</button>
+                                    </div>
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+                <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.2s">
+                    <div class="tool-panel-shell p-4 p-lg-5" aria-live="polite">
+                        <h2 class="display-6 text-white mb-4">Estimated Rack Planning Results</h2>
+                        <div id="rackResultsEmpty" class="tool-empty-state">
+                            Complete the rack inputs and click &ldquo;Build Rack Plan&rdquo; to see your planning results.
+                        </div>
+
+                        <div id="rackResultsContent" class="d-none">
+                            <div class="row g-3">
+                                <div class="col-12">
+                                    <div class="tool-result-item tool-result-item-featured">
+                                        <span class="tool-result-label">Recommended Rack Size</span>
+                                        <span class="tool-result-value" id="resultRecommendedRackSize">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Estimated Rack Units Used</span>
+                                        <span class="tool-result-value" id="resultRackUnitsUsed">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Suggested Spare Capacity</span>
+                                        <span class="tool-result-value" id="resultSpareCapacity">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Estimated Power Requirement</span>
+                                        <span class="tool-result-value" id="resultPowerRequirement">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-md-6">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Estimated Heat Load</span>
+                                        <span class="tool-result-value" id="resultHeatLoad">-</span>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Cable Management Recommendation</span>
+                                        <p class="tool-result-text" id="resultCableManagementRecommendation">-</p>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Rack Organization Note</span>
+                                        <p class="tool-result-text" id="resultRackOrganizationNote">-</p>
+                                    </div>
+                                </div>
+                                <div class="col-12">
+                                    <div class="tool-result-item">
+                                        <span class="tool-result-label">Planning Summary</span>
+                                        <p class="tool-result-text mb-0" id="resultRackPlanningSummary">-</p>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Calculator End -->
+
+    <!-- Disclaimer Start -->
+    <div class="container-fluid py-5">
+        <div class="container py-5">
+            <div class="tool-disclaimer-shell p-4 p-lg-5 wow fadeInUp" data-wow-delay="0.1s">
+                <h2 class="display-6 text-white mb-3">Planning Disclaimer</h2>
+                <p class="mb-0">This tool is intended for preliminary planning only. Actual rack sizing may vary based on device dimensions, rail requirements, manufacturer specifications, airflow needs, weight distribution, cable routing, and service clearance. Always validate rack planning against real equipment and field conditions.</p>
+            </div>
+        </div>
+    </div>
+    <!-- Disclaimer End -->
+
+    <!-- CTA Start -->
+    <section class="container-fluid py-5 section-divider">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
+                    <div class="glass-card rounded p-4 p-lg-5 text-center wow fadeInUp" data-wow-delay="0.1s">
+                        <h2 class="display-5 text-white mb-3">Need help building or installing this rack in the field?</h2>
+                        <p class="mb-4">NetworkConnectIT supports security integrators and commercial clients with network infrastructure, CCTV installations, access control systems, cable management, rack builds, and field deployment support across NY, NJ, CT, Long Island, and Florida.</p>
+                        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                            <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-5">Request Installation Support</a>
+                            <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Talk About Your Project</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- CTA End -->
+
+    <!-- Footer Start -->
+    <div class="container-fluid footer py-5 wow fadeIn" data-wow-delay="0.2s">
+        <div class="container py-5">
+            <div class="row g-5">
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="text-dark mb-4">Company</h4>
+                        <a href="/about.html"> Why NetworkConnectIt?</a>
+                        <a href="/feature.html"> Our Features</a>
+                        <a href="/service.html"> Our Portfolio</a>
+                        <a href="/about.html"> About Us</a>
+                        <a href="/blog.html"> Our Blog &amp; News</a>
+                        <a href="/contact.html"> Get In Touch</a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="mb-4 text-dark">Quick Links</h4>
+                        <a href="/about.html"> About Us</a>
+                        <a href="/contact.html"> Contact Us</a>
+                        <a href="/index.html#privacy"> Privacy Policy</a>
+                        <a href="/index.html#terms"> Terms &amp; Conditions</a>
+                        <a href="/blog.html"> Our Blog &amp; News</a>
+                        <a href="/about.html#team"> Our Team</a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="mb-4 text-dark">Services</h4>
+                        <a href="/service.html"> All Services</a>
+                        <a href="/service.html"> Network Installation &amp; Optimization</a>
+                        <a href="/service.html"> Network Maintenance &amp; Support</a>
+                        <a href="/service.html"> Fast, Reliable, and Secure Networking</a>
+                        <a href="/service.html"> Cisco Solutions</a>
+                        <a href="/service.html"> Ubiquiti UniFi Integration</a>
+                        <a href="/installation-partner-support.html"> Installation Partner Support</a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="mb-4 text-dark">Contact Info</h4>
+                        <a href=""><i class="fa fa-map-marker-alt me-2"></i> 117 Berkshire Dr, Farmingville, NY 11738, USA</a>
+                        <a href=""><i class="fas fa-envelope me-2"></i> Email us at:: network@networkconnectit.com</a>
+                        <a href=""><i class="fas fa-phone me-2"></i>Call us at:: 1 917 403 7129 ingl&eacute;s and espa&ntilde;ol</a>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-share fa-2x text-secondary me-2"></i>
+                            <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.facebook.com/profile.php?id=61557354532955"><i class="fab fa-facebook-f"></i></a>
+                            <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.instagram.com/networkconnectit/"><i class="fab fa-instagram"></i></a>
+                            <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.linkedin.com/in/network-connectit-6095b23a7/"><i class="fab fa-linkedin-in"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Footer End -->
+
+    <!-- Copyright Start -->
+    <div class="container-fluid copyright py-4">
+        <div class="container">
+            <div class="row g-4 align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-md-0">
+                    <span class="text-white"><a href="#"><i class="fas fa-copyright text-light me-2"></i>Networkconnectit</a>, All right reserved.</span>
+                </div>
+                <div class="col-md-6 text-center text-md-end text-white">
+                    Designed By <a class="border-bottom" href="https://ks-techconsulting.com/">2023</a> Distributed By <a class="border-bottom" href="https://ks-techconsulting.com/">ks-techconsulting</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Copyright End -->
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary btn-lg-square back-to-top"><i class="fa fa-arrow-up"></i></a>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/lib/wow/wow.min.js"></script>
+    <script src="/lib/easing/easing.min.js"></script>
+    <script src="/lib/waypoints/waypoints.min.js"></script>
+    <script src="/lib/counterup/counterup.min.js"></script>
+    <script src="/lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="/lib/lightbox/js/lightbox.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="/js/main.js"></script>
+    <script src="/js/network-rack-builder.js"></script>
+</body>
+
+</html>
