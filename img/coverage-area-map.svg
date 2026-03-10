@@ -1,0 +1,89 @@
+<svg width="1200" height="760" viewBox="0 0 1200 760" fill="none" xmlns="http://www.w3.org/2000/svg">
+  <defs>
+    <linearGradient id="panelGlow" x1="140" y1="88" x2="1015" y2="668" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2C7DFF" stop-opacity="0.55"/>
+      <stop offset="1" stop-color="#0E3D88" stop-opacity="0.32"/>
+    </linearGradient>
+    <linearGradient id="stateFill" x1="204" y1="118" x2="832" y2="646" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#2E8BFF" stop-opacity="0.92"/>
+      <stop offset="1" stop-color="#144FBA" stop-opacity="0.78"/>
+    </linearGradient>
+    <filter id="softGlow" x="-20%" y="-20%" width="140%" height="140%">
+      <feGaussianBlur stdDeviation="10" result="blur"/>
+      <feMerge>
+        <feMergeNode in="blur"/>
+        <feMergeNode in="SourceGraphic"/>
+      </feMerge>
+    </filter>
+    <pattern id="techGrid" width="68" height="68" patternUnits="userSpaceOnUse">
+      <path d="M0 34H68M34 0V68" stroke="#7ED8FF" stroke-opacity="0.08"/>
+      <circle cx="34" cy="34" r="2" fill="#7ED8FF" fill-opacity="0.14"/>
+    </pattern>
+  </defs>
+
+  <rect x="0" y="0" width="1200" height="760" fill="url(#techGrid)"/>
+
+  <g stroke="#69D7FF" stroke-opacity="0.18" stroke-width="2">
+    <path d="M0 110H126L170 154H314"/>
+    <path d="M0 560H142L196 506H286"/>
+    <path d="M1100 194H984L930 246H842"/>
+    <path d="M1200 618H1010L944 556H850"/>
+    <path d="M92 0V86L148 138V224"/>
+    <path d="M1028 0V96L962 164V232"/>
+    <path d="M172 760V688L248 618V548"/>
+    <path d="M1008 760V684L938 622V566"/>
+  </g>
+
+  <g opacity="0.92">
+    <rect x="142" y="88" width="882" height="578" rx="30" fill="url(#panelGlow)"/>
+
+    <path d="M296 128L402 112L534 124L596 180L608 272L558 326L422 332L304 286L240 224L254 168L296 128Z" fill="url(#stateFill)" stroke="#F4FAFF" stroke-width="4"/>
+    <path d="M598 196L816 188L860 242L840 300L604 310L598 196Z" fill="url(#stateFill)" stroke="#F4FAFF" stroke-width="4"/>
+    <path d="M834 274L958 286L1004 312L956 334L846 324L834 274Z" fill="url(#stateFill)" stroke="#F4FAFF" stroke-width="4"/>
+    <path d="M528 316L596 334L628 388L614 492L570 544L532 498L516 430L518 362L528 316Z" fill="url(#stateFill)" stroke="#F4FAFF" stroke-width="4"/>
+    <path d="M178 346L530 346L552 430L548 540L510 646L420 652L360 600L308 586L250 592L214 564L200 512L196 438L178 346Z" fill="url(#stateFill)" stroke="#F4FAFF" stroke-width="4"/>
+    <path d="M420 566L460 604L486 664L470 712L438 726L432 684L416 630L392 602L420 566Z" fill="url(#stateFill)" stroke="#F4FAFF" stroke-width="4"/>
+
+    <path d="M266 224L332 246L410 250L484 232" stroke="#F4FAFF" stroke-width="3" stroke-opacity="0.6"/>
+    <path d="M610 248H826" stroke="#F4FAFF" stroke-width="3" stroke-opacity="0.6"/>
+    <path d="M862 304H962" stroke="#F4FAFF" stroke-width="3" stroke-opacity="0.6"/>
+    <path d="M538 376L604 396L584 510" stroke="#F4FAFF" stroke-width="3" stroke-opacity="0.6"/>
+    <path d="M226 430H514" stroke="#F4FAFF" stroke-width="3" stroke-opacity="0.6"/>
+  </g>
+
+  <g font-family="Oswald, Arial Narrow, Arial, sans-serif" font-weight="700" fill="#F8FBFF">
+    <text x="356" y="214" font-size="44" letter-spacing="1.5">NEW YORK</text>
+    <text x="640" y="267" font-size="34" letter-spacing="1.4">CONNECTICUT</text>
+    <text x="858" y="319" font-size="22" letter-spacing="1.6">LONG ISLAND</text>
+    <text x="534" y="420" font-size="25" letter-spacing="1.3">NEW JERSEY</text>
+    <text x="286" y="536" font-size="48" letter-spacing="1.5">FLORIDA</text>
+  </g>
+
+  <g filter="url(#softGlow)">
+    <g transform="translate(430 254)">
+      <circle cx="0" cy="0" r="18" fill="#F53A3A"/>
+      <circle cx="0" cy="-4" r="7" fill="#FFFFFF"/>
+      <path d="M0 24L-9 10H9L0 24Z" fill="#F53A3A"/>
+    </g>
+    <g transform="translate(700 282)">
+      <circle cx="0" cy="0" r="18" fill="#F53A3A"/>
+      <circle cx="0" cy="-4" r="7" fill="#FFFFFF"/>
+      <path d="M0 24L-9 10H9L0 24Z" fill="#F53A3A"/>
+    </g>
+    <g transform="translate(886 312)">
+      <circle cx="0" cy="0" r="18" fill="#F53A3A"/>
+      <circle cx="0" cy="-4" r="7" fill="#FFFFFF"/>
+      <path d="M0 24L-9 10H9L0 24Z" fill="#F53A3A"/>
+    </g>
+    <g transform="translate(564 424)">
+      <circle cx="0" cy="0" r="18" fill="#F53A3A"/>
+      <circle cx="0" cy="-4" r="7" fill="#FFFFFF"/>
+      <path d="M0 24L-9 10H9L0 24Z" fill="#F53A3A"/>
+    </g>
+    <g transform="translate(388 568)">
+      <circle cx="0" cy="0" r="18" fill="#F53A3A"/>
+      <circle cx="0" cy="-4" r="7" fill="#FFFFFF"/>
+      <path d="M0 24L-9 10H9L0 24Z" fill="#F53A3A"/>
+    </g>
+  </g>
+</svg>

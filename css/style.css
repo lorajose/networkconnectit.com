@@ -919,9 +919,32 @@ a:hover {
 }
 
 .b2b-coverage {
+    isolation: isolate;
     background:
-        radial-gradient(circle at 18% 22%, rgba(45, 212, 255, 0.10), transparent 24%),
-        radial-gradient(circle at 80% 74%, rgba(59, 130, 246, 0.14), transparent 22%);
+        linear-gradient(135deg, rgba(4, 12, 24, 0.98), rgba(10, 34, 61, 0.97) 52%, rgba(5, 14, 28, 0.98)),
+        radial-gradient(circle at 18% 22%, rgba(45, 212, 255, 0.12), transparent 24%),
+        radial-gradient(circle at 82% 78%, rgba(59, 130, 246, 0.16), transparent 24%);
+}
+
+.b2b-coverage::before {
+    background:
+        linear-gradient(90deg, rgba(3, 8, 20, 0.82) 0%, rgba(3, 8, 20, 0.56) 34%, rgba(3, 8, 20, 0.22) 60%, rgba(3, 8, 20, 0.58) 100%),
+        linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
+    z-index: 0;
+}
+
+.b2b-coverage::after {
+    content: "";
+    position: absolute;
+    inset: 10% 2% 8% 2%;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url("../img/coverage-area-map.svg");
+    background-repeat: no-repeat;
+    background-position: center 58%;
+    background-size: 88% auto;
+    opacity: 0.42;
+    transform: translateY(1%);
 }
 
 .b2b-coverage .container {
@@ -960,124 +983,14 @@ a:hover {
     height: 100%;
 }
 
+.b2b-coverage .coverage-item {
+    background: rgba(4, 12, 24, 0.62);
+    border-color: rgba(125, 211, 252, 0.16);
+    backdrop-filter: blur(3px);
+}
+
 .coverage-item p {
     margin-top: 1rem;
-}
-
-.coverage-map-art {
-    position: absolute;
-    inset: 0;
-    z-index: 1;
-    pointer-events: none;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-    overflow: hidden;
-}
-
-.coverage-map-art::before {
-    content: "";
-    position: absolute;
-    inset: 8% 10%;
-    border-radius: 32px;
-    background:
-        linear-gradient(135deg, rgba(45, 212, 255, 0.05), rgba(255, 255, 255, 0)),
-        radial-gradient(circle at 48% 32%, rgba(45, 212, 255, 0.08), transparent 18%),
-        radial-gradient(circle at 70% 76%, rgba(59, 130, 246, 0.10), transparent 14%);
-    opacity: 0.95;
-}
-
-.coverage-map-layer {
-    position: relative;
-    width: min(780px, 88vw);
-    aspect-ratio: 900 / 560;
-    transform: translateY(6%);
-}
-
-.coverage-map-svg {
-    position: absolute;
-    inset: 0;
-    width: 100%;
-    height: 100%;
-    opacity: 0.28;
-    filter: drop-shadow(0 18px 44px rgba(3, 8, 20, 0.26));
-}
-
-.coverage-map-shape {
-    fill: url(#coverageMapFill);
-    stroke: url(#coverageMapStroke);
-    stroke-width: 3;
-}
-
-.coverage-map-shape-secondary {
-    opacity: 0.92;
-}
-
-.coverage-map-route {
-    fill: none;
-    stroke: rgba(125, 211, 252, 0.88);
-    stroke-width: 4;
-    stroke-linecap: round;
-    stroke-dasharray: 10 12;
-}
-
-.coverage-map-node {
-    fill: #2dd4ff;
-    opacity: 0.92;
-}
-
-.coverage-map-point {
-    position: absolute;
-    transform: translate(-50%, -50%);
-    display: inline-flex;
-    align-items: center;
-    gap: 10px;
-    padding: 0.5rem 0.85rem;
-    border-radius: 999px;
-    background: rgba(7, 17, 34, 0.7);
-    border: 1px solid rgba(45, 212, 255, 0.2);
-    box-shadow: 0 14px 34px rgba(3, 8, 20, 0.24);
-    color: rgba(241, 245, 249, 0.92);
-    font-size: 0.82rem;
-    font-weight: 600;
-    letter-spacing: 0.03em;
-    line-height: 1;
-    white-space: nowrap;
-    backdrop-filter: blur(4px);
-}
-
-.coverage-map-point::before {
-    content: "";
-    width: 10px;
-    height: 10px;
-    border-radius: 50%;
-    background: #2dd4ff;
-    box-shadow: 0 0 0 6px rgba(45, 212, 255, 0.13);
-}
-
-.coverage-map-point-ny {
-    top: 30.5%;
-    left: 44.4%;
-}
-
-.coverage-map-point-nj {
-    top: 39.8%;
-    left: 48.4%;
-}
-
-.coverage-map-point-ct {
-    top: 27%;
-    left: 54.4%;
-}
-
-.coverage-map-point-li {
-    top: 33.6%;
-    left: 64.4%;
-}
-
-.coverage-map-point-fl {
-    top: 89.6%;
-    left: 75.8%;
 }
 
 .partner-card i {
@@ -1111,19 +1024,11 @@ a:hover {
         border-radius: 20px;
     }
 
-    .coverage-map-layer {
-        width: min(680px, 100vw);
-        transform: translateY(10%);
-    }
-
-    .coverage-map-svg {
-        opacity: 0.22;
-    }
-
-    .coverage-map-point {
-        font-size: 0.74rem;
-        padding: 0.42rem 0.7rem;
-        gap: 8px;
+    .b2b-coverage::after {
+        inset: 16% 0 8% 0;
+        background-position: center 62%;
+        background-size: 104% auto;
+        opacity: 0.34;
     }
 }
 
@@ -1138,67 +1043,17 @@ a:hover {
         margin-top: 1rem;
     }
 
-    .coverage-map-art::before {
-        inset: 12% 0;
+    .b2b-coverage::before {
+        background:
+            linear-gradient(180deg, rgba(3, 8, 20, 0.78) 0%, rgba(3, 8, 20, 0.54) 42%, rgba(3, 8, 20, 0.72) 100%),
+            linear-gradient(180deg, rgba(255, 255, 255, 0.03), rgba(255, 255, 255, 0));
     }
 
-    .coverage-map-layer {
-        width: min(420px, 110vw);
-        transform: translateY(14%);
-    }
-
-    .coverage-map-point {
-        width: 18px;
-        height: 18px;
-        padding: 0;
-        border-radius: 50%;
-        justify-content: center;
-        font-size: 0;
-        box-shadow: 0 10px 26px rgba(3, 8, 20, 0.22);
-    }
-
-    .coverage-map-point::before {
-        width: 8px;
-        height: 8px;
-        box-shadow: 0 0 0 5px rgba(45, 212, 255, 0.13);
-    }
-
-    .coverage-map-point::after {
-        content: attr(data-short);
-        position: absolute;
-        top: calc(100% + 8px);
-        left: 50%;
-        transform: translateX(-50%);
-        color: rgba(241, 245, 249, 0.82);
-        font-size: 0.62rem;
-        font-weight: 700;
-        letter-spacing: 0.05em;
-        white-space: nowrap;
-    }
-
-    .coverage-map-point-ny {
-        top: 31%;
-        left: 38%;
-    }
-
-    .coverage-map-point-nj {
-        top: 39%;
-        left: 45%;
-    }
-
-    .coverage-map-point-ct {
-        top: 27%;
-        left: 57%;
-    }
-
-    .coverage-map-point-li {
-        top: 34%;
-        left: 71%;
-    }
-
-    .coverage-map-point-fl {
-        top: 86%;
-        left: 72%;
+    .b2b-coverage::after {
+        inset: 26% -12% 2% -12%;
+        background-position: center 70%;
+        background-size: 150% auto;
+        opacity: 0.22;
     }
 }
 /*** Homepage B2B Extension End ***/
