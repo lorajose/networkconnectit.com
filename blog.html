@@ -289,6 +289,17 @@
                 font-size: 0.96rem;
             }
 
+            .bento-card__credit {
+                color: var(--blog-muted);
+                font-size: 0.84rem;
+                line-height: 1.5;
+            }
+
+            .bento-card__credit a {
+                color: var(--blog-accent-2);
+                text-decoration: underline;
+            }
+
             .bento-card__actions {
                 margin-top: auto;
                 display: flex;
@@ -930,6 +941,77 @@
             // layout options: hero | wide | tall | standard
             const blogPosts = [
                 {
+                    id: "proxmox-network-settings",
+                    layout: "tall",
+                    title: "7 Network Settings I Always Configure on a New Proxmox Server",
+                    category: "Infrastructure / Virtualization / Networking",
+                    date: "2026-03-11",
+                    readTime: 9,
+                    image: "img/blog-3.png",
+                    excerpt: "At Network Connect IT, we believe a Proxmox deployment should never stop at installation. The real stability starts with the right network configuration. In this post, we share seven essential network settings we recommend for every new Proxmox server, inspired by the original article from VirtualizationHowTo and expanded with our own real-world deployment perspective.",
+                    creditLabel: "Inspired by the original article published by VirtualizationHowTo.",
+                    creditUrl: "https://www.virtualizationhowto.com/2026/03/7-network-settings-i-always-configure-on-a-new-proxmox-server/",
+                    likes: 18,
+                    contentHtml: `
+                        <h2>7 Network Settings I Always Configure on a New Proxmox Server</h2>
+                        <p><strong>By Network Connect IT</strong></p>
+                        <p>In production environments, especially where business infrastructure depends on uptime, virtualization hosts should never be left with default networking past the initial install. A Proxmox node may boot and even host workloads quickly, but reliability, segmentation, migration readiness, and long-term maintainability all depend on how the network layer is configured from day one.</p>
+                        <p>This article is inspired by the original VirtualizationHowTo post and expands on that foundation from the perspective of Network Connect IT. In the field, we care less about “getting Proxmox online” and more about building hosts that stay stable in real business environments, whether they support line-of-business applications, CCTV storage, branch infrastructure, edge services, or hybrid workloads.</p>
+                        <p style="margin-top:1rem;border-top:1px solid rgba(255,255,255,0.16);padding-top:0.8rem;font-size:0.93rem;">
+                            <strong>Inspired by the original article published by VirtualizationHowTo.</strong>
+                            Read the source that inspired this post:
+                            <a href="https://www.virtualizationhowto.com/2026/03/7-network-settings-i-always-configure-on-a-new-proxmox-server/" target="_blank" rel="noopener noreferrer">VirtualizationHowTo</a>.
+                        </p>
+
+                        <h2>1. Set a Static Management IP</h2>
+                        <p>The management address of a Proxmox host should never depend on DHCP in a production deployment. Administrators need predictable access for the web console, SSH, monitoring, backups, and cluster communication. A static management IP also makes firewall rules, documentation, DNS entries, and remote support much cleaner.</p>
+                        <p>A common mistake is to leave DHCP in place “just for setup” and revisit it later. Later often becomes after a reboot, a lease change, or a maintenance event where nobody remembers what the host was using. That is exactly when access problems turn into outage windows.</p>
+                        <p><strong>Network Connect IT Tip:</strong> Reserve management IP space intentionally and keep it out of user or guest scopes. Virtualization management should feel predictable, not convenient.</p>
+
+                        <h2>2. Configure the Correct Bridge Interface</h2>
+                        <p>The Linux bridge is the heart of Proxmox networking, so it needs to reflect the actual design of the host. That means assigning the right physical NIC to the right bridge, confirming the bridge carries the intended traffic, and keeping the management IP bound to the correct interface strategy. A wrong bridge decision at the beginning becomes painful later when VMs are already live.</p>
+                        <p>One of the most common mistakes is treating the default bridge as “good enough” without checking how uplinks, switch ports, or tagged networks are meant to work. If the bridge is attached to the wrong adapter or built without a clear purpose, troubleshooting becomes harder every time a VM is added or moved.</p>
+                        <p><strong>Network Connect IT Tip:</strong> Name and document bridge intent early. “Management bridge,” “VM trunk bridge,” and “storage path” are much easier to support than generic defaults with no design context.</p>
+
+                        <h2>3. Plan VLAN Awareness from the Start</h2>
+                        <p>Even if the first deployment only has one or two networks, it is smart to think in VLANs from the beginning. Most Proxmox environments grow. Today it may be one subnet; tomorrow it may include server workloads, management, backups, cameras, voice, or guest isolation. Planning VLAN awareness early prevents unnecessary bridge rebuilds later.</p>
+                        <p>A frequent mistake is delaying segmentation until after workloads are already mixed together. At that point, adding VLAN tagging becomes more disruptive because firewall rules, switch trunks, VM adapters, and documentation all need to be corrected while production services are already in motion.</p>
+                        <p><strong>Network Connect IT Tip:</strong> If you know segmentation is coming, design for it now. VLAN readiness is far easier to add before the environment becomes crowded.</p>
+
+                        <h2>4. Harden DNS and Gateway Settings</h2>
+                        <p>DNS and default gateway settings look simple, but they affect package updates, clustering, backups, monitoring, and name resolution for the entire virtualization stack. We always verify the host points to authoritative DNS servers that are actually intended for infrastructure use, and we confirm the selected gateway matches the right routed network.</p>
+                        <p>Common mistakes include using temporary public DNS during setup, assigning a gateway on the wrong interface, or forgetting that management traffic may need to route differently than guest workloads. Those errors may not show up immediately, but they create inconsistent behavior later and complicate support.</p>
+                        <p><strong>Network Connect IT Tip:</strong> Treat DNS and gateway settings as infrastructure controls, not installer checkboxes. If name resolution is weak, operations will be weak too.</p>
+
+                        <h2>5. Separate Management and VM Traffic When Possible</h2>
+                        <p>Management access should not have to compete with busy VM networks if the hardware and switching design allow separation. When practical, we recommend keeping host administration on a dedicated management path or VLAN, while guest traffic uses a separate trunk or bridge design. This reduces operational risk and makes security policy easier to apply.</p>
+                        <p>A common mistake is flattening everything onto one interface because it works in a lab. In the field, that simplicity disappears once high-throughput VMs, storage traffic, backup windows, or camera-related workloads begin sharing the same path as the hypervisor itself.</p>
+                        <p><strong>Network Connect IT Tip:</strong> If you only have limited interfaces, separate traffic logically with VLANs. If you have more physical ports, use them intentionally.</p>
+
+                        <h2>6. Validate MTU, Bonding, and Physical NIC Roles</h2>
+                        <p>Before the environment grows, validate whether jumbo frames are actually required, whether switch-side support is in place, and whether NIC bonding is needed for resiliency or throughput. Just as important, define the job of each physical interface clearly. A Proxmox host with four NICs should not leave engineers guessing which one carries management, storage, VM trunks, or cluster traffic.</p>
+                        <p>We frequently see environments where MTU is changed on the host but not end-to-end, or where a bond is configured on the server side without confirming switch LACP or failover behavior. Another mistake is reusing interfaces ad hoc as needs change, which leads to fragile documentation and inconsistent troubleshooting.</p>
+                        <p><strong>Network Connect IT Tip:</strong> Never assume bonding or MTU tuning is beneficial just because the option exists. Validate the physical path, switch configuration, and business requirement first.</p>
+
+                        <h2>7. Document Everything Before Expanding the Cluster</h2>
+                        <p>Before more nodes or workloads are added, the network design should be documented clearly. That includes bridge names, VLAN IDs, IP assignments, switch ports, bonding modes, gateway strategy, and DNS references. Cluster growth amplifies every weak decision, so undocumented networking becomes a long-term liability very quickly.</p>
+                        <p>The most common mistake is assuming the initial node is simple enough to remember later. Then another host is added, then another VLAN, then a storage network, and suddenly nobody is fully sure what was intended. Good documentation is not overhead; it is what keeps expansion from turning into rework.</p>
+                        <p><strong>Network Connect IT Tip:</strong> If the next engineer cannot understand the host in five minutes, the documentation is not finished.</p>
+
+                        <h2>Network Connect IT Perspective</h2>
+                        <p>At Network Connect IT, we do not treat Proxmox networking as a lab-only concern. We design around the realities of growing business environments, branch offices, edge deployments, camera and storage systems, and hybrid infrastructure where uptime, segmentation, and future scalability matter. A hypervisor can be technically online while still being operationally fragile.</p>
+                        <p>That is why we focus on maintainable structures from the beginning: clean management addressing, VLAN planning, bridge clarity, physical NIC role separation, and documentation that supports expansion. Strong virtualization is not just about compute density. It is about making the network predictable enough that growth does not introduce instability.</p>
+
+                        <h2>Credit &amp; Inspiration</h2>
+                        <p>This article was inspired by the original work published by VirtualizationHowTo. We recommend readers review the original post as well:
+                            <a href="https://www.virtualizationhowto.com/2026/03/7-network-settings-i-always-configure-on-a-new-proxmox-server/" target="_blank" rel="noopener noreferrer">https://www.virtualizationhowto.com/2026/03/7-network-settings-i-always-configure-on-a-new-proxmox-server/</a>
+                        </p>
+
+                        <h2>Conclusion</h2>
+                        <p>Strong virtualization begins with strong networking. When the first Proxmox node is configured carefully, later growth becomes cleaner, migrations become less painful, and avoidable troubleshooting is reduced. Early network discipline is one of the easiest ways to prevent downtime and technical debt before they start.</p>
+                    `
+                },
+                {
                     id: "vlan-cctv-pos",
                     layout: "hero",
                     title: "VLAN segmentation that protects CCTV, POS and admin traffic",
@@ -1183,6 +1265,7 @@
 
             // Control the visual order of cards in the bento grid by adding/removing ids below.
             const cardsLayout = [
+                { type: "post", id: "proxmox-network-settings" },
                 { type: "post", id: "vlan-cctv-pos" },
                 { type: "post", id: "critical-advisory-cisco-fmc-auth-bypass" },
                 { type: "post", id: "cisco-c1300-12xs-backbone" },
@@ -1284,6 +1367,9 @@
                                     "</div>" +
                                     "<h3>" + escapeHtml(post.title) + "</h3>" +
                                     "<p>" + escapeHtml(post.excerpt) + "</p>" +
+                                    (post.creditUrl && post.creditLabel
+                                        ? '<p class="bento-card__credit">' + escapeHtml(post.creditLabel) + ' <a href="' + escapeHtml(post.creditUrl) + '" target="_blank" rel="noopener noreferrer">Source Link</a></p>'
+                                        : "") +
                                     '<div class="bento-card__actions">' +
                                         '<button type="button" class="neon-btn ripple-btn js-read-more" data-post-id="' + post.id + '"><i class="fa fa-arrow-right btn-icon"></i>Read More</button>' +
                                         '<button type="button" class="ghost-btn ripple-btn js-like ' + likedClass + '" data-post-id="' + post.id + '">' +
