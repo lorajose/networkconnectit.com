@@ -1,0 +1,634 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <script async src="https://pagead2.googlesyndication.com/pagead/js/adsbygoogle.js?client=ca-pub-6691470063784202"
+        crossorigin="anonymous"></script>
+
+    <meta charset="utf-8">
+    <title>CCTV Network Diagram Builder</title>
+    <link rel="icon" type="image/png" href="/img/NetworkConnectIT Logo.png">
+    <link rel="icon" sizes="32x32" href="/img/favicon.png">
+    <link rel="apple-touch-icon" href="/img/favicon.png">
+    <meta content="width=device-width, initial-scale=1.0" name="viewport">
+    <meta content="CCTV network diagram builder, PoE load planning, premium PNG export, premium PDF export, security integrator tools" name="keywords">
+    <meta content="Generate a practical CCTV network diagram, estimate PoE load, adjust node layout manually, and prepare premium export-ready planning output." name="description">
+    <link rel="canonical" href="https://networkconnectit.com/tools/cctv-network-diagram-builder/">
+    <meta property="og:title" content="CCTV Network Diagram Builder">
+    <meta property="og:description" content="Create a practical CCTV network diagram, estimate PoE demand, and prepare a cleaner planning topology for field deployment.">
+    <meta property="og:type" content="website">
+    <meta property="og:url" content="https://networkconnectit.com/tools/cctv-network-diagram-builder/">
+    <meta property="og:image" content="https://networkconnectit.com/img/hero-img-1.png">
+    <meta name="twitter:card" content="summary_large_image">
+    <meta name="twitter:title" content="CCTV Network Diagram Builder">
+    <meta name="twitter:description" content="Practical CCTV topology generation, PoE planning, drag-and-drop layout adjustment, and premium export readiness.">
+    <meta name="twitter:image" content="https://networkconnectit.com/img/hero-img-1.png">
+
+    <!-- Google Web Fonts -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Plus+Jakarta+Sans:wght@500;600;700&amp;family=Rubik:wght@400;500&amp;display=swap" rel="stylesheet">
+
+    <!-- Icon Font Stylesheet -->
+    <link rel="stylesheet" href="https://use.fontawesome.com/releases/v5.15.4/css/all.css" />
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.4.1/font/bootstrap-icons.css" rel="stylesheet">
+
+    <!-- Libraries Stylesheet -->
+    <link href="/lib/animate/animate.min.css" rel="stylesheet">
+    <link href="/lib/owlcarousel/assets/owl.carousel.min.css" rel="stylesheet">
+    <link href="/lib/lightbox/css/lightbox.min.css" rel="stylesheet">
+
+    <!-- Customized Bootstrap Stylesheet -->
+    <link href="/css/bootstrap.min.css" rel="stylesheet">
+
+    <!-- Template Stylesheet -->
+    <link href="/css/style.css" rel="stylesheet">
+</head>
+
+<body>
+
+    <!-- Spinner Start -->
+    <div id="spinner" class="show bg-white position-fixed translate-middle w-100 vh-100 top-50 start-50 d-flex align-items-center justify-content-center">
+        <div class="spinner-border text-primary" style="width: 3rem; height: 3rem;" role="status">
+            <span class="sr-only">Loading...</span>
+        </div>
+    </div>
+    <!-- Spinner End -->
+
+    <!-- Header Start -->
+    <div class="container-fluid header position-relative overflow-hidden p-0 cyber-hero bg-cyber">
+        <nav class="navbar navbar-expand-lg navbar-dark fixed-top px-4 px-lg-5 py-3 py-lg-0">
+            <a href="/index.html" class="navbar-brand p-0">
+                <img src="/img/NetworkConnectIT Logo.png" alt="Logo">
+            </a>
+            <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#navbarCollapse">
+                <span class="fa fa-bars"></span>
+            </button>
+            <div class="collapse navbar-collapse" id="navbarCollapse">
+                <div class="navbar-nav ms-auto py-0">
+                    <a href="/index.html" class="nav-item nav-link">Home</a>
+                    <a href="/about.html" class="nav-item nav-link">About</a>
+                    <a href="/service.html" class="nav-item nav-link">Services</a>
+                    <a href="/tools/" class="nav-item nav-link active">Tools</a>
+                    <div class="nav-item dropdown">
+                        <a href="#" class="nav-link dropdown-toggle" data-bs-toggle="dropdown">More</a>
+                        <div class="dropdown-menu m-0">
+                            <a href="/feature.html" class="dropdown-item">Features</a>
+                            <a href="/pricing.html" class="dropdown-item">Pricing</a>
+                            <a href="/blog.html" class="dropdown-item">Blog</a>
+                            <a href="/testimonial.html" class="dropdown-item">Testimonial</a>
+                            <a href="/installation-partner-support.html" class="dropdown-item">Partner Support</a>
+                        </div>
+                    </div>
+                    <a href="/contact.html" class="nav-item nav-link">Contact Us</a>
+                </div>
+            </div>
+        </nav>
+
+        <!-- Hero Start -->
+        <div class="hero-header overflow-hidden px-5">
+            <canvas class="network-canvas" id="network-hero"></canvas>
+            <div class="rotate-img">
+                <img src="/img/sty-1.png" class="img-fluid w-100" alt="">
+                <div class="rotate-sty-2"></div>
+            </div>
+            <div class="row gy-5 align-items-center">
+                <div class="col-lg-7 wow fadeInLeft" data-wow-delay="0.1s">
+                    <span class="hero-kicker wow fadeInUp" data-wow-delay="0.2s">NetworkConnectIT Tools</span>
+                    <h1 data-wow-delay="0.3s">CCTV Network Diagram Builder</h1>
+                    <p class="fs-4 mb-4 wow fadeInUp" data-wow-delay="0.5s">Create a practical CCTV network diagram by selecting cameras, switches, NVRs, routers, UPS units, and other infrastructure components. This builder helps project teams visualize topology, estimate PoE demand, and prepare for field deployment.</p>
+                    <div class="d-grid gap-3 d-sm-flex wow fadeInUp" data-wow-delay="0.7s">
+                        <a href="#builder-interface" class="btn btn-primary rounded-pill py-3 px-5">Build Diagram</a>
+                        <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Talk About Your Project</a>
+                    </div>
+                </div>
+                <div class="col-lg-5 wow fadeInRight" data-wow-delay="0.2s">
+                    <img src="/img/hero-img-1.png" class="img-fluid w-100 h-100" alt="CCTV network planning support for commercial installations">
+                </div>
+            </div>
+        </div>
+        <!-- Hero End -->
+    </div>
+    <!-- Header End -->
+
+    <!-- Intro Start -->
+    <section class="container-fluid overflow-hidden py-5" style="margin-top: 6rem;">
+        <div class="container py-5">
+            <div class="row g-5 align-items-center">
+                <div class="col-lg-7 wow fadeInUp" data-wow-delay="0.1s">
+                    <h2 class="display-5 mb-4 text-white">What this tool helps you plan</h2>
+                    <p class="mb-0 fs-5">Use this builder to generate a practical starting point for CCTV network planning. The tool can create an automatic topology, allow manual drag-and-drop adjustments, estimate PoE endpoint load, and prepare a cleaner diagram before installation. Premium export options make it easier to share planning output with project teams and stakeholders.</p>
+                </div>
+                <div class="col-lg-5 wow fadeInUp" data-wow-delay="0.2s">
+                    <div class="partner-check-list">
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Automatic CCTV topology generation</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Manual drag-and-drop diagram adjustment</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>PoE endpoint and load planning</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Deployment summary and topology notes</span>
+                        </div>
+                        <div class="partner-check-item">
+                            <i class="fas fa-check-circle text-secondary"></i>
+                            <span>Premium PNG / PDF export</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Intro End -->
+
+    <!-- Builder Start -->
+    <section id="builder-interface" class="container-fluid overflow-hidden py-5 section-divider">
+        <div class="container py-5">
+            <div class="text-center mx-auto mb-5 wow fadeInUp" data-wow-delay="0.1s" style="max-width: 960px;">
+                <h4 class="text-primary">Builder Interface</h4>
+                <h2 class="display-5 mb-4 text-white">Build, refine, and review a cleaner CCTV topology</h2>
+                <p class="mb-0">Use the automatic layout as a planning baseline, then drag nodes to refine a cleaner presentation for internal review, project coordination, or premium export.</p>
+            </div>
+            <div class="row g-4 align-items-stretch">
+                <div class="col-xl-3 col-lg-4 wow fadeInUp" data-wow-delay="0.1s">
+                    <div class="tool-panel-shell p-4 p-lg-4 h-100">
+                        <h2 class="display-6 text-white mb-3">Available Devices</h2>
+                        <p class="tool-result-text mb-4">Adjust device quantities, then generate or refine the topology.</p>
+
+                        <div id="diagramBuilderValidation" class="tool-validation-message d-none mb-4" role="alert">Please add at least one camera and core infrastructure components to build a practical diagram.</div>
+
+                        <div class="diagram-device-list">
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-video"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">IP Camera</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="IP Camera quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="ipCamera" aria-label="Decrease IP Camera quantity">-</button>
+                                    <label class="visually-hidden" for="device-ipCamera">IP Camera quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-ipCamera" data-device-type="ipCamera" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="ipCamera" aria-label="Increase IP Camera quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-camera"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">PTZ Camera</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="PTZ Camera quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="ptzCamera" aria-label="Decrease PTZ Camera quantity">-</button>
+                                    <label class="visually-hidden" for="device-ptzCamera">PTZ Camera quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-ptzCamera" data-device-type="ptzCamera" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="ptzCamera" aria-label="Increase PTZ Camera quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-hdd"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">NVR</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="NVR quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="nvr" aria-label="Decrease NVR quantity">-</button>
+                                    <label class="visually-hidden" for="device-nvr">NVR quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-nvr" data-device-type="nvr" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="nvr" aria-label="Increase NVR quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-network-wired"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">PoE Switch</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="PoE Switch quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="poeSwitch" aria-label="Decrease PoE Switch quantity">-</button>
+                                    <label class="visually-hidden" for="device-poeSwitch">PoE Switch quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-poeSwitch" data-device-type="poeSwitch" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="poeSwitch" aria-label="Increase PoE Switch quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-shield-alt"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">Router / Firewall</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="Router or Firewall quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="routerFirewall" aria-label="Decrease Router or Firewall quantity">-</button>
+                                    <label class="visually-hidden" for="device-routerFirewall">Router / Firewall quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-routerFirewall" data-device-type="routerFirewall" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="routerFirewall" aria-label="Increase Router or Firewall quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-battery-three-quarters"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">UPS</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="UPS quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="ups" aria-label="Decrease UPS quantity">-</button>
+                                    <label class="visually-hidden" for="device-ups">UPS quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-ups" data-device-type="ups" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="ups" aria-label="Increase UPS quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-desktop"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">Workstation</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="Workstation quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="workstation" aria-label="Decrease Workstation quantity">-</button>
+                                    <label class="visually-hidden" for="device-workstation">Workstation quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-workstation" data-device-type="workstation" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="workstation" aria-label="Increase Workstation quantity">+</button>
+                                </div>
+                            </div>
+
+                            <div class="diagram-device-card">
+                                <div class="diagram-device-card-header">
+                                    <div class="diagram-device-meta">
+                                        <span class="diagram-device-icon"><i class="fas fa-tv"></i></span>
+                                        <div>
+                                            <h3 class="diagram-device-title">Monitor</h3>
+                                            <p class="diagram-device-text">Default quantity: 0</p>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div class="diagram-qty-control" role="group" aria-label="Monitor quantity controls">
+                                    <button type="button" class="diagram-qty-button" data-action="decrement" data-device-type="monitor" aria-label="Decrease Monitor quantity">-</button>
+                                    <label class="visually-hidden" for="device-monitor">Monitor quantity</label>
+                                    <input class="form-control diagram-qty-input" type="number" id="device-monitor" data-device-type="monitor" min="0" step="1" value="0">
+                                    <button type="button" class="diagram-qty-button" data-action="increment" data-device-type="monitor" aria-label="Increase Monitor quantity">+</button>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="pt-4">
+                            <div class="d-grid gap-3">
+                                <button type="button" id="diagramBuildButton" class="btn btn-primary rounded-pill py-3 px-5">Build Diagram</button>
+                                <button type="button" id="diagramResetButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Reset Diagram</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-6 col-lg-8 wow fadeInUp" data-wow-delay="0.2s">
+                    <div class="tool-panel-shell p-4 p-lg-4 h-100">
+                        <div class="d-flex flex-column flex-lg-row justify-content-lg-between align-items-lg-start gap-3 mb-3">
+                            <div>
+                                <h2 class="display-6 text-white mb-2">Diagram Canvas</h2>
+                                <p class="tool-result-text mb-2">Drag nodes to adjust the layout after automatic generation.</p>
+                            </div>
+                            <div class="diagram-layout-status" id="diagramLayoutStatus">Layout unlocked</div>
+                        </div>
+
+                        <div class="diagram-canvas-scroll">
+                            <div class="diagram-canvas-shell is-empty">
+                                <svg id="cctvDiagramSvg" class="diagram-canvas-svg" viewBox="0 0 960 620" role="img" aria-labelledby="diagramCanvasTitle diagramCanvasDescription">
+                                    <title id="diagramCanvasTitle">CCTV network topology diagram</title>
+                                    <desc id="diagramCanvasDescription">Auto-generated CCTV network topology with draggable device nodes and updated connector lines.</desc>
+                                </svg>
+                                <div id="diagramCanvasEmpty" class="tool-empty-state diagram-canvas-empty">
+                                    Build a diagram to generate a structured CCTV network topology.
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="d-grid gap-3 d-sm-flex mt-4">
+                            <button type="button" id="diagramAutoLayoutButton" class="btn btn-primary rounded-pill py-3 px-4">Auto Layout</button>
+                            <button type="button" id="diagramClearCanvasButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Clear Canvas</button>
+                            <button type="button" id="diagramLockLayoutButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Lock Layout</button>
+                            <button type="button" id="diagramUnlockLayoutButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Unlock Layout</button>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="col-xl-3 col-lg-12 wow fadeInUp" data-wow-delay="0.3s">
+                    <div class="tool-panel-shell p-4 p-lg-4 h-100" aria-live="polite">
+                        <h2 class="display-6 text-white mb-3">Deployment Summary</h2>
+                        <div id="diagramSummaryEmpty" class="tool-empty-state">Build a diagram to see topology and PoE planning results.</div>
+
+                        <div id="diagramSummaryContent" class="d-none">
+                            <div class="diagram-summary-stack">
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Total Cameras</span>
+                                    <span class="tool-result-value" id="resultTotalCameras">-</span>
+                                </div>
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Total PoE Endpoints</span>
+                                    <span class="tool-result-value" id="resultTotalPoEEndpoints">-</span>
+                                </div>
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Total Switches</span>
+                                    <span class="tool-result-value" id="resultTotalSwitches">-</span>
+                                </div>
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Total NVRs</span>
+                                    <span class="tool-result-value" id="resultTotalNVRs">-</span>
+                                </div>
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Estimated PoE Load</span>
+                                    <span class="tool-result-value" id="resultEstimatedPoeLoad">-</span>
+                                </div>
+                                <div class="tool-result-item tool-result-item-featured">
+                                    <span class="tool-result-label">Suggested Topology</span>
+                                    <span class="tool-result-value" id="resultSuggestedTopology">-</span>
+                                </div>
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Topology Warnings</span>
+                                    <div id="resultTopologyWarnings" class="tool-result-text">-</div>
+                                </div>
+                                <div class="tool-result-item">
+                                    <span class="tool-result-label">Planning Summary</span>
+                                    <p class="tool-result-text mb-0" id="resultPlanningSummary">-</p>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Builder End -->
+
+    <!-- Premium Export Start -->
+    <section class="container-fluid py-5">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
+                    <div class="glass-card rounded p-4 p-lg-5 wow fadeInUp" data-wow-delay="0.1s">
+                        <div class="row g-4 align-items-stretch">
+                            <div class="col-lg-12">
+                                <h2 class="display-5 text-white mb-3">Premium Export Options</h2>
+                                <p class="mb-3">Need to share the diagram with a project team or client? Unlock export features to generate a clean PNG or PDF version of the current diagram layout.</p>
+                                <p class="diagram-premium-highlight mb-2">Unlock clean diagram export for planning, sharing, and project coordination.</p>
+                                <p class="diagram-premium-note mb-0">Premium export is intended for planning convenience and document sharing. It does not replace final engineering documentation.</p>
+                            </div>
+                            <div class="col-lg-7">
+                                <div class="diagram-premium-card diagram-premium-card-featured h-100">
+                                    <span class="diagram-premium-badge">Premium</span>
+                                    <h3 class="text-white mb-3">Export Bundle</h3>
+                                    <p class="mb-4">Unlock both PNG and PDF export for the current diagram layout. Ideal for planning review, internal coordination, and client-facing discussion.</p>
+                                    <ul class="diagram-premium-included mb-4">
+                                        <li>PNG export</li>
+                                        <li>PDF export</li>
+                                        <li>Share-ready diagram output</li>
+                                        <li>Cleaner project coordination workflow</li>
+                                    </ul>
+                                    <div class="diagram-premium-price mb-3">
+                                        <span class="diagram-premium-price-label">Bundle Pricing</span>
+                                        <strong class="diagram-premium-price-value">$[YOUR_PRICE] one-time</strong>
+                                    </div>
+                                    <p class="mb-4">Low-friction export access for practical project planning.</p>
+                                    <div class="d-grid gap-3 d-sm-flex mb-3">
+                                        <button type="button" id="unlockExportBundleButton" class="btn btn-primary rounded-pill py-3 px-4">Unlock Export Bundle</button>
+                                    </div>
+                                    <div class="d-grid gap-3 d-sm-flex mb-4">
+                                        <button type="button" id="premiumPngActionButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Export PNG</button>
+                                        <button type="button" id="premiumPdfActionButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Export PDF</button>
+                                    </div>
+                                    <p class="diagram-premium-trust mb-2">Secure checkout powered by Stripe.</p>
+                                    <p class="diagram-premium-bridge-note mb-0">Export is unlocked through a secure one-time Stripe checkout. After payment, you’ll return to the builder with premium export access.</p>
+                                </div>
+                            </div>
+                            <div class="col-lg-5">
+                                <div class="diagram-premium-state-stack h-100">
+                                    <div id="premiumStateLocked" class="diagram-premium-state-panel">
+                                        <h3 class="text-white mb-3">Premium Export Locked</h3>
+                                        <p class="mb-0">Premium export remains locked until the one-time bundle checkout is completed. Free planning, topology generation, and diagram adjustment remain fully available.</p>
+                                    </div>
+
+                                    <div id="premiumStateUnlocked" class="diagram-premium-state-panel d-none">
+                                        <h3 class="text-white mb-3">Export Unlocked</h3>
+                                        <p class="mb-3">Premium export is now available for your diagram session. You can now generate PNG and PDF versions of your current layout for planning and coordination purposes.</p>
+                                        <div class="d-grid gap-3">
+                                            <button type="button" id="premiumUnlockedExportPngButton" class="btn btn-primary rounded-pill py-3 px-4">Export PNG</button>
+                                            <button type="button" id="premiumUnlockedExportPdfButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Export PDF</button>
+                                            <button type="button" id="premiumReturnToBuilderButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Return to Diagram Builder</button>
+                                        </div>
+                                        <p class="diagram-premium-note mb-0 mt-3">Review your diagram layout before exporting to ensure the final arrangement matches your planning intent.</p>
+                                    </div>
+
+                                    <div id="premiumStateCancelled" class="diagram-premium-state-panel d-none">
+                                        <h3 class="text-white mb-3">Checkout Not Completed</h3>
+                                        <p class="mb-3">Your diagram is still available to edit and review. Premium export remains locked until checkout is completed.</p>
+                                        <div class="d-grid gap-3">
+                                            <button type="button" id="premiumRetryCheckoutButton" class="btn btn-primary rounded-pill py-3 px-4">Try Checkout Again</button>
+                                            <button type="button" id="premiumReturnToBuilderFromCancelButton" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Return to Diagram Builder</button>
+                                        </div>
+                                        <p class="diagram-premium-note mb-0 mt-3">You can continue planning your diagram without exporting.</p>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-lg-12">
+                                <div class="diagram-premium-status" id="premiumExportStatus">Premium export bundle is scaffolded and ready for Stripe Payment Link or Checkout integration.</div>
+                            </div>
+                            <div class="col-lg-12">
+                                <div class="diagram-soft-cta">
+                                    <h3 class="text-white mb-3">Need help deploying this design?</h3>
+                                    <p class="mb-4">NetworkConnectIT can help move this diagram from planning into field execution. If your team needs installation support, rack builds, cable management, or regional deployment assistance, we’re ready to support the project.</p>
+                                    <div class="d-grid gap-3 d-sm-flex">
+                                        <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-4">Request Installation Support</a>
+                                        <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-4">Talk About Your Project</a>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- Premium Export End -->
+
+    <!-- Disclaimer Start -->
+    <section class="container-fluid py-5 section-divider">
+        <div class="container py-5">
+            <div class="tool-disclaimer-shell p-4 p-lg-5 wow fadeInUp" data-wow-delay="0.1s">
+                <h2 class="display-6 text-white mb-3">Planning Disclaimer</h2>
+                <p class="mb-0">This tool is intended for preliminary planning only. Actual network topology, PoE budgeting, uplink design, recording requirements, storage sizing, and field installation conditions may change the final deployment design.</p>
+            </div>
+        </div>
+    </section>
+    <!-- Disclaimer End -->
+
+    <!-- CTA Start -->
+    <section class="container-fluid py-5">
+        <div class="container py-5">
+            <div class="row justify-content-center">
+                <div class="col-xl-10">
+                    <div class="glass-card rounded p-4 p-lg-5 text-center wow fadeInUp" data-wow-delay="0.1s">
+                        <h2 class="display-5 text-white mb-3">Need help deploying this CCTV network?</h2>
+                        <p class="mb-4">NetworkConnectIT supports security integrators and commercial clients with CCTV installations, network infrastructure, cable management, rack builds, and field deployment support across NY, NJ, CT, Long Island, and Florida.</p>
+                        <div class="d-grid gap-3 d-sm-flex justify-content-sm-center">
+                            <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-5">Request Installation Support</a>
+                            <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Talk About Your Project</a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </section>
+    <!-- CTA End -->
+
+    <!-- Premium Modal Start -->
+    <div class="modal fade" id="premiumExportModal" tabindex="-1" aria-labelledby="premiumExportModalLabel" aria-hidden="true">
+        <div class="modal-dialog modal-dialog-centered">
+            <div class="modal-content diagram-premium-modal">
+                <div class="modal-header border-0 pb-0">
+                    <h3 class="modal-title text-white" id="premiumExportModalLabel">Unlock Premium Export</h3>
+                    <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Close"></button>
+                </div>
+                <div class="modal-body pt-3">
+                    <p class="mb-3" id="premiumExportModalBody">PNG and PDF export are premium features designed for planning convenience, project coordination, and client-facing review.</p>
+                    <p class="mb-3" id="premiumExportModalSecondary">Continue with a one-time unlock to export your current diagram.</p>
+                    <div class="diagram-premium-modal-note mb-3" id="premiumExportModalStatus">Export is unlocked through a secure one-time Stripe checkout. After payment, you’ll return to the builder with premium export access.</div>
+                    <p class="diagram-premium-note d-none mb-0" id="premiumExportModalPlaceholderNote">Stripe checkout has not been configured yet. Add a Stripe Payment Link or Checkout redirect to activate this step.</p>
+                </div>
+                <div class="modal-footer border-0 pt-0">
+                    <button type="button" id="premiumContinueCheckoutButton" class="btn btn-primary rounded-pill py-2 px-4">Continue to Secure Checkout</button>
+                    <button type="button" class="btn btn-light border border-primary text-primary rounded-pill py-2 px-4" data-bs-dismiss="modal">Maybe Later</button>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Premium Modal End -->
+
+    <!-- Footer Start -->
+    <div class="container-fluid footer py-5 wow fadeIn" data-wow-delay="0.2s">
+        <div class="container py-5">
+            <div class="row g-5">
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="text-dark mb-4">Company</h4>
+                        <a href="/about.html"> Why NetworkConnectIt?</a>
+                        <a href="/feature.html"> Our Features</a>
+                        <a href="/service.html"> Our Portfolio</a>
+                        <a href="/about.html"> About Us</a>
+                        <a href="/blog.html"> Our Blog &amp; News</a>
+                        <a href="/contact.html"> Get In Touch</a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="mb-4 text-dark">Quick Links</h4>
+                        <a href="/about.html"> About Us</a>
+                        <a href="/contact.html"> Contact Us</a>
+                        <a href="/index.html#privacy"> Privacy Policy</a>
+                        <a href="/index.html#terms"> Terms &amp; Conditions</a>
+                        <a href="/blog.html"> Our Blog &amp; News</a>
+                        <a href="/about.html#team"> Our Team</a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="mb-4 text-dark">Services</h4>
+                        <a href="/service.html"> All Services</a>
+                        <a href="/service.html"> Network Installation &amp; Optimization</a>
+                        <a href="/service.html"> Network Maintenance &amp; Support</a>
+                        <a href="/service.html"> Fast, Reliable, and Secure Networking</a>
+                        <a href="/service.html"> Cisco Solutions</a>
+                        <a href="/service.html"> Ubiquiti UniFi Integration</a>
+                        <a href="/installation-partner-support.html"> Installation Partner Support</a>
+                    </div>
+                </div>
+                <div class="col-md-6 col-lg-6 col-xl-3">
+                    <div class="footer-item d-flex flex-column">
+                        <h4 class="mb-4 text-dark">Contact Info</h4>
+                        <a href=""><i class="fa fa-map-marker-alt me-2"></i> 117 Berkshire Dr, Farmingville, NY 11738, USA</a>
+                        <a href=""><i class="fas fa-envelope me-2"></i> Email us at:: network@networkconnectit.com</a>
+                        <a href=""><i class="fas fa-phone me-2"></i>Call us at:: 1 917 403 7129 inglés and español</a>
+                        <div class="d-flex align-items-center">
+                            <i class="fas fa-share fa-2x text-secondary me-2"></i>
+                            <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.facebook.com/profile.php?id=61557354532955"><i class="fab fa-facebook-f"></i></a>
+                            <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.instagram.com/networkconnectit/"><i class="fab fa-instagram"></i></a>
+                            <a class="btn-square btn btn-primary rounded-circle mx-1" href="https://www.linkedin.com/in/network-connectit-6095b23a7/"><i class="fab fa-linkedin-in"></i></a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Footer End -->
+
+    <!-- Copyright Start -->
+    <div class="container-fluid copyright py-4">
+        <div class="container">
+            <div class="row g-4 align-items-center">
+                <div class="col-md-6 text-center text-md-start mb-md-0">
+                    <span class="text-white"><a href="#"><i class="fas fa-copyright text-light me-2"></i>Networkconnectit</a>, All right reserved.</span>
+                </div>
+                <div class="col-md-6 text-center text-md-end text-white">
+                    Designed By <a class="border-bottom" href="https://ks-techconsulting.com/">2023</a> Distributed By <a class="border-bottom" href="https://ks-techconsulting.com/">ks-techconsulting</a>
+                </div>
+            </div>
+        </div>
+    </div>
+    <!-- Copyright End -->
+
+    <!-- Back to Top -->
+    <a href="#" class="btn btn-primary btn-lg-square back-to-top"><i class="fa fa-arrow-up"></i></a>
+
+    <!-- JavaScript Libraries -->
+    <script src="https://ajax.googleapis.com/ajax/libs/jquery/3.6.4/jquery.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.0.0/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="/lib/wow/wow.min.js"></script>
+    <script src="/lib/easing/easing.min.js"></script>
+    <script src="/lib/waypoints/waypoints.min.js"></script>
+    <script src="/lib/counterup/counterup.min.js"></script>
+    <script src="/lib/owlcarousel/owl.carousel.min.js"></script>
+    <script src="/lib/lightbox/js/lightbox.min.js"></script>
+
+    <!-- Template Javascript -->
+    <script src="/js/main.js"></script>
+    <script src="/js/cctv-network-diagram-builder.js"></script>
+</body>
+
+</html>

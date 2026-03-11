@@ -1928,6 +1928,409 @@ a:hover {
     border-radius: 24px;
 }
 
+/*** CCTV Network Diagram Builder Start ***/
+.diagram-device-list {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 1rem;
+}
+
+.diagram-device-card {
+    padding: 1rem;
+    border-radius: 20px;
+    background: rgba(255, 255, 255, 0.04);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diagram-device-card-header {
+    display: flex;
+    align-items: flex-start;
+    justify-content: space-between;
+    gap: 0.9rem;
+}
+
+.diagram-device-meta {
+    display: flex;
+    gap: 0.85rem;
+    min-width: 0;
+}
+
+.diagram-device-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    flex: 0 0 46px;
+    width: 46px;
+    height: 46px;
+    border-radius: 14px;
+    background: rgba(45, 212, 255, 0.12);
+    border: 1px solid rgba(45, 212, 255, 0.22);
+    color: #d9faff;
+}
+
+.diagram-device-title {
+    margin: 0 0 0.25rem;
+    color: #ffffff;
+    font-size: 1rem;
+    font-weight: 700;
+}
+
+.diagram-device-text {
+    margin: 0;
+    color: rgba(203, 213, 225, 0.82);
+    font-size: 0.9rem;
+    line-height: 1.55;
+}
+
+.diagram-add-button {
+    flex-shrink: 0;
+}
+
+.diagram-qty-control {
+    display: grid;
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: 0.75rem;
+    align-items: center;
+    margin-top: 1rem;
+}
+
+.diagram-qty-button {
+    min-height: 44px;
+    border: 0;
+    border-radius: 14px;
+    background: rgba(255, 255, 255, 0.08);
+    color: #ffffff;
+    font-size: 1.15rem;
+    font-weight: 700;
+    transition: 0.3s;
+}
+
+.diagram-qty-button:hover {
+    background: rgba(45, 212, 255, 0.18);
+    color: #ffffff;
+}
+
+.diagram-qty-input {
+    text-align: center;
+    font-weight: 700;
+}
+
+.diagram-canvas-scroll {
+    overflow-x: auto;
+    overflow-y: auto;
+    padding-bottom: 0.35rem;
+}
+
+.diagram-canvas-shell {
+    position: relative;
+    display: inline-block;
+    min-width: 100%;
+    vertical-align: top;
+    border-radius: 24px;
+    overflow: hidden;
+    background: rgba(255, 255, 255, 0.03);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diagram-canvas-shell.is-empty {
+    min-height: clamp(460px, 68vh, 860px);
+}
+
+.diagram-canvas-svg {
+    display: block;
+    width: 100%;
+    height: 100%;
+    max-width: none;
+}
+
+.diagram-layout-status {
+    display: inline-flex;
+    align-items: center;
+    padding: 0.55rem 0.9rem;
+    border-radius: 999px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    color: rgba(226, 232, 240, 0.92);
+    font-size: 0.85rem;
+    font-weight: 700;
+    white-space: nowrap;
+}
+
+.diagram-canvas-empty {
+    position: absolute;
+    inset: 1.25rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    text-align: center;
+    backdrop-filter: blur(4px);
+}
+
+.diagram-legend {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.75rem 1rem;
+}
+
+.diagram-legend-item {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.55rem;
+    color: rgba(226, 232, 240, 0.9);
+    font-size: 0.88rem;
+    font-weight: 600;
+}
+
+.diagram-legend-swatch {
+    display: inline-block;
+    width: 30px;
+    border-top: 3px solid var(--electric-blue);
+}
+
+.diagram-legend-swatch-power {
+    border-top-style: dashed;
+    border-top-color: #facc15;
+}
+
+.diagram-summary-stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.diagram-warning-list {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: rgba(226, 232, 240, 0.92);
+}
+
+.diagram-warning-list li + li {
+    margin-top: 0.45rem;
+}
+
+.diagram-premium-card {
+    height: 100%;
+    padding: 1.5rem;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+}
+
+.diagram-premium-card-featured {
+    background: linear-gradient(180deg, rgba(45, 212, 255, 0.12), rgba(255, 255, 255, 0.05));
+    border-color: rgba(45, 212, 255, 0.22);
+    box-shadow: 0 18px 48px rgba(45, 212, 255, 0.12);
+}
+
+.diagram-premium-badge {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    align-self: flex-start;
+    margin-bottom: 1rem;
+    padding: 0.45rem 0.8rem;
+    border-radius: 999px;
+    background: rgba(250, 204, 21, 0.16);
+    border: 1px solid rgba(250, 204, 21, 0.28);
+    color: #fde68a;
+    font-size: 0.78rem;
+    font-weight: 700;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+}
+
+.diagram-premium-included {
+    margin: 0;
+    padding-left: 1.1rem;
+    color: rgba(226, 232, 240, 0.94);
+}
+
+.diagram-premium-included li + li {
+    margin-top: 0.55rem;
+}
+
+.diagram-premium-price {
+    display: flex;
+    flex-direction: column;
+    gap: 0.35rem;
+    padding: 1rem 1.1rem;
+    border-radius: 18px;
+    background: rgba(255, 255, 255, 0.06);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diagram-premium-price-label {
+    color: rgba(203, 213, 225, 0.82);
+    font-size: 0.84rem;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+    text-transform: uppercase;
+}
+
+.diagram-premium-price-value {
+    color: #ffffff;
+    font-size: 1.35rem;
+    font-weight: 700;
+}
+
+.diagram-premium-card p,
+.diagram-premium-note,
+.diagram-premium-status,
+.diagram-premium-modal p {
+    color: rgba(226, 232, 240, 0.88);
+}
+
+.diagram-premium-highlight {
+    color: #ffffff;
+    font-size: 1.08rem;
+    font-weight: 700;
+}
+
+.diagram-premium-note {
+    font-size: 0.95rem;
+}
+
+.diagram-premium-trust {
+    color: #ffffff;
+    font-size: 0.94rem;
+    font-weight: 700;
+}
+
+.diagram-premium-bridge-note {
+    color: rgba(203, 213, 225, 0.84);
+    font-size: 0.92rem;
+}
+
+.diagram-premium-status,
+.diagram-premium-modal-note {
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.08);
+    font-size: 0.95rem;
+    line-height: 1.6;
+}
+
+.diagram-premium-state-stack {
+    display: grid;
+    gap: 1rem;
+}
+
+.diagram-premium-state-panel {
+    height: 100%;
+    padding: 1.5rem;
+    border-radius: 22px;
+    background: rgba(255, 255, 255, 0.05);
+    border: 1px solid rgba(255, 255, 255, 0.1);
+    display: flex;
+    flex-direction: column;
+    gap: 0.95rem;
+}
+
+#premiumStateLocked {
+    background: linear-gradient(180deg, rgba(45, 212, 255, 0.06), rgba(255, 255, 255, 0.05));
+    border-color: rgba(45, 212, 255, 0.16);
+}
+
+#premiumStateUnlocked {
+    background: linear-gradient(180deg, rgba(158, 255, 0, 0.08), rgba(255, 255, 255, 0.05));
+    border-color: rgba(158, 255, 0, 0.18);
+}
+
+#premiumStateCancelled {
+    background: linear-gradient(180deg, rgba(248, 113, 113, 0.08), rgba(255, 255, 255, 0.05));
+    border-color: rgba(248, 113, 113, 0.18);
+}
+
+.diagram-soft-cta {
+    padding: 1.5rem;
+    border-radius: 22px;
+    background: linear-gradient(180deg, rgba(255, 255, 255, 0.06), rgba(255, 255, 255, 0.03));
+    border: 1px solid rgba(255, 255, 255, 0.08);
+}
+
+.diagram-premium-state-panel .d-grid {
+    margin-top: auto;
+}
+
+.diagram-premium-modal {
+    background: linear-gradient(180deg, rgba(11, 16, 32, 0.98), rgba(15, 23, 42, 0.98));
+    border: 1px solid rgba(255, 255, 255, 0.12);
+    border-radius: 24px;
+    box-shadow: 0 24px 80px rgba(0, 0, 0, 0.45);
+}
+
+.diagram-premium-modal .modal-header,
+.diagram-premium-modal .modal-footer {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.diagram-premium-modal .modal-body {
+    padding-left: 1.5rem;
+    padding-right: 1.5rem;
+}
+
+.diagram-node {
+    cursor: grab;
+    outline: none;
+}
+
+.diagram-node:focus-visible rect:first-of-type {
+    stroke: #ffffff;
+    stroke-width: 2;
+}
+
+.diagram-node.is-dragging {
+    cursor: grabbing;
+}
+
+.diagram-link {
+    transition: d 0.05s linear;
+}
+
+.tool-panel-shell .btn:disabled {
+    opacity: 0.58;
+    cursor: not-allowed;
+    box-shadow: none;
+}
+
+@media (max-width: 991.98px) {
+    .diagram-device-list {
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+    }
+
+    .diagram-canvas-shell.is-empty {
+        min-height: 480px;
+    }
+}
+
+@media (max-width: 767.98px) {
+    .diagram-device-list {
+        grid-template-columns: 1fr;
+    }
+
+    .diagram-canvas-shell {
+        min-width: 100%;
+    }
+
+    .diagram-canvas-svg {
+        height: auto;
+    }
+
+    .diagram-layout-status {
+        white-space: normal;
+    }
+
+    .diagram-premium-card,
+    .diagram-premium-state-panel,
+    .diagram-soft-cta {
+        padding: 1.2rem;
+    }
+}
+
 @media (max-width: 575.98px) {
     .tool-panel-shell,
     .tool-disclaimer-shell {
@@ -1936,6 +2339,35 @@ a:hover {
 
     .tool-result-item {
         border-radius: 16px;
+    }
+
+    .diagram-device-list {
+        grid-template-columns: 1fr;
+    }
+
+    .diagram-device-card-header {
+        flex-direction: column;
+    }
+
+    .diagram-add-button {
+        align-self: flex-start;
+    }
+
+    .diagram-qty-control {
+        grid-template-columns: 42px minmax(0, 1fr) 42px;
+        gap: 0.55rem;
+    }
+
+    .diagram-canvas-shell {
+        min-width: 100%;
+    }
+
+    .diagram-canvas-shell.is-empty {
+        min-height: 360px;
+    }
+
+    .diagram-canvas-empty {
+        inset: 0.85rem;
     }
 }
 /*** Tools Calculator End ***/
