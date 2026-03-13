@@ -127,7 +127,6 @@ function MarketingAnchor({
         href={href}
         className={className}
         rel="noreferrer"
-        target="_blank"
       >
         {children}
       </a>
