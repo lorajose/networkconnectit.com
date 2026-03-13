@@ -1,0 +1,57 @@
+{
+  "name": "command-center-app",
+  "version": "0.1.0",
+  "private": true,
+  "packageManager": "npm@10.8.2",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint",
+    "typecheck": "tsc --noEmit",
+    "prisma:generate": "node scripts/run-prisma.mjs generate",
+    "prisma:validate": "node scripts/run-prisma.mjs validate",
+    "prisma:migrate:dev": "node scripts/run-prisma.mjs migrate dev",
+    "prisma:migrate:deploy": "node scripts/run-prisma.mjs migrate deploy",
+    "prisma:studio": "node scripts/run-prisma.mjs studio",
+    "prisma:seed": "node scripts/run-prisma.mjs db seed",
+    "bootstrap:local": "node scripts/bootstrap-local.mjs"
+  },
+  "prisma": {
+    "seed": "node prisma/seed.cjs"
+  },
+  "dependencies": {
+    "@hookform/resolvers": "^3.9.0",
+    "@prisma/client": "^5.18.0",
+    "@radix-ui/react-slot": "^1.1.0",
+    "bcryptjs": "^2.4.3",
+    "class-variance-authority": "^0.7.0",
+    "clsx": "^2.1.1",
+    "leaflet": "^1.9.4",
+    "lucide-react": "^0.445.0",
+    "next": "^14.2.0",
+    "next-auth": "^4.24.7",
+    "react": "^18.2.0",
+    "react-dom": "^18.2.0",
+    "react-leaflet": "^4.2.1",
+    "react-hook-form": "^7.53.0",
+    "tailwind-merge": "^2.5.2",
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "@types/bcryptjs": "^2.4.6",
+    "@types/leaflet": "^1.9.16",
+    "@types/node": "^20.14.15",
+    "@types/react": "^18.3.3",
+    "@types/react-dom": "^18.3.0",
+    "autoprefixer": "^10.4.20",
+    "eslint": "^8.57.0",
+    "eslint-config-next": "^14.2.0",
+    "picomatch": "^4.0.3",
+    "postcss": "^8.4.45",
+    "prisma": "^5.18.0",
+    "tailwindcss": "^3.4.10",
+    "tailwindcss-animate": "^1.0.7",
+    "typescript": "^5.5.4"
+  }
+}

@@ -1,0 +1,46 @@
+services:
+  db:
+    image: mysql:8.4
+    container_name: command-center-mysql
+    restart: unless-stopped
+    environment:
+      MYSQL_DATABASE: networkconnectit_command_center
+      MYSQL_USER: commandcenter
+      MYSQL_PASSWORD: commandcenter
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_ROOT_HOST: "%"
+    ports:
+      - "3307:3306"
+    volumes:
+      - command-center-mysql-data:/var/lib/mysql
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "127.0.0.1", "-uroot", "-prootpassword"]
+      interval: 10s
+      timeout: 5s
+      retries: 12
+
+  app:
+    build:
+      context: .
+      dockerfile: Dockerfile
+      target: dev
+    container_name: command-center-app
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: mysql://commandcenter:commandcenter@db:3306/networkconnectit_command_center
+      DATABASE_ADMIN_URL: mysql://root:rootpassword@db:3306/networkconnectit_command_center
+      NEXTAUTH_URL: http://localhost:3000/tools/command-center/api/auth
+      NEXTAUTH_SECRET: replace-with-a-long-random-secret
+      NEXT_PUBLIC_APP_BASE_PATH: /tools/command-center
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - command-center-node-modules:/app/node_modules
+    command: ["sh", "-c", "npm run prisma:generate && npm run dev -- --hostname 0.0.0.0"]
+
+volumes:
+  command-center-mysql-data:
+  command-center-node-modules:

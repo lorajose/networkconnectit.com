@@ -1,0 +1,220 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  SUPER_ADMIN
+  INTERNAL_ADMIN
+  CLIENT_ADMIN
+  VIEWER
+}
+
+enum OrganizationStatus {
+  ACTIVE
+  ONBOARDING
+  INACTIVE
+}
+
+enum SiteStatus {
+  ACTIVE
+  DEGRADED
+  MAINTENANCE
+  INACTIVE
+}
+
+enum DeviceType {
+  CAMERA
+  NVR
+  SWITCH
+  ROUTER
+  ACCESS_POINT
+  ACCESS_CONTROL
+  SENSOR
+  SERVER
+  OTHER
+}
+
+enum DeviceStatus {
+  UNKNOWN
+  ONLINE
+  DEGRADED
+  OFFLINE
+  MAINTENANCE
+}
+
+enum MonitoringMode {
+  ACTIVE
+  PASSIVE
+  MANUAL
+}
+
+enum HealthCheckType {
+  CONNECTIVITY
+  MANUAL
+  SIMULATED
+}
+
+enum HealthStatus {
+  UNKNOWN
+  HEALTHY
+  WARNING
+  CRITICAL
+}
+
+enum AlertSeverity {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum AlertStatus {
+  OPEN
+  ACKNOWLEDGED
+  RESOLVED
+}
+
+model User {
+  id             String         @id @default(cuid()) @db.VarChar(191)
+  name           String?        @db.VarChar(191)
+  email          String         @unique @db.VarChar(191)
+  passwordHash   String         @db.VarChar(255)
+  role           Role           @default(VIEWER)
+  organizationId String?        @db.VarChar(191)
+  organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
+  createdAlerts  Alert[]        @relation("AlertCreatedBy")
+  resolvedAlerts Alert[]        @relation("AlertResolvedBy")
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId])
+  @@index([role])
+}
+
+model Organization {
+  id           String             @id @default(cuid()) @db.VarChar(191)
+  name         String             @db.VarChar(191)
+  slug         String             @unique @db.VarChar(191)
+  description  String?            @db.Text
+  contactName  String?            @db.VarChar(191)
+  contactEmail String?            @db.VarChar(191)
+  phone        String?            @db.VarChar(64)
+  status       OrganizationStatus @default(ACTIVE)
+  users        User[]
+  sites        Site[]
+  devices      Device[]
+  alerts       Alert[]
+  createdAt    DateTime           @default(now())
+  updatedAt    DateTime           @updatedAt
+
+  @@index([name])
+  @@index([status])
+}
+
+model Site {
+  id             String       @id @default(cuid()) @db.VarChar(191)
+  organizationId String       @db.VarChar(191)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name           String       @db.VarChar(191)
+  code           String?      @db.VarChar(191)
+  addressLine1   String?      @db.VarChar(191)
+  addressLine2   String?      @db.VarChar(191)
+  city           String?      @db.VarChar(191)
+  stateRegion    String?      @map("state") @db.VarChar(191)
+  postalCode     String?      @db.VarChar(32)
+  country        String?      @db.VarChar(191)
+  latitude       Float?
+  longitude      Float?
+  timezone       String?      @db.VarChar(64)
+  status         SiteStatus   @default(ACTIVE)
+  notes          String?      @db.Text
+  devices        Device[]
+  alerts         Alert[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([organizationId, name])
+  @@index([organizationId])
+  @@index([organizationId, status])
+  @@index([country])
+  @@index([code])
+}
+
+model Device {
+  id             String         @id @default(cuid()) @db.VarChar(191)
+  organizationId String         @db.VarChar(191)
+  siteId         String         @db.VarChar(191)
+  organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String         @db.VarChar(191)
+  externalId     String?        @unique @db.VarChar(191)
+  type           DeviceType
+  brand          String?        @db.VarChar(191)
+  model          String?        @db.VarChar(191)
+  ipAddress      String?        @db.VarChar(64)
+  macAddress     String?        @db.VarChar(64)
+  serialNumber   String?        @unique @db.VarChar(191)
+  status         DeviceStatus   @default(UNKNOWN)
+  monitoringMode MonitoringMode @default(ACTIVE)
+  lastSeenAt     DateTime?
+  notes          String?        @db.Text
+  healthChecks   HealthCheck[]
+  alerts         Alert[]
+  createdAt      DateTime       @default(now())
+  updatedAt      DateTime       @updatedAt
+
+  @@index([organizationId])
+  @@index([siteId, status])
+  @@index([brand])
+  @@index([type])
+}
+
+model HealthCheck {
+  id            String          @id @default(cuid()) @db.VarChar(191)
+  deviceId      String          @db.VarChar(191)
+  device        Device          @relation(fields: [deviceId], references: [id], onDelete: Cascade)
+  checkType     HealthCheckType @default(CONNECTIVITY)
+  checkedAt     DateTime        @default(now())
+  status        HealthStatus    @default(UNKNOWN)
+  latencyMs     Int?
+  message       String?         @db.Text
+  packetLossPct Float?
+  batteryPct    Float?
+  metadata      Json?
+  createdAt     DateTime        @default(now())
+
+  @@index([deviceId, checkedAt])
+  @@index([status, checkedAt])
+}
+
+model Alert {
+  id             String        @id @default(cuid()) @db.VarChar(191)
+  organizationId String        @db.VarChar(191)
+  siteId         String?       @db.VarChar(191)
+  deviceId       String?       @db.VarChar(191)
+  title          String        @db.VarChar(191)
+  message        String        @db.Text
+  severity       AlertSeverity @default(MEDIUM)
+  status         AlertStatus   @default(OPEN)
+  triggeredAt    DateTime      @default(now())
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
+  createdById    String?       @db.VarChar(191)
+  resolvedById   String?       @db.VarChar(191)
+  organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site?         @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  device         Device?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  createdBy      User?         @relation("AlertCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
+  resolvedBy     User?         @relation("AlertResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  createdAt      DateTime      @default(now())
+  updatedAt      DateTime      @updatedAt
+
+  @@index([organizationId, status, severity])
+  @@index([siteId])
+  @@index([deviceId])
+}
