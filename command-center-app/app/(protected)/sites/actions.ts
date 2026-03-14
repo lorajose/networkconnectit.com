@@ -88,6 +88,8 @@ export async function createSiteAction(
     );
   }
 
+  let siteId: string;
+
   try {
     const site = await prisma.site.create({
       data: {
@@ -106,12 +108,12 @@ export async function createSiteAction(
         notes: parsed.data.notes ?? null
       }
     });
+    siteId = site.id;
 
     revalidatePath("/dashboard");
     revalidatePath("/viewer");
     revalidatePath("/sites");
     revalidatePath("/devices");
-    redirect(`/sites/${site.id}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -129,6 +131,8 @@ export async function createSiteAction(
       message: "Unable to save the site right now."
     };
   }
+
+  redirect(`/sites/${siteId}`);
 }
 
 export async function updateSiteAction(
@@ -196,7 +200,6 @@ export async function updateSiteAction(
     revalidatePath("/sites");
     revalidatePath(`/sites/${siteId}`);
     revalidatePath("/devices");
-    redirect(`/sites/${siteId}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -214,4 +217,6 @@ export async function updateSiteAction(
       message: "Unable to update the site right now."
     };
   }
+
+  redirect(`/sites/${siteId}`);
 }

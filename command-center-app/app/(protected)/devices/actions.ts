@@ -190,6 +190,8 @@ export async function createDeviceAction(
     );
   }
 
+  let deviceId: string;
+
   try {
     const device = await prisma.device.create({
       data: {
@@ -221,6 +223,7 @@ export async function createDeviceAction(
         notes: parsed.data.notes ?? null
       }
     });
+    deviceId = device.id;
 
     revalidatePath("/dashboard");
     revalidatePath("/viewer");
@@ -231,8 +234,6 @@ export async function createDeviceAction(
     if (parsed.data.projectInstallationId) {
       revalidatePath(`/projects/${parsed.data.projectInstallationId}`);
     }
-
-    redirect(`/devices/${device.id}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -250,6 +251,8 @@ export async function createDeviceAction(
       message: "Unable to save the device right now."
     };
   }
+
+  redirect(`/devices/${deviceId}`);
 }
 
 export async function updateDeviceAction(
@@ -403,8 +406,6 @@ export async function updateDeviceAction(
     if (parsed.data.projectInstallationId) {
       revalidatePath(`/projects/${parsed.data.projectInstallationId}`);
     }
-
-    redirect(`/devices/${deviceId}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -422,4 +423,6 @@ export async function updateDeviceAction(
       message: "Unable to update the device right now."
     };
   }
+
+  redirect(`/devices/${deviceId}`);
 }

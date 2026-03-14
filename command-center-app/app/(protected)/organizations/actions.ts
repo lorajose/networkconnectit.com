@@ -45,6 +45,8 @@ export async function createOrganizationAction(
     return organizationValidationError(parsed.error.flatten().fieldErrors);
   }
 
+  let organizationId: string;
+
   try {
     const organization = await prisma.organization.create({
       data: {
@@ -56,12 +58,12 @@ export async function createOrganizationAction(
         status: parsed.data.status
       }
     });
+    organizationId = organization.id;
 
     revalidatePath("/dashboard");
     revalidatePath("/organizations");
     revalidatePath("/sites");
     revalidatePath("/devices");
-    redirect(`/organizations/${organization.id}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -79,6 +81,8 @@ export async function createOrganizationAction(
       message: "Unable to save the organization right now."
     };
   }
+
+  redirect(`/organizations/${organizationId}`);
 }
 
 export async function updateOrganizationAction(
@@ -129,7 +133,6 @@ export async function updateOrganizationAction(
     revalidatePath(`/organizations/${organizationId}`);
     revalidatePath("/sites");
     revalidatePath("/devices");
-    redirect(`/organizations/${organizationId}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -147,4 +150,6 @@ export async function updateOrganizationAction(
       message: "Unable to update the organization right now."
     };
   }
+
+  redirect(`/organizations/${organizationId}`);
 }

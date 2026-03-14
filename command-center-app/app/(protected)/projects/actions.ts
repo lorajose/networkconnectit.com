@@ -172,6 +172,8 @@ export async function createProjectAction(
     );
   }
 
+  let projectId: string;
+
   try {
     const project = await prisma.$transaction(async (transaction) => {
       const createdProject = await transaction.projectInstallation.create({
@@ -216,9 +218,9 @@ export async function createProjectAction(
 
       return createdProject;
     });
+    projectId = project.id;
 
-    revalidateProjectPaths(project.id, scopeCheck.validSiteIds);
-    redirect(`/projects/${project.id}`);
+    revalidateProjectPaths(projectId, scopeCheck.validSiteIds);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -239,6 +241,8 @@ export async function createProjectAction(
       message: "Unable to save the project right now."
     };
   }
+
+  redirect(`/projects/${projectId}`);
 }
 
 export async function updateProjectAction(
@@ -359,7 +363,6 @@ export async function updateProjectAction(
     });
 
     revalidateProjectPaths(projectId, scopeCheck.validSiteIds);
-    redirect(`/projects/${projectId}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -380,6 +383,8 @@ export async function updateProjectAction(
       message: "Unable to update the project right now."
     };
   }
+
+  redirect(`/projects/${projectId}`);
 }
 
 export async function unlinkProjectSiteAction(

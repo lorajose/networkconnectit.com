@@ -106,6 +106,8 @@ export async function submitProjectWizardAction(
     );
   }
 
+  let createdProjectId: string;
+
   try {
     const createdProject = await prisma.$transaction(async (transaction) => {
       let organizationId: string;
@@ -410,13 +412,13 @@ export async function submitProjectWizardAction(
         organizationId
       };
     });
+    createdProjectId = createdProject.id;
 
     revalidateWizardPaths(
-      createdProject.id,
+      createdProjectId,
       createdProject.siteId,
       createdProject.organizationId
     );
-    redirect(`/projects/${createdProject.id}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -444,4 +446,6 @@ export async function submitProjectWizardAction(
 
     return wizardValidationError("Unable to finish project onboarding right now. Please try again.");
   }
+
+  redirect(`/projects/${createdProjectId}`);
 }

@@ -255,8 +255,6 @@ export async function importDevicesFromCsvAction(
     revalidatePath("/sites");
     revalidatePath("/alerts");
     revalidatePath("/projects");
-
-    redirect(`/devices?organizationId=${organizationId}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
 
@@ -284,4 +282,6 @@ export async function importDevicesFromCsvAction(
       "Unable to complete the bulk device import right now."
     );
   }
+
+  redirect(`/devices?organizationId=${organizationId}`);
 }
