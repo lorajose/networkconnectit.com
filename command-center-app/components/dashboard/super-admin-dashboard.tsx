@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { DeviceDistribution } from "@/components/dashboard/device-distribution";
@@ -12,11 +13,13 @@ import { roleLabels, type AppRole } from "@/lib/rbac";
 type SuperAdminDashboardProps = {
   snapshot: DashboardSnapshot;
   userRole: AppRole;
+  extraActions?: ReactNode;
 };
 
 export function SuperAdminDashboard({
   snapshot,
-  userRole
+  userRole,
+  extraActions
 }: SuperAdminDashboardProps) {
   return (
     <div className="space-y-6">
@@ -26,10 +29,11 @@ export function SuperAdminDashboard({
         description={snapshot.subtitle}
         breadcrumbs={snapshot.breadcrumbs}
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-3">
+            {extraActions}
             <Badge variant="outline">Prisma-backed overview</Badge>
             <Badge>{roleLabels[userRole]}</Badge>
-          </>
+          </div>
         }
       />
 

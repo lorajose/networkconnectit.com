@@ -1,11 +1,13 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
+  BriefcaseBusiness,
   Building2,
   Cpu,
   Eye,
   LayoutDashboard,
   MapPinned,
+  Radar,
   Settings,
   Users2
 } from "lucide-react";
@@ -38,6 +40,22 @@ export const appNavigation: AppNavigationItem[] = [
     description: "Tenant and customer account structure.",
     icon: Building2,
     allowedRoles: routeAccess.organizations
+  },
+  {
+    group: "workspace",
+    title: "Command Map",
+    href: "/command-map",
+    description: "Global NOC visibility across clients, projects, and site health.",
+    icon: Radar,
+    allowedRoles: routeAccess.commandMap
+  },
+  {
+    group: "workspace",
+    title: "Projects",
+    href: "/projects",
+    description: "Installed projects, rollouts, and managed handoffs.",
+    icon: BriefcaseBusiness,
+    allowedRoles: routeAccess.projects
   },
   {
     group: "workspace",

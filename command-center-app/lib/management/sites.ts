@@ -10,6 +10,7 @@ import {
 export type SitesListFilters = {
   query: string;
   organizationId: string;
+  projectInstallationId: string;
   country: string;
   status: SiteStatus | "";
   page: number;
@@ -34,6 +35,15 @@ function buildSitesWhere(
       filters.organizationId
         ? {
             organizationId: filters.organizationId
+          }
+        : {},
+      filters.projectInstallationId
+        ? {
+            projectSites: {
+              some: {
+                projectInstallationId: filters.projectInstallationId
+              }
+            }
           }
         : {},
       filters.country
@@ -70,7 +80,7 @@ export async function getSitesList(user: TenantUser, filters: SitesListFilters) 
   const where = buildSitesWhere(user, filters);
   const skip = (filters.page - 1) * MANAGEMENT_PAGE_SIZE;
 
-  const [totalCount, sites, organizations, countries] = await Promise.all([
+  const [totalCount, sites, organizations, projects, countries] = await Promise.all([
     prisma.site.count({ where }),
     prisma.site.findMany({
       where,
@@ -102,12 +112,44 @@ export async function getSitesList(user: TenantUser, filters: SitesListFilters) 
         },
         _count: {
           select: {
-            devices: true
+            devices: true,
+            projectSites: true
           }
         }
       }
     }),
     getOrganizationOptions(user),
+    prisma.projectInstallation.findMany({
+      where: {
+        ...getScopedRecordWhere(user),
+        ...(filters.organizationId
+          ? {
+              organizationId: filters.organizationId
+            }
+          : {})
+      },
+      orderBy: [
+        {
+          organization: {
+            name: "asc"
+          }
+        },
+        {
+          name: "asc"
+        }
+      ],
+      select: {
+        id: true,
+        name: true,
+        organizationId: true,
+        status: true,
+        organization: {
+          select: {
+            name: true
+          }
+        }
+      }
+    }),
     prisma.site.findMany({
       where: {
         ...getScopedRecordWhere(user),
@@ -128,6 +170,13 @@ export async function getSitesList(user: TenantUser, filters: SitesListFilters) 
   return {
     sites,
     organizations,
+    projects: projects.map((project) => ({
+      id: project.id,
+      name: project.name,
+      organizationId: project.organizationId,
+      organizationName: project.organization.name,
+      status: project.status
+    })),
     countries: countries
       .map((item) => item.country)
       .filter((country): country is string => Boolean(country)),

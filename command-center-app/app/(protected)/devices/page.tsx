@@ -41,6 +41,9 @@ export default async function DevicesPage({
   const query = getSearchParamValue(searchParams.query);
   const organizationId = getSearchParamValue(searchParams.organizationId);
   const siteId = getSearchParamValue(searchParams.siteId);
+  const projectInstallationId = getSearchParamValue(
+    searchParams.projectInstallationId
+  );
   const brand = getSearchParamValue(searchParams.brand);
   const rawType = getSearchParamValue(searchParams.type);
   const rawStatus = getSearchParamValue(searchParams.status);
@@ -55,6 +58,7 @@ export default async function DevicesPage({
     query,
     organizationId,
     siteId,
+    projectInstallationId,
     brand,
     type,
     status,
@@ -65,6 +69,7 @@ export default async function DevicesPage({
     query: query || undefined,
     organizationId: organizationId || undefined,
     siteId: siteId || undefined,
+    projectInstallationId: projectInstallationId || undefined,
     brand: brand || undefined,
     type: type || undefined,
     status: status || undefined
@@ -87,18 +92,26 @@ export default async function DevicesPage({
         ]}
         actions={
           canWrite ? (
-            <Button asChild>
-              <Link href="/devices/new">
-                <Plus className="h-4 w-4" />
-                New device
-              </Link>
-            </Button>
+            <>
+              <Button variant="outline" asChild>
+                <Link href="/devices/import">
+                  <Plus className="h-4 w-4" />
+                  Import CSV
+                </Link>
+              </Button>
+              <Button asChild>
+                <Link href="/devices/new">
+                  <Plus className="h-4 w-4" />
+                  New device
+                </Link>
+              </Button>
+            </>
           ) : null
         }
       />
 
       <FilterBar>
-        <form className="grid gap-3 xl:grid-cols-[1.5fr_220px_220px_180px_180px_180px_auto]">
+        <form className="grid gap-3 xl:grid-cols-[1.45fr_200px_200px_220px_180px_180px_180px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -121,6 +134,17 @@ export default async function DevicesPage({
             {results.sites.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            name="projectInstallationId"
+            defaultValue={projectInstallationId}
+          >
+            <option value="">All projects</option>
+            {results.projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
               </option>
             ))}
           </Select>
@@ -166,6 +190,7 @@ export default async function DevicesPage({
           "Device",
           "Organization",
           "Site",
+          "Project",
           "Brand / Model",
           "Status",
           "Last seen",
@@ -192,6 +217,9 @@ export default async function DevicesPage({
             </td>
             <td className="px-4 py-4 sm:px-5">{device.organization.name}</td>
             <td className="px-4 py-4 sm:px-5">{device.site.name}</td>
+            <td className="px-4 py-4 text-muted-foreground sm:px-5">
+              {device.projectInstallation?.name ?? "Unassigned"}
+            </td>
             <td className="px-4 py-4 text-muted-foreground sm:px-5">
               {device.brand}
               {device.model ? ` · ${device.model}` : ""}
@@ -254,12 +282,20 @@ export default async function DevicesPage({
           description="Create the first device to connect inventory to a tenant and site."
           action={
             canWrite ? (
-              <Button asChild>
-                <Link href="/devices/new">
-                  <Plus className="h-4 w-4" />
-                  New device
-                </Link>
-              </Button>
+              <div className="flex flex-wrap justify-center gap-3">
+                <Button variant="outline" asChild>
+                  <Link href="/devices/import">
+                    <Plus className="h-4 w-4" />
+                    Import CSV
+                  </Link>
+                </Button>
+                <Button asChild>
+                  <Link href="/devices/new">
+                    <Plus className="h-4 w-4" />
+                    New device
+                  </Link>
+                </Button>
+              </div>
             ) : undefined
           }
         />

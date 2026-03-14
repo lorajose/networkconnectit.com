@@ -22,13 +22,20 @@ import { Textarea } from "@/components/ui/textarea";
 import type { ManagementFormState } from "@/lib/management/form-state";
 import { initialManagementFormState } from "@/lib/management/form-state";
 import type { OrganizationOption } from "@/lib/management/organizations";
+import type { ProjectOption } from "@/lib/management/projects";
 import type { SiteOption } from "@/lib/management/sites";
+import type { NetworkSegmentOption } from "@/lib/management/devices";
 import {
   deviceStatusOptions,
   deviceTypeOptions,
-  monitoringModeOptions
+  monitoringModeOptions,
+  switchRoleOptions
 } from "@/lib/validations/device";
-import { formatEnumLabel } from "@/lib/utils";
+import {
+  formatEnumLabel,
+  toDateInputValue,
+  toDateTimeLocalValue
+} from "@/lib/utils";
 
 type DeviceFormProps = {
   action: (
@@ -38,19 +45,34 @@ type DeviceFormProps = {
   submitLabel: string;
   organizations: OrganizationOption[];
   sites: SiteOption[];
+  projects: ProjectOption[];
+  networkSegments: NetworkSegmentOption[];
   lockOrganization?: boolean;
   initialValues?: {
     organizationId?: string | null;
     siteId?: string | null;
+    projectInstallationId?: string | null;
+    networkSegmentId?: string | null;
     name?: string | null;
+    hostname?: string | null;
     type?: string | null;
     brand?: string | null;
     model?: string | null;
+    firmwareVersion?: string | null;
+    vendorExternalId?: string | null;
     ipAddress?: string | null;
     macAddress?: string | null;
     serialNumber?: string | null;
+    switchRole?: string | null;
+    portCount?: number | null;
+    usedPortCount?: number | null;
+    poeBudgetWatts?: number | null;
+    poeUsedWatts?: number | null;
+    poeRequired?: boolean | null;
+    estimatedPoeWatts?: number | null;
     status?: string | null;
     monitoringMode?: string | null;
+    installedAt?: string | Date | null;
     lastSeenAt?: string | null;
     notes?: string | null;
   };
@@ -61,6 +83,8 @@ export function DeviceForm({
   submitLabel,
   organizations,
   sites,
+  projects,
+  networkSegments,
   lockOrganization = false,
   initialValues
 }: DeviceFormProps) {
@@ -71,6 +95,12 @@ export function DeviceForm({
   const [selectedSiteId, setSelectedSiteId] = useState(
     initialValues?.siteId ?? ""
   );
+  const [selectedProjectId, setSelectedProjectId] = useState(
+    initialValues?.projectInstallationId ?? ""
+  );
+  const [selectedNetworkSegmentId, setSelectedNetworkSegmentId] = useState(
+    initialValues?.networkSegmentId ?? ""
+  );
 
   const filteredSites = useMemo(
     () =>
@@ -78,6 +108,23 @@ export function DeviceForm({
         (site) => !selectedOrganizationId || site.organizationId === selectedOrganizationId
       ),
     [selectedOrganizationId, sites]
+  );
+
+  const filteredProjects = useMemo(
+    () =>
+      projects.filter(
+        (project) =>
+          !selectedOrganizationId || project.organizationId === selectedOrganizationId
+      ),
+    [projects, selectedOrganizationId]
+  );
+
+  const filteredNetworkSegments = useMemo(
+    () =>
+      networkSegments.filter(
+        (segment) => !selectedSiteId || segment.siteId === selectedSiteId
+      ),
+    [networkSegments, selectedSiteId]
   );
 
   useEffect(() => {
@@ -93,6 +140,24 @@ export function DeviceForm({
       setSelectedSiteId("");
     }
   }, [filteredSites, selectedSiteId]);
+
+  useEffect(() => {
+    if (
+      selectedProjectId &&
+      !filteredProjects.some((project) => project.id === selectedProjectId)
+    ) {
+      setSelectedProjectId("");
+    }
+  }, [filteredProjects, selectedProjectId]);
+
+  useEffect(() => {
+    if (
+      selectedNetworkSegmentId &&
+      !filteredNetworkSegments.some((segment) => segment.id === selectedNetworkSegmentId)
+    ) {
+      setSelectedNetworkSegmentId("");
+    }
+  }, [filteredNetworkSegments, selectedNetworkSegmentId]);
 
   return (
     <form action={formAction} className="space-y-6">
@@ -153,6 +218,42 @@ export function DeviceForm({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="projectInstallationId">Project</Label>
+            <Select
+              id="projectInstallationId"
+              name="projectInstallationId"
+              value={selectedProjectId}
+              onChange={(event) => setSelectedProjectId(event.target.value)}
+            >
+              <option value="">No project assignment</option>
+              {filteredProjects.map((project) => (
+                <option key={project.id} value={project.id}>
+                  {project.name} · {project.organizationName}
+                </option>
+              ))}
+            </Select>
+            <FieldError errors={state.fieldErrors?.projectInstallationId} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="networkSegmentId">Network segment</Label>
+            <Select
+              id="networkSegmentId"
+              name="networkSegmentId"
+              value={selectedNetworkSegmentId}
+              onChange={(event) => setSelectedNetworkSegmentId(event.target.value)}
+            >
+              <option value="">No segment assigned</option>
+              {filteredNetworkSegments.map((segment) => (
+                <option key={segment.id} value={segment.id}>
+                  {segment.label}
+                </option>
+              ))}
+            </Select>
+            <FieldError errors={state.fieldErrors?.networkSegmentId} />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="name">Device name</Label>
             <Input
               id="name"
@@ -161,6 +262,17 @@ export function DeviceForm({
               placeholder="CAM-ATL-DOCK-01"
             />
             <FieldError errors={state.fieldErrors?.name} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="hostname">Hostname</Label>
+            <Input
+              id="hostname"
+              name="hostname"
+              defaultValue={initialValues?.hostname ?? ""}
+              placeholder="mmg-nyc-core-sw1"
+            />
+            <FieldError errors={state.fieldErrors?.hostname} />
           </div>
 
           <div className="space-y-2">
@@ -199,6 +311,28 @@ export function DeviceForm({
               placeholder="P3265-LVE"
             />
             <FieldError errors={state.fieldErrors?.model} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="firmwareVersion">Firmware version</Label>
+            <Input
+              id="firmwareVersion"
+              name="firmwareVersion"
+              defaultValue={initialValues?.firmwareVersion ?? ""}
+              placeholder="6.5.62"
+            />
+            <FieldError errors={state.fieldErrors?.firmwareVersion} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="vendorExternalId">Vendor external ID</Label>
+            <Input
+              id="vendorExternalId"
+              name="vendorExternalId"
+              defaultValue={initialValues?.vendorExternalId ?? ""}
+              placeholder="unifi-device-01"
+            />
+            <FieldError errors={state.fieldErrors?.vendorExternalId} />
           </div>
 
           <div className="space-y-2">
@@ -267,12 +401,23 @@ export function DeviceForm({
           </div>
 
           <div className="space-y-2">
+            <Label htmlFor="installedAt">Installed at</Label>
+            <Input
+              id="installedAt"
+              name="installedAt"
+              type="date"
+              defaultValue={toDateInputValue(initialValues?.installedAt)}
+            />
+            <FieldError errors={state.fieldErrors?.installedAt} />
+          </div>
+
+          <div className="space-y-2">
             <Label htmlFor="lastSeenAt">Last seen at</Label>
             <Input
               id="lastSeenAt"
               name="lastSeenAt"
               type="datetime-local"
-              defaultValue={initialValues?.lastSeenAt ?? ""}
+              defaultValue={toDateTimeLocalValue(initialValues?.lastSeenAt)}
             />
             <FieldError errors={state.fieldErrors?.lastSeenAt} />
           </div>
@@ -286,6 +431,121 @@ export function DeviceForm({
               placeholder="Rack location, camera view, maintenance notes, or escalation context."
             />
             <FieldError errors={state.fieldErrors?.notes} />
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Capacity &amp; PoE</CardTitle>
+          <CardDescription>
+            Optional switch capacity and powered-device metadata used by engineering rollups and upgrade reviews.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-5 md:grid-cols-2">
+          <div className="space-y-2">
+            <Label htmlFor="switchRole">Switch role</Label>
+            <Select
+              id="switchRole"
+              name="switchRole"
+              defaultValue={initialValues?.switchRole ?? ""}
+            >
+              <option value="">Not specified</option>
+              {switchRoleOptions.map((role) => (
+                <option key={role} value={role}>
+                  {formatEnumLabel(role)}
+                </option>
+              ))}
+            </Select>
+            <FieldError errors={state.fieldErrors?.switchRole} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="portCount">Port count</Label>
+            <Input
+              id="portCount"
+              name="portCount"
+              type="number"
+              min={1}
+              step="1"
+              defaultValue={initialValues?.portCount ?? ""}
+              placeholder="24"
+            />
+            <FieldError errors={state.fieldErrors?.portCount} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="usedPortCount">Used port count</Label>
+            <Input
+              id="usedPortCount"
+              name="usedPortCount"
+              type="number"
+              min={0}
+              step="1"
+              defaultValue={initialValues?.usedPortCount ?? ""}
+              placeholder="7"
+            />
+            <FieldError errors={state.fieldErrors?.usedPortCount} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="poeBudgetWatts">PoE budget (watts)</Label>
+            <Input
+              id="poeBudgetWatts"
+              name="poeBudgetWatts"
+              type="number"
+              min={0}
+              step="0.1"
+              defaultValue={initialValues?.poeBudgetWatts ?? ""}
+              placeholder="370"
+            />
+            <FieldError errors={state.fieldErrors?.poeBudgetWatts} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="poeUsedWatts">Measured PoE usage (watts)</Label>
+            <Input
+              id="poeUsedWatts"
+              name="poeUsedWatts"
+              type="number"
+              min={0}
+              step="0.1"
+              defaultValue={initialValues?.poeUsedWatts ?? ""}
+              placeholder="92.5"
+            />
+            <FieldError errors={state.fieldErrors?.poeUsedWatts} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="poeRequired">PoE required</Label>
+            <Select
+              id="poeRequired"
+              name="poeRequired"
+              defaultValue={
+                typeof initialValues?.poeRequired === "boolean"
+                  ? String(initialValues.poeRequired)
+                  : ""
+              }
+            >
+              <option value="">Not specified</option>
+              <option value="true">Yes</option>
+              <option value="false">No</option>
+            </Select>
+            <FieldError errors={state.fieldErrors?.poeRequired} />
+          </div>
+
+          <div className="space-y-2">
+            <Label htmlFor="estimatedPoeWatts">Estimated PoE draw (watts)</Label>
+            <Input
+              id="estimatedPoeWatts"
+              name="estimatedPoeWatts"
+              type="number"
+              min={0}
+              step="0.1"
+              defaultValue={initialValues?.estimatedPoeWatts ?? ""}
+              placeholder="12.5"
+            />
+            <FieldError errors={state.fieldErrors?.estimatedPoeWatts} />
           </div>
         </CardContent>
       </Card>

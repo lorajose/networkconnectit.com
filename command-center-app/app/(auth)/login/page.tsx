@@ -4,7 +4,9 @@ import { withAppBasePath } from "@/lib/app-paths";
 
 type LoginPageProps = {
   searchParams?: {
+    bootstrap?: string;
     callbackUrl?: string;
+    email?: string;
     error?: string;
   };
 };
@@ -19,6 +21,18 @@ function getErrorMessage(error?: string) {
   }
 
   return "Authentication could not be completed.";
+}
+
+function getNoticeMessage(bootstrap?: string, email?: string) {
+  if (bootstrap !== "success") {
+    return "";
+  }
+
+  if (email) {
+    return `First internal admin created for ${email}. Sign in with the new account to finish setup.`;
+  }
+
+  return "First internal admin created successfully. Sign in to finish setup.";
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
@@ -62,6 +76,11 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
         <SignInForm
           callbackUrl={callbackUrl}
           errorMessage={getErrorMessage(searchParams?.error)}
+          initialEmail={searchParams?.email}
+          noticeMessage={getNoticeMessage(
+            searchParams?.bootstrap,
+            searchParams?.email
+          )}
         />
       </div>
     </main>

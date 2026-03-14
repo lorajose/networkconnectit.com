@@ -35,6 +35,9 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
   const user = await requireRoles(routeAccess.sites);
   const query = getSearchParamValue(searchParams.query);
   const organizationId = getSearchParamValue(searchParams.organizationId);
+  const projectInstallationId = getSearchParamValue(
+    searchParams.projectInstallationId
+  );
   const country = getSearchParamValue(searchParams.country);
   const rawStatus = getSearchParamValue(searchParams.status);
   const page = getPageParam(searchParams.page);
@@ -44,6 +47,7 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
   const results = await getSitesList(user, {
     query,
     organizationId,
+    projectInstallationId,
     country,
     status,
     page
@@ -52,6 +56,7 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
   const baseParams = {
     query: query || undefined,
     organizationId: organizationId || undefined,
+    projectInstallationId: projectInstallationId || undefined,
     country: country || undefined,
     status: status || undefined
   };
@@ -84,7 +89,7 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
       />
 
       <FilterBar>
-        <form className="grid gap-3 xl:grid-cols-[1.5fr_220px_220px_220px_auto]">
+        <form className="grid gap-3 xl:grid-cols-[1.4fr_200px_220px_220px_220px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -99,6 +104,17 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
             {results.organizations.map((organization) => (
               <option key={organization.id} value={organization.id}>
                 {organization.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            name="projectInstallationId"
+            defaultValue={projectInstallationId}
+          >
+            <option value="">All projects</option>
+            {results.projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
               </option>
             ))}
           </Select>
@@ -137,6 +153,7 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
           "Organization",
           "Location",
           "Devices",
+          "Projects",
           "Status",
           "Updated",
           "Actions"
@@ -165,6 +182,7 @@ export default async function SitesPage({ searchParams = {} }: SitesPageProps) {
               {formatLocation([site.city, site.country])}
             </td>
             <td className="px-4 py-4 sm:px-5">{site._count.devices}</td>
+            <td className="px-4 py-4 sm:px-5">{site._count.projectSites}</td>
             <td className="px-4 py-4 sm:px-5">
               <StatusBadge
                 tone={siteStatusTone(site.status)}

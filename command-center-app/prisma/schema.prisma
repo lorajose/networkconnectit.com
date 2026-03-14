@@ -53,6 +53,61 @@ enum MonitoringMode {
   MANUAL
 }
 
+enum ProjectInstallationStatus {
+  PLANNING
+  IN_PROGRESS
+  ACTIVE
+  ON_HOLD
+  COMPLETE
+  ARCHIVED
+}
+
+enum ProjectType {
+  INSTALLATION
+  UPGRADE
+  ROLLOUT
+  REFRESH
+  MANAGED_HANDOFF
+  SUPPORT
+  OTHER
+}
+
+enum ProjectPriority {
+  LOW
+  MEDIUM
+  HIGH
+  CRITICAL
+}
+
+enum HandoffStatus {
+  NOT_STARTED
+  IN_PROGRESS
+  COMPLETE
+}
+
+enum AccessType {
+  VPN
+  DDNS
+  CLOUD_PORTAL
+  SSH
+  WEB_UI
+  RDP
+  VENDOR_PORTAL
+  ONSITE
+  DOCUMENTATION
+  OTHER
+}
+
+enum DeviceLinkType {
+  UPLINK
+  DOWNSTREAM
+  POE_SUPPLY
+  MANAGEMENT
+  RECORDING
+  WIRELESS_UPLINK
+  OTHER
+}
+
 enum HealthCheckType {
   CONNECTIVITY
   MANUAL
@@ -97,46 +152,58 @@ model User {
 }
 
 model Organization {
-  id           String             @id @default(cuid()) @db.VarChar(191)
-  name         String             @db.VarChar(191)
-  slug         String             @unique @db.VarChar(191)
-  description  String?            @db.Text
-  contactName  String?            @db.VarChar(191)
-  contactEmail String?            @db.VarChar(191)
-  phone        String?            @db.VarChar(64)
-  status       OrganizationStatus @default(ACTIVE)
-  users        User[]
-  sites        Site[]
-  devices      Device[]
-  alerts       Alert[]
-  createdAt    DateTime           @default(now())
-  updatedAt    DateTime           @updatedAt
+  id                   String                @id @default(cuid()) @db.VarChar(191)
+  name                 String                @db.VarChar(191)
+  slug                 String                @unique @db.VarChar(191)
+  description          String?               @db.Text
+  contactName          String?               @db.VarChar(191)
+  contactEmail         String?               @db.VarChar(191)
+  phone                String?               @db.VarChar(64)
+  status               OrganizationStatus    @default(ACTIVE)
+  users                User[]
+  sites                Site[]
+  devices              Device[]
+  alerts               Alert[]
+  projectInstallations ProjectInstallation[]
+  projectSites         ProjectSite[]
+  accessReferences     AccessReference[]
+  networkSegments      NetworkSegment[]
+  nvrChannelAssignments NvrChannelAssignment[]
+  deviceLinks          DeviceLink[]
+  createdAt            DateTime              @default(now())
+  updatedAt            DateTime              @updatedAt
 
   @@index([name])
   @@index([status])
 }
 
 model Site {
-  id             String       @id @default(cuid()) @db.VarChar(191)
-  organizationId String       @db.VarChar(191)
-  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  name           String       @db.VarChar(191)
-  code           String?      @db.VarChar(191)
-  addressLine1   String?      @db.VarChar(191)
-  addressLine2   String?      @db.VarChar(191)
-  city           String?      @db.VarChar(191)
-  stateRegion    String?      @map("state") @db.VarChar(191)
-  postalCode     String?      @db.VarChar(32)
-  country        String?      @db.VarChar(191)
-  latitude       Float?
-  longitude      Float?
-  timezone       String?      @db.VarChar(64)
-  status         SiteStatus   @default(ACTIVE)
-  notes          String?      @db.Text
-  devices        Device[]
-  alerts         Alert[]
-  createdAt      DateTime     @default(now())
-  updatedAt      DateTime     @updatedAt
+  id                  String                @id @default(cuid()) @db.VarChar(191)
+  organizationId      String                @db.VarChar(191)
+  organization        Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  name                String                @db.VarChar(191)
+  code                String?               @db.VarChar(191)
+  addressLine1        String?               @db.VarChar(191)
+  addressLine2        String?               @db.VarChar(191)
+  city                String?               @db.VarChar(191)
+  stateRegion         String?               @map("state") @db.VarChar(191)
+  postalCode          String?               @db.VarChar(32)
+  country             String?               @db.VarChar(191)
+  latitude            Float?
+  longitude           Float?
+  timezone            String?               @db.VarChar(64)
+  status              SiteStatus            @default(ACTIVE)
+  notes               String?               @db.Text
+  devices             Device[]
+  alerts              Alert[]
+  projectSites        ProjectSite[]
+  primaryProjects     ProjectInstallation[] @relation("ProjectPrimarySite")
+  accessReferences    AccessReference[]
+  networkSegments     NetworkSegment[]
+  nvrChannelAssignments NvrChannelAssignment[]
+  deviceLinks         DeviceLink[]
+  createdAt           DateTime              @default(now())
+  updatedAt           DateTime              @updatedAt
 
   @@unique([organizationId, name])
   @@index([organizationId])
@@ -146,32 +213,210 @@ model Site {
 }
 
 model Device {
+  id                          String                  @id @default(cuid()) @db.VarChar(191)
+  organizationId              String                  @db.VarChar(191)
+  siteId                      String                  @db.VarChar(191)
+  projectInstallationId       String?                 @db.VarChar(191)
+  networkSegmentId            String?                 @db.VarChar(191)
+  organization                Organization            @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site                        Site                    @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  projectInstallation         ProjectInstallation?    @relation(fields: [projectInstallationId], references: [id], onDelete: SetNull)
+  networkSegment              NetworkSegment?         @relation(fields: [networkSegmentId], references: [id], onDelete: SetNull)
+  name                        String                  @db.VarChar(191)
+  externalId                  String?                 @unique @db.VarChar(191)
+  vendorExternalId            String?                 @db.VarChar(191)
+  hostname                    String?                 @db.VarChar(191)
+  type                        DeviceType
+  brand                       String?                 @db.VarChar(191)
+  model                       String?                 @db.VarChar(191)
+  firmwareVersion             String?                 @db.VarChar(191)
+  ipAddress                   String?                 @db.VarChar(64)
+  macAddress                  String?                 @db.VarChar(64)
+  serialNumber                String?                 @unique @db.VarChar(191)
+  switchRole                  String?                 @db.VarChar(64)
+  portCount                   Int?
+  usedPortCount               Int?
+  poeBudgetWatts              Float?
+  poeUsedWatts                Float?
+  poeRequired                 Boolean?
+  estimatedPoeWatts           Float?
+  deviceGroupId               String?                 @db.VarChar(191)
+  rackId                      String?                 @db.VarChar(191)
+  status                      DeviceStatus            @default(UNKNOWN)
+  monitoringMode              MonitoringMode          @default(ACTIVE)
+  installedAt                 DateTime?
+  lastSeenAt                  DateTime?
+  notes                       String?                 @db.Text
+  healthChecks                HealthCheck[]
+  alerts                      Alert[]
+  accessReferences            AccessReference[]
+  nvrChannelAssignmentsAsNvr  NvrChannelAssignment[]  @relation("NvrAssignmentDevice")
+  nvrChannelAssignmentsAsCamera NvrChannelAssignment[] @relation("NvrAssignmentCamera")
+  outgoingDeviceLinks         DeviceLink[]            @relation("DeviceLinkSource")
+  incomingDeviceLinks         DeviceLink[]            @relation("DeviceLinkTarget")
+  createdAt                   DateTime                @default(now())
+  updatedAt                   DateTime                @updatedAt
+
+  @@index([organizationId])
+  @@index([siteId, status])
+  @@index([projectInstallationId])
+  @@index([networkSegmentId])
+  @@index([brand])
+  @@index([type])
+}
+
+model ProjectInstallation {
+  id                    String                    @id @default(cuid()) @db.VarChar(191)
+  organizationId        String                    @db.VarChar(191)
+  primarySiteId         String?                   @db.VarChar(191)
+  organization          Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  primarySite           Site?                     @relation("ProjectPrimarySite", fields: [primarySiteId], references: [id], onDelete: SetNull)
+  name                  String                    @db.VarChar(191)
+  projectCode           String?                   @db.VarChar(191)
+  status                ProjectInstallationStatus @default(PLANNING)
+  projectType           ProjectType               @default(INSTALLATION)
+  priority              ProjectPriority           @default(MEDIUM)
+  installationDate      DateTime?
+  goLiveDate            DateTime?
+  warrantyStartAt       DateTime?
+  warrantyEndAt         DateTime?
+  clientContactName     String?                   @db.VarChar(191)
+  clientContactEmail    String?                   @db.VarChar(191)
+  clientContactPhone    String?                   @db.VarChar(64)
+  internalProjectManager String?                  @db.VarChar(191)
+  leadTechnician        String?                   @db.VarChar(191)
+  salesOwner            String?                   @db.VarChar(191)
+  scopeSummary          String?                   @db.Text
+  remoteAccessMethod    String?                   @db.VarChar(191)
+  handoffStatus         HandoffStatus             @default(NOT_STARTED)
+  monitoringReady       Boolean                   @default(false)
+  vendorSystemsPlanned  String?                   @db.Text
+  externalReference     String?                   @db.VarChar(191)
+  internalNotes         String?                   @db.Text
+  clientFacingNotes     String?                   @db.Text
+  projectSites          ProjectSite[]
+  devices               Device[]
+  accessReferences      AccessReference[]
+  createdAt             DateTime                  @default(now())
+  updatedAt             DateTime                  @updatedAt
+
+  @@unique([organizationId, projectCode])
+  @@index([organizationId, status])
+  @@index([organizationId, projectType])
+  @@index([primarySiteId])
+}
+
+model ProjectSite {
+  id                    String              @id @default(cuid()) @db.VarChar(191)
+  organizationId        String              @db.VarChar(191)
+  projectInstallationId String              @db.VarChar(191)
+  siteId                String              @db.VarChar(191)
+  organization          Organization        @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  projectInstallation   ProjectInstallation @relation(fields: [projectInstallationId], references: [id], onDelete: Cascade)
+  site                  Site                @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  roleOrPhase           String?             @db.VarChar(191)
+  notes                 String?             @db.Text
+  createdAt             DateTime            @default(now())
+
+  @@unique([projectInstallationId, siteId])
+  @@index([organizationId])
+  @@index([siteId])
+}
+
+model AccessReference {
+  id                    String               @id @default(cuid()) @db.VarChar(191)
+  organizationId        String               @db.VarChar(191)
+  siteId                String?              @db.VarChar(191)
+  projectInstallationId String?              @db.VarChar(191)
+  deviceId              String?              @db.VarChar(191)
+  organization          Organization         @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site                  Site?                @relation(fields: [siteId], references: [id], onDelete: SetNull)
+  projectInstallation   ProjectInstallation? @relation(fields: [projectInstallationId], references: [id], onDelete: SetNull)
+  device                Device?              @relation(fields: [deviceId], references: [id], onDelete: SetNull)
+  name                  String               @db.VarChar(191)
+  accessType            AccessType           @default(OTHER)
+  vaultProvider         String?              @db.VarChar(191)
+  vaultPath             String?              @db.VarChar(255)
+  owner                 String?              @db.VarChar(191)
+  remoteAccessMethod    String?              @db.VarChar(191)
+  notes                 String?              @db.Text
+  lastValidatedAt       DateTime?
+  createdAt             DateTime             @default(now())
+  updatedAt             DateTime             @updatedAt
+
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([projectInstallationId])
+  @@index([deviceId])
+}
+
+model NetworkSegment {
+  id             String       @id @default(cuid()) @db.VarChar(191)
+  organizationId String       @db.VarChar(191)
+  siteId         String       @db.VarChar(191)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String       @db.VarChar(191)
+  vlanId         Int?
+  subnetCidr     String       @db.VarChar(64)
+  gatewayIp      String?      @db.VarChar(64)
+  purpose        String?      @db.VarChar(191)
+  notes          String?      @db.Text
+  devices        Device[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([siteId, name])
+  @@unique([siteId, vlanId])
+  @@index([organizationId])
+  @@index([siteId])
+}
+
+model NvrChannelAssignment {
+  id               String       @id @default(cuid()) @db.VarChar(191)
+  organizationId   String       @db.VarChar(191)
+  siteId           String       @db.VarChar(191)
+  nvrDeviceId      String       @db.VarChar(191)
+  cameraDeviceId   String       @db.VarChar(191)
+  organization     Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site             Site         @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  nvrDevice        Device       @relation("NvrAssignmentDevice", fields: [nvrDeviceId], references: [id], onDelete: Cascade)
+  cameraDevice     Device       @relation("NvrAssignmentCamera", fields: [cameraDeviceId], references: [id], onDelete: Cascade)
+  channelNumber    Int
+  recordingEnabled Boolean      @default(true)
+  notes            String?      @db.Text
+  createdAt        DateTime     @default(now())
+  updatedAt        DateTime     @updatedAt
+
+  @@unique([nvrDeviceId, channelNumber])
+  @@unique([cameraDeviceId])
+  @@index([organizationId])
+  @@index([siteId])
+  @@index([nvrDeviceId])
+}
+
+model DeviceLink {
   id             String         @id @default(cuid()) @db.VarChar(191)
   organizationId String         @db.VarChar(191)
   siteId         String         @db.VarChar(191)
+  sourceDeviceId String         @db.VarChar(191)
+  targetDeviceId String         @db.VarChar(191)
+  linkType       DeviceLinkType
+  sourcePort     String?        @db.VarChar(191)
+  targetPort     String?        @db.VarChar(191)
+  poeProvided    Boolean?
+  notes          String?        @db.Text
   organization   Organization   @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   site           Site           @relation(fields: [siteId], references: [id], onDelete: Cascade)
-  name           String         @db.VarChar(191)
-  externalId     String?        @unique @db.VarChar(191)
-  type           DeviceType
-  brand          String?        @db.VarChar(191)
-  model          String?        @db.VarChar(191)
-  ipAddress      String?        @db.VarChar(64)
-  macAddress     String?        @db.VarChar(64)
-  serialNumber   String?        @unique @db.VarChar(191)
-  status         DeviceStatus   @default(UNKNOWN)
-  monitoringMode MonitoringMode @default(ACTIVE)
-  lastSeenAt     DateTime?
-  notes          String?        @db.Text
-  healthChecks   HealthCheck[]
-  alerts         Alert[]
+  sourceDevice   Device         @relation("DeviceLinkSource", fields: [sourceDeviceId], references: [id], onDelete: Cascade)
+  targetDevice   Device         @relation("DeviceLinkTarget", fields: [targetDeviceId], references: [id], onDelete: Cascade)
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
   @@index([organizationId])
-  @@index([siteId, status])
-  @@index([brand])
-  @@index([type])
+  @@index([siteId])
+  @@index([sourceDeviceId])
+  @@index([targetDeviceId])
 }
 
 model HealthCheck {

@@ -17,7 +17,7 @@ export async function getCurrentUser() {
 export async function requireUser() {
   const user = await getCurrentUser();
 
-  if (!user) {
+  if (!user?.id || !user.email || !user.role) {
     redirect("/login");
   }
 

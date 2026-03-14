@@ -1,0 +1,8 @@
+ALTER TABLE `Device`
+  ADD COLUMN `switchRole` VARCHAR(64) NULL,
+  ADD COLUMN `portCount` INTEGER NULL,
+  ADD COLUMN `usedPortCount` INTEGER NULL,
+  ADD COLUMN `poeBudgetWatts` DOUBLE NULL,
+  ADD COLUMN `poeUsedWatts` DOUBLE NULL,
+  ADD COLUMN `poeRequired` BOOLEAN NULL,
+  ADD COLUMN `estimatedPoeWatts` DOUBLE NULL;

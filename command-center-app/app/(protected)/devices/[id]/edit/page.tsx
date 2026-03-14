@@ -5,6 +5,7 @@ import { DeviceForm } from "@/components/management/device-form";
 import { requireUser } from "@/lib/auth";
 import { getDeviceForEdit, getDeviceFormOptions } from "@/lib/management/devices";
 import { isGlobalAccessUser, requireInventoryWriteAccess } from "@/lib/management/tenant";
+import { toDateTimeLocalValue } from "@/lib/utils";
 
 import { updateDeviceAction } from "../../actions";
 
@@ -13,16 +14,6 @@ type EditDevicePageProps = {
     id: string;
   };
 };
-
-function toDateTimeLocalValue(value: Date | null) {
-  if (!value) {
-    return null;
-  }
-
-  return new Date(value.getTime() - value.getTimezoneOffset() * 60000)
-    .toISOString()
-    .slice(0, 16);
-}
 
 export default async function EditDevicePage({ params }: EditDevicePageProps) {
   const user = requireInventoryWriteAccess(await requireUser());
@@ -67,6 +58,8 @@ export default async function EditDevicePage({ params }: EditDevicePageProps) {
         submitLabel="Save changes"
         organizations={options.organizations}
         sites={options.sites}
+        projects={options.projects}
+        networkSegments={options.networkSegments}
         lockOrganization={!isGlobalAccessUser(user)}
         initialValues={{
           ...device,

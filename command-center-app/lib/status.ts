@@ -1,11 +1,14 @@
 import {
   AlertSeverity,
   AlertStatus,
+  DeviceLinkType,
   DeviceStatus,
   HealthCheckType,
   HealthStatus,
   MonitoringMode,
   OrganizationStatus,
+  ProjectInstallationStatus,
+  ProjectPriority,
   SiteStatus
 } from "@prisma/client";
 
@@ -31,6 +34,36 @@ export function siteStatusTone(status: SiteStatus): StatusTone {
     case SiteStatus.MAINTENANCE:
       return "info";
     case SiteStatus.INACTIVE:
+      return "unknown";
+  }
+}
+
+export function projectInstallationStatusTone(
+  status: ProjectInstallationStatus
+): StatusTone {
+  switch (status) {
+    case ProjectInstallationStatus.ACTIVE:
+    case ProjectInstallationStatus.COMPLETE:
+      return "healthy";
+    case ProjectInstallationStatus.IN_PROGRESS:
+    case ProjectInstallationStatus.PLANNING:
+      return "info";
+    case ProjectInstallationStatus.ON_HOLD:
+      return "warning";
+    case ProjectInstallationStatus.ARCHIVED:
+      return "unknown";
+  }
+}
+
+export function projectPriorityTone(priority: ProjectPriority): StatusTone {
+  switch (priority) {
+    case ProjectPriority.CRITICAL:
+      return "critical";
+    case ProjectPriority.HIGH:
+      return "warning";
+    case ProjectPriority.MEDIUM:
+      return "info";
+    case ProjectPriority.LOW:
       return "unknown";
   }
 }
@@ -140,4 +173,20 @@ export function alertSeverityFromHealthStatus(status: HealthStatus): AlertSeveri
 
 export function healthCheckTypeTone(_type: HealthCheckType): StatusTone {
   return "info";
+}
+
+export function deviceLinkTypeTone(linkType: DeviceLinkType): StatusTone {
+  switch (linkType) {
+    case DeviceLinkType.POE_SUPPLY:
+    case DeviceLinkType.UPLINK:
+      return "healthy";
+    case DeviceLinkType.MANAGEMENT:
+    case DeviceLinkType.RECORDING:
+      return "info";
+    case DeviceLinkType.DOWNSTREAM:
+    case DeviceLinkType.WIRELESS_UPLINK:
+      return "warning";
+    case DeviceLinkType.OTHER:
+      return "unknown";
+  }
 }

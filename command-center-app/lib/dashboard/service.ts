@@ -1,7 +1,8 @@
 import {
   AlertStatus,
   DeviceStatus,
-  DeviceType
+  DeviceType,
+  Prisma
 } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
@@ -24,6 +25,8 @@ import { isCommandCenterAdminRole, type AppRole } from "@/lib/rbac";
 type DashboardUser = {
   role: AppRole;
   organizationId: string | null;
+  projectInstallationId?: string | null;
+  projectName?: string | null;
 };
 
 const deviceDistributionTones: Record<DeviceType, DeviceDistributionItem["tone"]> = {
@@ -54,6 +57,15 @@ function buildDashboardFilters(
         ? "Global operations"
         : organizationName ?? "Assigned organization"
     },
+    ...(user.projectName
+      ? [
+          {
+            id: "project",
+            label: "Project",
+            value: user.projectName
+          }
+        ]
+      : []),
     {
       id: "source",
       label: "Data source",
@@ -115,9 +127,82 @@ function buildMapCenter(
   ];
 }
 
+function getScopedDashboardSiteWhere(user: DashboardUser): Prisma.SiteWhereInput {
+  return {
+    ...getScopedRecordWhere(user),
+    ...(user.projectInstallationId
+      ? {
+          projectSites: {
+            some: {
+              projectInstallationId: user.projectInstallationId
+            }
+          }
+        }
+      : {})
+  };
+}
+
+function getScopedDashboardDeviceWhere(
+  user: DashboardUser
+): Prisma.DeviceWhereInput {
+  return {
+    ...getScopedRecordWhere(user),
+    ...(user.projectInstallationId
+      ? {
+          projectInstallationId: user.projectInstallationId
+        }
+      : {})
+  };
+}
+
+function getScopedDashboardAlertWhere(user: DashboardUser): Prisma.AlertWhereInput {
+  return {
+    ...getScopedRecordWhere(user),
+    ...(user.projectInstallationId
+      ? {
+          OR: [
+            {
+              device: {
+                is: {
+                  projectInstallationId: user.projectInstallationId
+                }
+              }
+            },
+            {
+              site: {
+                is: {
+                  projectSites: {
+                    some: {
+                      projectInstallationId: user.projectInstallationId
+                    }
+                  }
+                }
+              }
+            }
+          ]
+        }
+      : {})
+  };
+}
+
 async function getScopedDashboardCounts(user: DashboardUser) {
-  const organizationWhere = getScopedOrganizationWhere(user);
-  const recordWhere = getScopedRecordWhere(user);
+  const organizationWhere: Prisma.OrganizationWhereInput = user.projectInstallationId
+    ? {
+        AND: [
+          getScopedOrganizationWhere(user),
+          {
+            projectInstallations: {
+              some: {
+                id: user.projectInstallationId
+              }
+            }
+          }
+        ]
+      }
+    : getScopedOrganizationWhere(user);
+  const siteWhere = getScopedDashboardSiteWhere(user);
+  const deviceWhere = getScopedDashboardDeviceWhere(user);
+  const alertWhere = getScopedDashboardAlertWhere(user);
 
   const [
     organizationCount,
@@ -131,26 +216,26 @@ async function getScopedDashboardCounts(user: DashboardUser) {
       where: organizationWhere
     }),
     prisma.site.count({
-      where: recordWhere
+      where: siteWhere
     }),
     prisma.device.count({
-      where: recordWhere
+      where: deviceWhere
     }),
     prisma.device.count({
       where: {
-        ...recordWhere,
+        ...deviceWhere,
         status: DeviceStatus.ONLINE
       }
     }),
     prisma.device.count({
       where: {
-        ...recordWhere,
+        ...deviceWhere,
         status: DeviceStatus.OFFLINE
       }
     }),
     prisma.alert.count({
       where: {
-        ...recordWhere,
+        ...alertWhere,
         status: {
           in: [AlertStatus.OPEN, AlertStatus.ACKNOWLEDGED]
         }
@@ -171,7 +256,7 @@ async function getScopedDashboardCounts(user: DashboardUser) {
 async function getDeviceDistribution(user: DashboardUser) {
   const counts = await prisma.device.groupBy({
     by: ["type"],
-    where: getScopedRecordWhere(user),
+    where: getScopedDashboardDeviceWhere(user),
     _count: {
       _all: true
     },
@@ -251,8 +336,12 @@ async function buildViewerSnapshot(user: DashboardUser): Promise<DashboardSnapsh
     await Promise.all([
       getScopedDashboardCounts(user),
       getOrganizationName(user),
-      getRecentAlertsTableRows(user, 6),
-      getScopedSiteMonitoringDataset(user),
+      getRecentAlertsTableRows(user, 6, {
+        projectInstallationId: user.projectInstallationId ?? undefined
+      }),
+      getScopedSiteMonitoringDataset(user, {
+        projectInstallationId: user.projectInstallationId ?? undefined
+      }),
       getDeviceDistribution(user)
     ]);
 
@@ -359,8 +448,12 @@ async function buildSuperAdminSnapshot(
 ): Promise<DashboardSnapshot> {
   const [counts, alerts, siteDataset, deviceDistribution] = await Promise.all([
     getScopedDashboardCounts(user),
-    getRecentAlertsTableRows(user, 8),
-    getScopedSiteMonitoringDataset(user),
+    getRecentAlertsTableRows(user, 8, {
+      projectInstallationId: user.projectInstallationId ?? undefined
+    }),
+    getScopedSiteMonitoringDataset(user, {
+      projectInstallationId: user.projectInstallationId ?? undefined
+    }),
     getDeviceDistribution(user)
   ]);
   const rows = sortSiteHealthRows(siteDataset.rows);

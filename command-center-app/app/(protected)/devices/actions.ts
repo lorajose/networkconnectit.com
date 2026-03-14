@@ -20,15 +20,28 @@ function getDeviceFormValues(formData: FormData) {
   return {
     organizationId: formData.get("organizationId"),
     siteId: formData.get("siteId"),
+    projectInstallationId: formData.get("projectInstallationId"),
+    networkSegmentId: formData.get("networkSegmentId"),
     name: formData.get("name"),
+    hostname: formData.get("hostname"),
     type: formData.get("type"),
     brand: formData.get("brand"),
     model: formData.get("model"),
+    firmwareVersion: formData.get("firmwareVersion"),
+    vendorExternalId: formData.get("vendorExternalId"),
     ipAddress: formData.get("ipAddress"),
     macAddress: formData.get("macAddress"),
     serialNumber: formData.get("serialNumber"),
+    switchRole: formData.get("switchRole"),
+    portCount: formData.get("portCount"),
+    usedPortCount: formData.get("usedPortCount"),
+    poeBudgetWatts: formData.get("poeBudgetWatts"),
+    poeUsedWatts: formData.get("poeUsedWatts"),
+    poeRequired: formData.get("poeRequired"),
+    estimatedPoeWatts: formData.get("estimatedPoeWatts"),
     status: formData.get("status"),
     monitoringMode: formData.get("monitoringMode"),
+    installedAt: formData.get("installedAt"),
     lastSeenAt: formData.get("lastSeenAt"),
     notes: formData.get("notes")
   };
@@ -48,9 +61,12 @@ function deviceValidationError(
 async function validateDeviceScope(
   user: TenantUser,
   organizationId: string,
-  siteId: string
+  siteId: string,
+  projectInstallationId: string | null | undefined,
+  networkSegmentId: string | null | undefined
 ) {
-  const [organization, site] = await Promise.all([
+  const [organization, site, projectInstallation, networkSegment] =
+    await Promise.all([
     prisma.organization.findFirst({
       where: {
         id: organizationId,
@@ -60,21 +76,48 @@ async function validateDeviceScope(
         id: true
       }
     }),
-    prisma.site.findFirst({
-      where: {
-        id: siteId,
-        organizationId,
-        ...getScopedRecordWhere(user)
-      },
-      select: {
-        id: true
-      }
-    })
-  ]);
+      prisma.site.findFirst({
+        where: {
+          id: siteId,
+          organizationId,
+          ...getScopedRecordWhere(user)
+        },
+        select: {
+          id: true
+        }
+      }),
+      projectInstallationId
+        ? prisma.projectInstallation.findFirst({
+            where: {
+              id: projectInstallationId,
+              organizationId,
+              ...getScopedRecordWhere(user)
+            },
+            select: {
+              id: true
+            }
+          })
+        : Promise.resolve(null),
+      networkSegmentId
+        ? prisma.networkSegment.findFirst({
+            where: {
+              id: networkSegmentId,
+              organizationId,
+              siteId,
+              ...getScopedRecordWhere(user)
+            },
+            select: {
+              id: true
+            }
+          })
+        : Promise.resolve(null)
+    ]);
 
   return {
     organization,
-    site
+    site,
+    projectInstallation,
+    networkSegment
   };
 }
 
@@ -106,7 +149,9 @@ export async function createDeviceAction(
   const scopeCheck = await validateDeviceScope(
     user,
     organizationId,
-    parsed.data.siteId
+    parsed.data.siteId,
+    parsed.data.projectInstallationId,
+    parsed.data.networkSegmentId
   );
 
   if (!scopeCheck.organization) {
@@ -127,20 +172,51 @@ export async function createDeviceAction(
     );
   }
 
+  if (parsed.data.projectInstallationId && !scopeCheck.projectInstallation) {
+    return deviceValidationError(
+      {
+        projectInstallationId: ["Select a project that belongs to the chosen organization."]
+      },
+      "The selected project does not match the organization."
+    );
+  }
+
+  if (parsed.data.networkSegmentId && !scopeCheck.networkSegment) {
+    return deviceValidationError(
+      {
+        networkSegmentId: ["Select a network segment that belongs to the chosen site."]
+      },
+      "The selected network segment does not match the site."
+    );
+  }
+
   try {
     const device = await prisma.device.create({
       data: {
         organizationId,
         siteId: parsed.data.siteId,
+        projectInstallationId: parsed.data.projectInstallationId ?? null,
+        networkSegmentId: parsed.data.networkSegmentId ?? null,
         name: parsed.data.name,
+        hostname: parsed.data.hostname ?? null,
         type: parsed.data.type,
         brand: parsed.data.brand,
         model: parsed.data.model ?? null,
+        firmwareVersion: parsed.data.firmwareVersion ?? null,
+        vendorExternalId: parsed.data.vendorExternalId ?? null,
         ipAddress: parsed.data.ipAddress ?? null,
         macAddress: parsed.data.macAddress ?? null,
         serialNumber: parsed.data.serialNumber ?? null,
+        switchRole: parsed.data.switchRole ?? null,
+        portCount: parsed.data.portCount ?? null,
+        usedPortCount: parsed.data.usedPortCount ?? null,
+        poeBudgetWatts: parsed.data.poeBudgetWatts ?? null,
+        poeUsedWatts: parsed.data.poeUsedWatts ?? null,
+        poeRequired: parsed.data.poeRequired ?? null,
+        estimatedPoeWatts: parsed.data.estimatedPoeWatts ?? null,
         status: parsed.data.status,
         monitoringMode: parsed.data.monitoringMode,
+        installedAt: parsed.data.installedAt ?? null,
         lastSeenAt: parsed.data.lastSeenAt ?? null,
         notes: parsed.data.notes ?? null
       }
@@ -150,6 +226,12 @@ export async function createDeviceAction(
     revalidatePath("/viewer");
     revalidatePath("/sites");
     revalidatePath("/devices");
+    revalidatePath("/projects");
+
+    if (parsed.data.projectInstallationId) {
+      revalidatePath(`/projects/${parsed.data.projectInstallationId}`);
+    }
+
     redirect(`/devices/${device.id}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);
@@ -188,7 +270,10 @@ export async function updateDeviceAction(
       ...getScopedRecordWhere(user)
     },
     select: {
-      id: true
+      id: true,
+      organizationId: true,
+      siteId: true,
+      projectInstallationId: true
     }
   });
 
@@ -213,10 +298,24 @@ export async function updateDeviceAction(
     );
   }
 
+  if (
+    organizationId !== existingDevice.organizationId ||
+    parsed.data.siteId !== existingDevice.siteId
+  ) {
+    return deviceValidationError(
+      {
+        siteId: ["Changing the organization or site on an existing device is not supported."]
+      },
+      "Device ownership must remain stable for linked alerts, health checks, and topology records."
+    );
+  }
+
   const scopeCheck = await validateDeviceScope(
     user,
     organizationId,
-    parsed.data.siteId
+    parsed.data.siteId,
+    parsed.data.projectInstallationId,
+    parsed.data.networkSegmentId
   );
 
   if (!scopeCheck.organization) {
@@ -237,6 +336,24 @@ export async function updateDeviceAction(
     );
   }
 
+  if (parsed.data.projectInstallationId && !scopeCheck.projectInstallation) {
+    return deviceValidationError(
+      {
+        projectInstallationId: ["Select a project that belongs to the chosen organization."]
+      },
+      "The selected project does not match the organization."
+    );
+  }
+
+  if (parsed.data.networkSegmentId && !scopeCheck.networkSegment) {
+    return deviceValidationError(
+      {
+        networkSegmentId: ["Select a network segment that belongs to the chosen site."]
+      },
+      "The selected network segment does not match the site."
+    );
+  }
+
   try {
     await prisma.device.update({
       where: {
@@ -245,15 +362,28 @@ export async function updateDeviceAction(
       data: {
         organizationId,
         siteId: parsed.data.siteId,
+        projectInstallationId: parsed.data.projectInstallationId ?? null,
+        networkSegmentId: parsed.data.networkSegmentId ?? null,
         name: parsed.data.name,
+        hostname: parsed.data.hostname ?? null,
         type: parsed.data.type,
         brand: parsed.data.brand,
         model: parsed.data.model ?? null,
+        firmwareVersion: parsed.data.firmwareVersion ?? null,
+        vendorExternalId: parsed.data.vendorExternalId ?? null,
         ipAddress: parsed.data.ipAddress ?? null,
         macAddress: parsed.data.macAddress ?? null,
         serialNumber: parsed.data.serialNumber ?? null,
+        switchRole: parsed.data.switchRole ?? null,
+        portCount: parsed.data.portCount ?? null,
+        usedPortCount: parsed.data.usedPortCount ?? null,
+        poeBudgetWatts: parsed.data.poeBudgetWatts ?? null,
+        poeUsedWatts: parsed.data.poeUsedWatts ?? null,
+        poeRequired: parsed.data.poeRequired ?? null,
+        estimatedPoeWatts: parsed.data.estimatedPoeWatts ?? null,
         status: parsed.data.status,
         monitoringMode: parsed.data.monitoringMode,
+        installedAt: parsed.data.installedAt ?? null,
         lastSeenAt: parsed.data.lastSeenAt ?? null,
         notes: parsed.data.notes ?? null
       }
@@ -263,7 +393,17 @@ export async function updateDeviceAction(
     revalidatePath("/viewer");
     revalidatePath("/sites");
     revalidatePath("/devices");
+    revalidatePath("/projects");
     revalidatePath(`/devices/${deviceId}`);
+
+    if (existingDevice.projectInstallationId) {
+      revalidatePath(`/projects/${existingDevice.projectInstallationId}`);
+    }
+
+    if (parsed.data.projectInstallationId) {
+      revalidatePath(`/projects/${parsed.data.projectInstallationId}`);
+    }
+
     redirect(`/devices/${deviceId}`);
   } catch (error) {
     const uniqueFields = getUniqueConstraintFields(error);

@@ -2,7 +2,9 @@ import { DeviceStatus, DeviceType, Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { MANAGEMENT_PAGE_SIZE, getOrganizationOptions } from "@/lib/management/organizations";
+import { getProjectOptions } from "@/lib/management/projects";
 import { getSiteOptions } from "@/lib/management/sites";
+import { getNetworkSegmentOptions } from "@/lib/management/infrastructure";
 import {
   getScopedRecordWhere,
   type TenantUser
@@ -12,10 +14,19 @@ export type DevicesListFilters = {
   query: string;
   organizationId: string;
   siteId: string;
+  projectInstallationId: string;
   brand: string;
   type: DeviceType | "";
   status: DeviceStatus | "";
   page: number;
+};
+
+export type NetworkSegmentOption = {
+  id: string;
+  name: string;
+  organizationId: string;
+  siteId: string;
+  label: string;
 };
 
 function buildDevicesWhere(
@@ -35,6 +46,11 @@ function buildDevicesWhere(
       filters.siteId
         ? {
             siteId: filters.siteId
+          }
+        : {},
+      filters.projectInstallationId
+        ? {
+            projectInstallationId: filters.projectInstallationId
           }
         : {},
       filters.brand
@@ -84,7 +100,7 @@ export async function getDevicesList(
   const where = buildDevicesWhere(user, filters);
   const skip = (filters.page - 1) * MANAGEMENT_PAGE_SIZE;
 
-  const [totalCount, devices, organizations, sites, brands] =
+  const [totalCount, devices, organizations, sites, projects, brands] =
     await Promise.all([
       prisma.device.count({ where }),
       prisma.device.findMany({
@@ -127,11 +143,18 @@ export async function getDevicesList(
               id: true,
               name: true
             }
+          },
+          projectInstallation: {
+            select: {
+              id: true,
+              name: true
+            }
           }
         }
       }),
       getOrganizationOptions(user),
-      getSiteOptions(user),
+      getSiteOptions(user, filters.organizationId || undefined),
+      getProjectOptions(user, filters.organizationId || undefined),
       prisma.device.findMany({
         where: {
           ...getScopedRecordWhere(user),
@@ -153,6 +176,7 @@ export async function getDevicesList(
     devices,
     organizations,
     sites,
+    projects,
     brands: brands
       .map((item) => item.brand)
       .filter((brand): brand is string => Boolean(brand)),
@@ -172,17 +196,32 @@ export async function getDeviceDetail(user: TenantUser, id: string) {
       id: true,
       organizationId: true,
       siteId: true,
+      projectInstallationId: true,
+      networkSegmentId: true,
       name: true,
+      hostname: true,
       type: true,
       brand: true,
       model: true,
+      firmwareVersion: true,
+      vendorExternalId: true,
       ipAddress: true,
       macAddress: true,
       serialNumber: true,
+      switchRole: true,
+      portCount: true,
+      usedPortCount: true,
+      poeBudgetWatts: true,
+      poeUsedWatts: true,
+      poeRequired: true,
+      estimatedPoeWatts: true,
       status: true,
       monitoringMode: true,
+      installedAt: true,
       lastSeenAt: true,
       notes: true,
+      deviceGroupId: true,
+      rackId: true,
       createdAt: true,
       updatedAt: true,
       organization: {
@@ -200,6 +239,21 @@ export async function getDeviceDetail(user: TenantUser, id: string) {
           country: true,
           status: true
         }
+      },
+      projectInstallation: {
+        select: {
+          id: true,
+          name: true,
+          status: true
+        }
+      },
+      networkSegment: {
+        select: {
+          id: true,
+          name: true,
+          vlanId: true,
+          subnetCidr: true
+        }
       }
     }
   });
@@ -215,15 +269,28 @@ export async function getDeviceForEdit(user: TenantUser, id: string) {
       id: true,
       organizationId: true,
       siteId: true,
+      projectInstallationId: true,
+      networkSegmentId: true,
       name: true,
+      hostname: true,
       type: true,
       brand: true,
       model: true,
+      firmwareVersion: true,
+      vendorExternalId: true,
       ipAddress: true,
       macAddress: true,
       serialNumber: true,
+      switchRole: true,
+      portCount: true,
+      usedPortCount: true,
+      poeBudgetWatts: true,
+      poeUsedWatts: true,
+      poeRequired: true,
+      estimatedPoeWatts: true,
       status: true,
       monitoringMode: true,
+      installedAt: true,
       lastSeenAt: true,
       notes: true
     }
@@ -231,13 +298,32 @@ export async function getDeviceForEdit(user: TenantUser, id: string) {
 }
 
 export async function getDeviceFormOptions(user: TenantUser) {
-  const [organizations, sites] = await Promise.all([
+  const [organizations, sites, projects] = await Promise.all([
     getOrganizationOptions(user),
-    getSiteOptions(user)
+    getSiteOptions(user),
+    getProjectOptions(user)
   ]);
+
+  const networkSegments = (
+    await Promise.all(
+      sites.map(async (site) => {
+        const segments = await getNetworkSegmentOptions(user, site.id);
+
+        return segments.map((segment) => ({
+          id: segment.id,
+          name: segment.name,
+          organizationId: site.organizationId,
+          siteId: site.id,
+          label: `${segment.name}${segment.vlanId ? ` · VLAN ${segment.vlanId}` : ""}`
+        }));
+      })
+    )
+  ).flat();
 
   return {
     organizations,
-    sites
+    sites,
+    projects,
+    networkSegments
   };
 }

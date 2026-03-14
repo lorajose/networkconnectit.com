@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
+import { sanitizeInternalRedirectPath } from "@/lib/navigation-security";
 import {
   acknowledgeAlert,
   resolveAlert
@@ -30,6 +31,7 @@ export async function acknowledgeAlertAction(
   _formData: FormData
 ) {
   const user = await requireUser();
+  const safeRedirectPath = sanitizeInternalRedirectPath(redirectTo, "/alerts");
 
   if (!canAcknowledgeAlerts(user.role)) {
     redirect("/alerts");
@@ -47,8 +49,8 @@ export async function acknowledgeAlertAction(
   }
 
   revalidateMonitoringPaths(paths);
-  revalidatePath(redirectTo);
-  redirect(redirectTo);
+  revalidatePath(safeRedirectPath);
+  redirect(safeRedirectPath);
 }
 
 export async function resolveAlertAction(
@@ -57,6 +59,7 @@ export async function resolveAlertAction(
   _formData: FormData
 ) {
   const user = await requireUser();
+  const safeRedirectPath = sanitizeInternalRedirectPath(redirectTo, "/alerts");
 
   if (!canResolveAlerts(user.role)) {
     redirect("/alerts");
@@ -74,8 +77,8 @@ export async function resolveAlertAction(
   }
 
   revalidateMonitoringPaths(paths);
-  revalidatePath(redirectTo);
-  redirect(redirectTo);
+  revalidatePath(safeRedirectPath);
+  redirect(safeRedirectPath);
 }
 
 export async function simulateDeviceHealthRunAction(
@@ -84,6 +87,10 @@ export async function simulateDeviceHealthRunAction(
   _formData: FormData
 ) {
   const user = await requireUser();
+  const safeRedirectPath = sanitizeInternalRedirectPath(
+    redirectTo,
+    `/devices/${deviceId}`
+  );
 
   if (!canRunHealthSimulation(user.role)) {
     redirect("/dashboard");
@@ -99,8 +106,8 @@ export async function simulateDeviceHealthRunAction(
     `/devices/${deviceId}`,
     "/sites"
   ]);
-  revalidatePath(redirectTo);
-  redirect(redirectTo);
+  revalidatePath(safeRedirectPath);
+  redirect(safeRedirectPath);
 }
 
 export async function simulateSiteHealthRunAction(
@@ -109,6 +116,10 @@ export async function simulateSiteHealthRunAction(
   _formData: FormData
 ) {
   const user = await requireUser();
+  const safeRedirectPath = sanitizeInternalRedirectPath(
+    redirectTo,
+    `/sites/${siteId}`
+  );
 
   if (!canRunHealthSimulation(user.role)) {
     redirect("/dashboard");
@@ -124,6 +135,6 @@ export async function simulateSiteHealthRunAction(
     `/sites/${siteId}`,
     "/devices"
   ]);
-  revalidatePath(redirectTo);
-  redirect(redirectTo);
+  revalidatePath(safeRedirectPath);
+  redirect(safeRedirectPath);
 }

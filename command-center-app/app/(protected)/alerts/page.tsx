@@ -35,6 +35,9 @@ export default async function AlertsPage({ searchParams = {} }: AlertsPageProps)
   const query = getSearchParamValue(searchParams.query);
   const organizationId = getSearchParamValue(searchParams.organizationId);
   const siteId = getSearchParamValue(searchParams.siteId);
+  const projectInstallationId = getSearchParamValue(
+    searchParams.projectInstallationId
+  );
   const rawSeverity = getSearchParamValue(searchParams.severity);
   const rawStatus = getSearchParamValue(searchParams.status);
   const page = getPageParam(searchParams.page);
@@ -48,6 +51,7 @@ export default async function AlertsPage({ searchParams = {} }: AlertsPageProps)
     query,
     organizationId,
     siteId,
+    projectInstallationId,
     severity,
     status,
     page
@@ -56,6 +60,7 @@ export default async function AlertsPage({ searchParams = {} }: AlertsPageProps)
     query: query || undefined,
     organizationId: organizationId || undefined,
     siteId: siteId || undefined,
+    projectInstallationId: projectInstallationId || undefined,
     severity: severity || undefined,
     status: status || undefined
   };
@@ -78,7 +83,7 @@ export default async function AlertsPage({ searchParams = {} }: AlertsPageProps)
       />
 
       <FilterBar>
-        <form className="grid gap-3 xl:grid-cols-[1.35fr_220px_220px_180px_180px_auto]">
+        <form className="grid gap-3 xl:grid-cols-[1.2fr_200px_200px_220px_180px_180px_auto]">
           <div className="relative">
             <Search className="pointer-events-none absolute left-3 top-3.5 h-4 w-4 text-muted-foreground" />
             <Input
@@ -101,6 +106,17 @@ export default async function AlertsPage({ searchParams = {} }: AlertsPageProps)
             {results.sites.map((site) => (
               <option key={site.id} value={site.id}>
                 {site.name}
+              </option>
+            ))}
+          </Select>
+          <Select
+            name="projectInstallationId"
+            defaultValue={projectInstallationId}
+          >
+            <option value="">All projects</option>
+            {results.projects.map((project) => (
+              <option key={project.id} value={project.id}>
+                {project.name}
               </option>
             ))}
           </Select>

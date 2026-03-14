@@ -65,6 +65,8 @@ DATABASE_URL="mysql://username:password@127.0.0.1:3306/networkconnectit_command_
 DATABASE_ADMIN_URL="mysql://root:your-root-password@127.0.0.1:3306/networkconnectit_command_center"
 NEXTAUTH_URL="http://localhost:3000"
 NEXTAUTH_SECRET="replace-with-a-long-random-secret"
+ENABLE_FIRST_ADMIN_BOOTSTRAP="false"
+FIRST_ADMIN_BOOTSTRAP_TOKEN=""
 NEXT_PUBLIC_APP_BASE_PATH=""
 ```
 
@@ -74,7 +76,11 @@ Recommendations:
 - create the target database first if your local MySQL setup does not auto-create it during migration
 - set `DATABASE_ADMIN_URL` to a MySQL user with enough privilege for `prisma migrate dev`
 - keep `NEXTAUTH_URL` as `http://localhost:3000` for local dev
+- if you deploy behind a path such as `/tools/command-center`, set `NEXTAUTH_URL` to the full auth endpoint, for example `https://networkconnectit.com/tools/command-center/api/auth`
+- leave `ENABLE_FIRST_ADMIN_BOOTSTRAP` disabled unless you are provisioning the first real internal admin for a non-demo database
+- if you enable the first-admin bootstrap route, set `FIRST_ADMIN_BOOTSTRAP_TOKEN` to a long random value and disable the route immediately after use
 - leave `NEXT_PUBLIC_APP_BASE_PATH` empty for local root-based development
+- set `NEXT_PUBLIC_MARKETING_SITE_URL` to the public static-site origin if you want login header/footer navigation to point back to the marketing site
 - generate `NEXTAUTH_SECRET` with something like:
 
 ```bash
@@ -182,6 +188,7 @@ Important:
 - `npm run prisma:studio` — open Prisma Studio
 - `npm run prisma:seed` — load demo data
 - `npm run bootstrap:local` — first-run local bootstrap
+- `npm run verify:staging` — lint, build, typecheck, and Prisma schema validation in the same order used for staging checks
 
 ## Docker Support
 
@@ -231,6 +238,10 @@ Notes:
 
 This app is the real Command Center application. The static marketing site remains separate.
 
+For final staging rollout and smoke tests, use the dedicated guide:
+
+- [`docs/staging-deployment-checklist.md`](./docs/staging-deployment-checklist.md)
+
 Safe future deployment patterns:
 
 - `https://command-center.networkconnectit.com`
@@ -247,6 +258,46 @@ Architecture note for the static-site split:
 - the existing static page at `tools/command-center/index.html` should remain a simple handoff page until deployment is finalized
 - once deployed, that page can link to the live app URL without coupling the static site to Next.js internals
 - if you choose to mount the app directly at `/tools/command-center/`, the static landing page can remain on disk but the Node app should own that public URL in cPanel/Application Manager
+
+## Staging Checklist
+
+Before calling a staging environment ready, verify:
+
+- `NEXTAUTH_SECRET` is real and not a placeholder
+- `NEXTAUTH_URL` matches the deployed public auth endpoint
+- `NEXT_PUBLIC_APP_BASE_PATH` matches the reverse-proxied mount path, if any
+- `NEXT_PUBLIC_MARKETING_SITE_URL` points to the public static site if login-shell navigation should leave the app
+- `DATABASE_URL` points to the staging MySQL instance
+- `npm run prisma:migrate:deploy` has been run against the staging database
+- `npm run prisma:seed` has only been run if the environment is explicitly demo/staging, never on a real customer database
+- `npm run verify:staging` passes before deployment
+
+Useful staging caveats:
+
+- export pages are print-friendly HTML reports designed for `Print / Save PDF`, not binary server-side PDF generation
+- the app is marked `noindex` so it does not advertise internal routes to search engines
+- if you temporarily enable the first-admin bootstrap route, disable it again right after the first real internal admin signs in
+- the seed is destructive to app tables and should be treated as demo-only
+
+## First Admin / First Login
+
+For a non-demo environment:
+
+- run migrations first
+- temporarily set `ENABLE_FIRST_ADMIN_BOOTSTRAP=true`
+- set `FIRST_ADMIN_BOOTSTRAP_TOKEN` to a long random secret
+- open `/bootstrap/first-admin`
+  - example root deployment: `https://your-host/bootstrap/first-admin`
+  - example reverse-proxied deployment: `https://networkconnectit.com/tools/command-center/bootstrap/first-admin`
+- create the first internal user through the bootstrap form
+  - the bootstrap route only creates a `SUPER_ADMIN`
+  - the password is bcrypt-hashed before storage
+  - the route automatically locks if any `SUPER_ADMIN` or `INTERNAL_ADMIN` already exists
+- sign in as that internal user
+- disable `ENABLE_FIRST_ADMIN_BOOTSTRAP` and remove or rotate `FIRST_ADMIN_BOOTSTRAP_TOKEN`
+- create the tenant organizations, sites, and project installations from the app
+
+For demo/staging environments, use the seeded demo accounts listed above instead.
 
 ## Architecture Summary
 

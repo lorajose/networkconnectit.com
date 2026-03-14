@@ -46,6 +46,73 @@ export function optionalNumber() {
   );
 }
 
+export function optionalInteger(min?: number, max?: number) {
+  let schema = z.number().int();
+
+  if (typeof min === "number") {
+    schema = schema.min(min);
+  }
+
+  if (typeof max === "number") {
+    schema = schema.max(max);
+  }
+
+  return z.preprocess(
+    (value) => {
+      if (value === "" || value === null || value === undefined) {
+        return undefined;
+      }
+
+      if (typeof value === "string") {
+        const parsedValue = Number(value);
+        return Number.isInteger(parsedValue) ? parsedValue : Number.NaN;
+      }
+
+      return value;
+    },
+    schema.optional()
+  );
+}
+
+export function requiredInteger(min?: number, max?: number) {
+  let schema = z.number().int();
+
+  if (typeof min === "number") {
+    schema = schema.min(min);
+  }
+
+  if (typeof max === "number") {
+    schema = schema.max(max);
+  }
+
+  return z.preprocess(
+    (value) => {
+      if (typeof value === "string") {
+        const parsedValue = Number(value);
+        return Number.isInteger(parsedValue) ? parsedValue : Number.NaN;
+      }
+
+      return value;
+    },
+    schema
+  );
+}
+
+export function optionalEmail(maxLength: number) {
+  return z.preprocess(
+    (value) => {
+      const trimmed = trimString(value);
+
+      if (trimmed === "") {
+        return undefined;
+      }
+
+      return trimmed;
+    },
+    z.string().email().max(maxLength).optional()
+  );
+}
+
 export function optionalDate() {
   return z.preprocess(
     (value) => {

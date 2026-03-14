@@ -7,13 +7,14 @@ import { Button } from "@/components/ui/button";
 
 type SubmitButtonProps = {
   label: string;
+  disabled?: boolean;
 };
 
-export function SubmitButton({ label }: SubmitButtonProps) {
+export function SubmitButton({ label, disabled = false }: SubmitButtonProps) {
   const { pending } = useFormStatus();
 
   return (
-    <Button type="submit" disabled={pending}>
+    <Button type="submit" disabled={pending || disabled}>
       {pending ? <Loader2 className="h-4 w-4 animate-spin" /> : null}
       {pending ? "Saving..." : label}
     </Button>

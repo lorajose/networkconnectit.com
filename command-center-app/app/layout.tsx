@@ -9,7 +9,17 @@ import "./globals.css";
 export const metadata: Metadata = {
   title: "NetworkConnectIT Security Command Center",
   description:
-    "Isolated Next.js application foundation for the NetworkConnectIT Security Command Center."
+    "Isolated Next.js application foundation for the NetworkConnectIT Security Command Center.",
+  robots: {
+    index: false,
+    follow: false,
+    nocache: true,
+    googleBot: {
+      index: false,
+      follow: false,
+      noimageindex: true
+    }
+  }
 };
 
 export default function RootLayout({

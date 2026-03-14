@@ -538,6 +538,30 @@ export async function getSiteHealthTimeline(
   return checks.map(buildHealthTimelineEntry);
 }
 
+export async function getProjectHealthTimeline(
+  user: TenantUser,
+  projectInstallationId: string,
+  limit = 16
+) {
+  const checks = await prisma.healthCheck.findMany({
+    where: {
+      device: {
+        is: {
+          projectInstallationId,
+          ...getScopedRecordWhere(user)
+        }
+      }
+    },
+    orderBy: {
+      checkedAt: "desc"
+    },
+    take: limit,
+    select: healthCheckWithContextSelect
+  });
+
+  return checks.map(buildHealthTimelineEntry);
+}
+
 export function deriveDeviceHealthSummary(
   status: DeviceStatus,
   timeline: HealthTimelineEntry[]
@@ -555,9 +579,25 @@ export function deriveDeviceHealthSummary(
   };
 }
 
-export async function getScopedSiteMonitoringDataset(user: TenantUser) {
+export async function getScopedSiteMonitoringDataset(
+  user: TenantUser,
+  options?: {
+    projectInstallationId?: string;
+  }
+) {
   const sites = await prisma.site.findMany({
-    where: getScopedRecordWhere(user),
+    where: {
+      ...getScopedRecordWhere(user),
+      ...(options?.projectInstallationId
+        ? {
+            projectSites: {
+              some: {
+                projectInstallationId: options.projectInstallationId
+              }
+            }
+          }
+        : {})
+    },
     orderBy: [
       {
         organization: {
@@ -568,7 +608,19 @@ export async function getScopedSiteMonitoringDataset(user: TenantUser) {
         name: "asc"
       }
     ],
-    select: siteMonitoringSelect
+    select: {
+      ...siteMonitoringSelect,
+      devices: {
+        ...siteMonitoringSelect.devices,
+        ...(options?.projectInstallationId
+          ? {
+              where: {
+                projectInstallationId: options.projectInstallationId
+              }
+            }
+          : {})
+      }
+    }
   });
 
   const rows = sites.map(buildSiteHealthRow);

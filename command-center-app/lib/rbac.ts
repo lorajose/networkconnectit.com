@@ -16,7 +16,9 @@ export const roleLabels: Record<AppRole, string> = {
 
 export const routeAccess = {
   dashboard: APP_ROLES,
+  commandMap: ["SUPER_ADMIN", "INTERNAL_ADMIN"] as const,
   organizations: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
+  projects: APP_ROLES,
   sites: APP_ROLES,
   devices: APP_ROLES,
   alerts: APP_ROLES,

@@ -3,12 +3,14 @@ import Link from "next/link";
 import { Orbit, Shield, Sparkles } from "lucide-react";
 
 import { SignOutButton } from "@/components/auth/sign-out-button";
+import { RuntimeConfigBanner } from "@/components/config/runtime-config-banner";
 import { SidebarNav } from "@/components/sidebar-nav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
 import type { AppRole } from "@/lib/rbac";
-import { roleLabels } from "@/lib/rbac";
+import { isCommandCenterAdminRole, roleLabels } from "@/lib/rbac";
+import { getRuntimeConfigWarnings } from "@/lib/runtime-config";
 
 type AppShellProps = {
   user: {
@@ -21,6 +23,10 @@ type AppShellProps = {
 };
 
 export function AppShell({ user, children }: AppShellProps) {
+  const runtimeWarnings = isCommandCenterAdminRole(user.role)
+    ? getRuntimeConfigWarnings()
+    : [];
+
   return (
     <div className="relative min-h-screen overflow-hidden">
       <div className="pointer-events-none absolute inset-0 bg-command-grid bg-[size:28px_28px] opacity-[0.08]" />
@@ -130,6 +136,8 @@ export function AppShell({ user, children }: AppShellProps) {
                 </div>
               </CardContent>
             </Card>
+
+            <RuntimeConfigBanner warnings={runtimeWarnings} />
 
             <main className="space-y-6">{children}</main>
           </div>

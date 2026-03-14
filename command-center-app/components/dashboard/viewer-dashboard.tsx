@@ -1,3 +1,4 @@
+import type { ReactNode } from "react";
 import { Badge } from "@/components/ui/badge";
 import { PageHeader } from "@/components/page-header";
 import { DeviceDistribution } from "@/components/dashboard/device-distribution";
@@ -13,12 +14,14 @@ type ViewerDashboardProps = {
   snapshot: DashboardSnapshot;
   userRole: AppRole;
   viewerPortal?: boolean;
+  extraActions?: ReactNode;
 };
 
 export function ViewerDashboard({
   snapshot,
   userRole,
-  viewerPortal = false
+  viewerPortal = false,
+  extraActions
 }: ViewerDashboardProps) {
   const title = viewerPortal ? "Viewer Portal" : snapshot.title;
   const description = viewerPortal
@@ -44,11 +47,12 @@ export function ViewerDashboard({
             : snapshot.breadcrumbs
         }
         actions={
-          <>
+          <div className="flex flex-wrap items-center gap-3">
+            {extraActions}
             <Badge variant="outline">Read-only live view</Badge>
             <Badge variant="outline">{snapshot.organizationName ?? "Assigned org"}</Badge>
             <Badge>{roleLabels[userRole]}</Badge>
-          </>
+          </div>
         }
       />
 

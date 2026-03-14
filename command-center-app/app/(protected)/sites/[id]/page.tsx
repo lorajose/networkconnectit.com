@@ -1,14 +1,18 @@
 import Link from "next/link";
 import { DeviceStatus } from "@prisma/client";
 import { notFound } from "next/navigation";
-import { Activity, Plus, RefreshCw, Router } from "lucide-react";
+import { Activity, FolderTree, Network, Plus, RefreshCw, Router } from "lucide-react";
 
 import { EmptyState } from "@/components/dashboard/empty-state";
 import { StatusBadge } from "@/components/dashboard/status-badge";
+import { AccessReferenceForm } from "@/components/management/access-reference-form";
+import { DeviceLinkForm } from "@/components/management/device-link-form";
+import { NetworkSegmentForm } from "@/components/management/network-segment-form";
+import { NvrChannelAssignmentForm } from "@/components/management/nvr-channel-assignment-form";
+import { SiteLocationMap } from "@/components/management/site-location-map";
 import { AlertRecordsTable } from "@/components/monitoring/alert-records-table";
 import { HealthTimelineTable } from "@/components/monitoring/health-timeline-table";
 import { PageHeader } from "@/components/page-header";
-import { SiteLocationMap } from "@/components/management/site-location-map";
 import { Button } from "@/components/ui/button";
 import {
   Card,
@@ -17,13 +21,28 @@ import {
   CardHeader,
   CardTitle
 } from "@/components/ui/card";
+import {
+  createAccessReferenceAction,
+  createDeviceLinkAction,
+  createNetworkSegmentAction,
+  createNvrChannelAssignmentAction,
+  updateAccessReferenceAction,
+  updateDeviceLinkAction,
+  updateNetworkSegmentAction,
+  updateNvrChannelAssignmentAction
+} from "@/app/(protected)/infrastructure-actions";
 import { simulateSiteHealthRunAction } from "@/app/(protected)/monitoring-actions";
 import { requireRoles } from "@/lib/auth";
 import { getRecentAlertsForScope } from "@/lib/management/alerts";
 import {
+  getSiteInfrastructureDetail,
+  getSiteInfrastructureOptions
+} from "@/lib/management/infrastructure";
+import {
   deriveSiteHealthRollupFromStatusCounts,
   getSiteHealthTimeline
 } from "@/lib/management/health";
+import { getSearchParamValue } from "@/lib/management/search-params";
 import { getSiteDetail } from "@/lib/management/sites";
 import {
   canAcknowledgeAlerts,
@@ -32,7 +51,12 @@ import {
   canWriteTenantInventory,
   routeAccess
 } from "@/lib/rbac";
-import { deviceStatusTone, siteStatusTone } from "@/lib/status";
+import {
+  deviceLinkTypeTone,
+  deviceStatusTone,
+  projectInstallationStatusTone,
+  siteStatusTone
+} from "@/lib/status";
 import {
   formatDate,
   formatEnumLabel,
@@ -44,6 +68,7 @@ type SiteDetailPageProps = {
   params: {
     id: string;
   };
+  searchParams?: Record<string, string | string[] | undefined>;
 };
 
 function getStatusCount(
@@ -53,23 +78,34 @@ function getStatusCount(
   return counts.find((entry) => entry.status === status)?._count._all ?? 0;
 }
 
-export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
+export default async function SiteDetailPage({
+  params,
+  searchParams = {}
+}: SiteDetailPageProps) {
   const user = await requireRoles(routeAccess.sites);
-  const [site, healthTimeline, recentAlerts] = await Promise.all([
+  const canWrite = canWriteTenantInventory(user.role);
+  const canSimulate = canRunHealthSimulation(user.role);
+  const [
+    site,
+    healthTimeline,
+    recentAlerts,
+    infrastructure,
+    infrastructureOptions
+  ] = await Promise.all([
     getSiteDetail(user, params.id),
     getSiteHealthTimeline(user, params.id),
     getRecentAlertsForScope(user, {
       siteId: params.id,
       limit: 6
-    })
+    }),
+    getSiteInfrastructureDetail(user, params.id),
+    canWrite ? getSiteInfrastructureOptions(user, params.id) : Promise.resolve(null)
   ]);
 
-  if (!site) {
+  if (!site || !infrastructure) {
     notFound();
   }
 
-  const canWrite = canWriteTenantInventory(user.role);
-  const canSimulate = canRunHealthSimulation(user.role);
   const location = formatLocation([
     site.addressLine1,
     site.city,
@@ -87,12 +123,56 @@ export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
     `/sites/${site.id}`
   );
 
+  const editAccessReferenceId = getSearchParamValue(searchParams.editAccessReference);
+  const accessReferenceToEdit = editAccessReferenceId
+    ? infrastructure.accessReferences.find((reference) => reference.id === editAccessReferenceId)
+    : null;
+  const accessReferenceAction = accessReferenceToEdit
+    ? updateAccessReferenceAction.bind(
+        null,
+        accessReferenceToEdit.id,
+        `/sites/${site.id}`
+      )
+    : createAccessReferenceAction.bind(null, `/sites/${site.id}`);
+
+  const editSegmentId = getSearchParamValue(searchParams.editSegment);
+  const networkSegmentToEdit = editSegmentId
+    ? infrastructure.networkSegments.find((segment) => segment.id === editSegmentId)
+    : null;
+  const networkSegmentAction = networkSegmentToEdit
+    ? updateNetworkSegmentAction.bind(
+        null,
+        networkSegmentToEdit.id,
+        `/sites/${site.id}`
+      )
+    : createNetworkSegmentAction.bind(null, `/sites/${site.id}`);
+
+  const editAssignmentId = getSearchParamValue(searchParams.editAssignment);
+  const nvrAssignmentToEdit = editAssignmentId
+    ? infrastructure.nvrAssignments.find((assignment) => assignment.id === editAssignmentId)
+    : null;
+  const nvrAssignmentAction = nvrAssignmentToEdit
+    ? updateNvrChannelAssignmentAction.bind(
+        null,
+        nvrAssignmentToEdit.id,
+        `/sites/${site.id}`
+      )
+    : createNvrChannelAssignmentAction.bind(null, `/sites/${site.id}`);
+
+  const editDeviceLinkId = getSearchParamValue(searchParams.editDeviceLink);
+  const deviceLinkToEdit = editDeviceLinkId
+    ? infrastructure.deviceLinks.find((deviceLink) => deviceLink.id === editDeviceLinkId)
+    : null;
+  const deviceLinkAction = deviceLinkToEdit
+    ? updateDeviceLinkAction.bind(null, deviceLinkToEdit.id, `/sites/${site.id}`)
+    : createDeviceLinkAction.bind(null, `/sites/${site.id}`);
+
   return (
     <div className="space-y-6">
       <PageHeader
         eyebrow="Sites"
         title={site.name}
-        description="Site identity, location metadata, device rollups, health history, and recent alerts."
+        description="Site identity, project associations, infrastructure mappings, health history, and recent alerts."
         breadcrumbs={[
           {
             label: "Command Center",
@@ -108,6 +188,15 @@ export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
         ]}
         actions={
           <>
+            <Button variant="outline" asChild>
+              <Link href={`/sites/${site.id}/export`}>Export Site PDF</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/sites/${site.id}/capacity`}>View capacity</Link>
+            </Button>
+            <Button variant="outline" asChild>
+              <Link href={`/sites/${site.id}/topology`}>View topology</Link>
+            </Button>
             {canSimulate ? (
               <form action={simulateAction}>
                 <Button type="submit" variant="outline">
@@ -125,7 +214,7 @@ export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
         }
       />
 
-      <div className="grid gap-4 xl:grid-cols-6">
+      <div className="grid gap-4 xl:grid-cols-7">
         <Card>
           <CardHeader className="pb-3">
             <CardDescription>Status</CardDescription>
@@ -164,29 +253,29 @@ export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Devices online</CardDescription>
-            <CardTitle>{getStatusCount(site.deviceStatuses, DeviceStatus.ONLINE)}</CardTitle>
+            <CardDescription>Linked projects</CardDescription>
+            <CardTitle>{infrastructure.projects.length}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Responding within the last monitoring interval.
+            Project installations referencing this location.
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Warning devices</CardDescription>
-            <CardTitle>{siteHealth.warningCount}</CardTitle>
+            <CardDescription>Network segments</CardDescription>
+            <CardTitle>{infrastructure.networkSegments.length}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Devices reporting degraded or maintenance conditions.
+            VLANs and subnets registered for this site.
           </CardContent>
         </Card>
         <Card>
           <CardHeader className="pb-3">
-            <CardDescription>Unknown devices</CardDescription>
-            <CardTitle>{siteHealth.unknownCount}</CardTitle>
+            <CardDescription>Access refs</CardDescription>
+            <CardTitle>{infrastructure.accessReferences.length}</CardTitle>
           </CardHeader>
           <CardContent className="text-sm text-muted-foreground">
-            Devices without a fresh health state.
+            Vault-backed access metadata tied to the site.
           </CardContent>
         </Card>
         <Card>
@@ -284,12 +373,71 @@ export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
           </CardContent>
         </Card>
 
-        <SiteLocationMap
-          title={site.name}
-          location={location}
-          latitude={site.latitude}
-          longitude={site.longitude}
-        />
+        <div className="space-y-6">
+          <SiteLocationMap
+            title={site.name}
+            location={location}
+            latitude={site.latitude}
+            longitude={site.longitude}
+          />
+
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center gap-2">
+                <FolderTree className="h-5 w-5 text-sky-300" />
+                Project associations
+              </CardTitle>
+              <CardDescription>
+                Installations and rollouts currently linked to this site.
+              </CardDescription>
+            </CardHeader>
+            <CardContent>
+              {infrastructure.projects.length === 0 ? (
+                <EmptyState
+                  title="No projects linked"
+                  description="Link this site to a project installation from the project management flow."
+                />
+              ) : (
+                <div className="space-y-3">
+                  {infrastructure.projects.map((projectSite) => (
+                    <div
+                      key={projectSite.id}
+                      className="rounded-2xl border border-border/70 bg-background/30 px-4 py-4"
+                    >
+                      <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                        <div className="space-y-1">
+                          <Link
+                            href={`/projects/${projectSite.projectInstallation.id}`}
+                            className="font-medium text-foreground hover:text-primary"
+                          >
+                            {projectSite.projectInstallation.name}
+                          </Link>
+                          <p className="text-sm text-muted-foreground">
+                            {formatEnumLabel(projectSite.projectInstallation.projectType)}
+                            {projectSite.roleOrPhase
+                              ? ` · ${projectSite.roleOrPhase}`
+                              : ""}
+                          </p>
+                        </div>
+                        <StatusBadge
+                          tone={projectInstallationStatusTone(
+                            projectSite.projectInstallation.status
+                          )}
+                          label={formatEnumLabel(projectSite.projectInstallation.status)}
+                        />
+                      </div>
+                      {projectSite.notes ? (
+                        <p className="mt-3 text-sm text-muted-foreground">
+                          {projectSite.notes}
+                        </p>
+                      ) : null}
+                    </div>
+                  ))}
+                </div>
+              )}
+            </CardContent>
+          </Card>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[1.35fr_1fr]">
@@ -397,6 +545,319 @@ export default async function SiteDetailPage({ params }: SiteDetailPageProps) {
             </CardContent>
           </Card>
         </div>
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Access references</CardTitle>
+            <CardDescription>
+              Safe vault pointers and remote access metadata scoped to this site.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {infrastructure.accessReferences.length === 0 ? (
+              <EmptyState
+                title="No site access references"
+                description="Store vault paths and access instructions without saving plaintext passwords."
+              />
+            ) : (
+              <div className="space-y-3">
+                {infrastructure.accessReferences.map((reference) => (
+                  <div
+                    key={reference.id}
+                    className="rounded-2xl border border-border/70 bg-background/30 px-4 py-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">{reference.name}</p>
+                        <p className="text-sm text-muted-foreground">
+                          {formatEnumLabel(reference.accessType)}
+                          {reference.vaultProvider ? ` · ${reference.vaultProvider}` : ""}
+                          {reference.vaultPath ? ` · ${reference.vaultPath}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="text-muted-foreground">
+                          Owner: {reference.owner ?? "Not set"}
+                        </span>
+                        {canWrite ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/sites/${site.id}?editAccessReference=${reference.id}`}>
+                              Edit
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {reference.notes ? (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {reference.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {canWrite ? (
+          <AccessReferenceForm
+            title={
+              accessReferenceToEdit ? "Edit site access reference" : "Add site access reference"
+            }
+            description="Use this for VPN, DDNS, vendor portal, SSH, or other safe remote access metadata."
+            action={accessReferenceAction}
+            submitLabel={accessReferenceToEdit ? "Save reference" : "Add reference"}
+            context={{
+              organizationId: infrastructure.organizationId,
+              siteId: site.id
+            }}
+            initialValues={accessReferenceToEdit ?? undefined}
+          />
+        ) : null}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle className="flex items-center gap-2">
+              <Network className="h-5 w-5 text-sky-300" />
+              Network segments
+            </CardTitle>
+            <CardDescription>
+              VLANs and subnets available for device assignment and future topology work.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {infrastructure.networkSegments.length === 0 ? (
+              <EmptyState
+                title="No network segments"
+                description="Add the first VLAN or subnet so devices can be grouped by traffic purpose."
+              />
+            ) : (
+              <div className="space-y-3">
+                {infrastructure.networkSegments.map((segment) => (
+                  <div
+                    key={segment.id}
+                    className="rounded-2xl border border-border/70 bg-background/30 px-4 py-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">
+                          {segment.name}
+                          {segment.vlanId ? ` · VLAN ${segment.vlanId}` : ""}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {segment.subnetCidr}
+                          {segment.gatewayIp ? ` · Gateway ${segment.gatewayIp}` : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <span className="text-muted-foreground">
+                          {segment._count.devices} devices
+                        </span>
+                        {canWrite ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/sites/${site.id}?editSegment=${segment.id}`}>
+                              Edit
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {segment.purpose ? (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {segment.purpose}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {canWrite ? (
+          <NetworkSegmentForm
+            action={networkSegmentAction}
+            submitLabel={networkSegmentToEdit ? "Save segment" : "Add segment"}
+            context={{
+              organizationId: infrastructure.organizationId,
+              siteId: site.id
+            }}
+            initialValues={networkSegmentToEdit ?? undefined}
+          />
+        ) : null}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>NVR channel assignments</CardTitle>
+            <CardDescription>
+              Explicit recorder-to-camera mappings for installed surveillance channels.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {infrastructure.nvrAssignments.length === 0 ? (
+              <EmptyState
+                title="No NVR channel mappings"
+                description="Map recorder channels to installed cameras once devices are registered."
+              />
+            ) : (
+              <div className="space-y-3">
+                {infrastructure.nvrAssignments.map((assignment) => (
+                  <div
+                    key={assignment.id}
+                    className="rounded-2xl border border-border/70 bg-background/30 px-4 py-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">
+                          {assignment.nvrDevice.name} · Channel {assignment.channelNumber}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          Camera: {assignment.cameraDevice.name}
+                          {assignment.cameraDevice.ipAddress
+                            ? ` · ${assignment.cameraDevice.ipAddress}`
+                            : ""}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <StatusBadge
+                          tone={assignment.recordingEnabled ? "healthy" : "warning"}
+                          label={assignment.recordingEnabled ? "Recording" : "Disabled"}
+                        />
+                        {canWrite ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/sites/${site.id}?editAssignment=${assignment.id}`}>
+                              Edit
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {assignment.notes ? (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {assignment.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {canWrite && infrastructureOptions ? (
+          <NvrChannelAssignmentForm
+            action={nvrAssignmentAction}
+            submitLabel={nvrAssignmentToEdit ? "Save assignment" : "Add assignment"}
+            context={{
+              organizationId: infrastructure.organizationId,
+              siteId: site.id
+            }}
+            nvrDevices={infrastructureOptions.nvrDevices}
+            cameraDevices={infrastructureOptions.cameraDevices}
+            initialValues={
+              nvrAssignmentToEdit
+                ? {
+                    nvrDeviceId: nvrAssignmentToEdit.nvrDevice.id,
+                    cameraDeviceId: nvrAssignmentToEdit.cameraDevice.id,
+                    channelNumber: nvrAssignmentToEdit.channelNumber,
+                    recordingEnabled: nvrAssignmentToEdit.recordingEnabled,
+                    notes: nvrAssignmentToEdit.notes
+                  }
+                : undefined
+            }
+          />
+        ) : null}
+      </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.2fr_1fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Device links</CardTitle>
+            <CardDescription>
+              Physical or logical relationships such as uplinks, downstream ports, and PoE supply.
+            </CardDescription>
+          </CardHeader>
+          <CardContent>
+            {infrastructure.deviceLinks.length === 0 ? (
+              <EmptyState
+                title="No device links"
+                description="Map router-to-switch, switch-to-camera, and other infrastructure relationships."
+              />
+            ) : (
+              <div className="space-y-3">
+                {infrastructure.deviceLinks.map((deviceLink) => (
+                  <div
+                    key={deviceLink.id}
+                    className="rounded-2xl border border-border/70 bg-background/30 px-4 py-4"
+                  >
+                    <div className="flex flex-col gap-3 md:flex-row md:items-center md:justify-between">
+                      <div className="space-y-1">
+                        <p className="font-medium text-foreground">
+                          {deviceLink.sourceDevice.name} → {deviceLink.targetDevice.name}
+                        </p>
+                        <p className="text-sm text-muted-foreground">
+                          {deviceLink.sourcePort ? `${deviceLink.sourcePort}` : "No source port"}
+                          {" → "}
+                          {deviceLink.targetPort ? `${deviceLink.targetPort}` : "No target port"}
+                        </p>
+                      </div>
+                      <div className="flex flex-wrap items-center gap-3 text-sm">
+                        <StatusBadge
+                          tone={deviceLinkTypeTone(deviceLink.linkType)}
+                          label={formatEnumLabel(deviceLink.linkType)}
+                        />
+                        {canWrite ? (
+                          <Button variant="ghost" size="sm" asChild>
+                            <Link href={`/sites/${site.id}?editDeviceLink=${deviceLink.id}`}>
+                              Edit
+                            </Link>
+                          </Button>
+                        ) : null}
+                      </div>
+                    </div>
+                    {deviceLink.notes ? (
+                      <p className="mt-3 text-sm text-muted-foreground">
+                        {deviceLink.notes}
+                      </p>
+                    ) : null}
+                  </div>
+                ))}
+              </div>
+            )}
+          </CardContent>
+        </Card>
+
+        {canWrite && infrastructureOptions ? (
+          <DeviceLinkForm
+            action={deviceLinkAction}
+            submitLabel={deviceLinkToEdit ? "Save link" : "Add link"}
+            context={{
+              organizationId: infrastructure.organizationId,
+              siteId: site.id
+            }}
+            devices={infrastructureOptions.devices}
+            initialValues={
+              deviceLinkToEdit
+                ? {
+                    sourceDeviceId: deviceLinkToEdit.sourceDevice.id,
+                    targetDeviceId: deviceLinkToEdit.targetDevice.id,
+                    linkType: deviceLinkToEdit.linkType,
+                    sourcePort: deviceLinkToEdit.sourcePort,
+                    targetPort: deviceLinkToEdit.targetPort,
+                    poeProvided: deviceLinkToEdit.poeProvided,
+                    notes: deviceLinkToEdit.notes
+                  }
+                : undefined
+            }
+          />
+        ) : null}
       </div>
 
       <HealthTimelineTable

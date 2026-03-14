@@ -36,6 +36,8 @@ export default async function NewDevicePage() {
         submitLabel="Create device"
         organizations={options.organizations}
         sites={options.sites}
+        projects={options.projects}
+        networkSegments={options.networkSegments}
         lockOrganization={!isGlobalAccessUser(user)}
         initialValues={{
           organizationId:

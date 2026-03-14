@@ -5,14 +5,16 @@ export default withAuth({
     signIn: "/login"
   },
   callbacks: {
-    authorized: ({ token }) => Boolean(token)
+    authorized: ({ token }) => Boolean((token?.id ?? token?.sub) && token?.role)
   }
 });
 
 export const config = {
   matcher: [
     "/dashboard/:path*",
+    "/command-map/:path*",
     "/organizations/:path*",
+    "/projects/:path*",
     "/sites/:path*",
     "/devices/:path*",
     "/alerts/:path*",

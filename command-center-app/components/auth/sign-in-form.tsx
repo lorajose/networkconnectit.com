@@ -24,11 +24,15 @@ import { signInSchema } from "@/lib/validations/auth";
 type SignInFormProps = {
   callbackUrl?: string;
   errorMessage?: string;
+  initialEmail?: string;
+  noticeMessage?: string;
 };
 
 export function SignInForm({
   callbackUrl = withAppBasePath("/dashboard"),
-  errorMessage
+  errorMessage,
+  initialEmail,
+  noticeMessage
 }: SignInFormProps) {
   const router = useRouter();
   const [isSubmitting, setIsSubmitting] = React.useState(false);
@@ -37,7 +41,7 @@ export function SignInForm({
   const form = useForm<SignInInput>({
     resolver: zodResolver(signInSchema),
     defaultValues: {
-      email: "",
+      email: initialEmail ?? "",
       password: ""
     }
   });
@@ -114,6 +118,12 @@ export function SignInForm({
           {submitError ? (
             <div className="rounded-2xl border border-destructive/40 bg-destructive/10 px-4 py-3 text-sm text-destructive">
               {submitError}
+            </div>
+          ) : null}
+
+          {!submitError && noticeMessage ? (
+            <div className="rounded-2xl border border-emerald-500/30 bg-emerald-500/10 px-4 py-3 text-sm text-emerald-100">
+              {noticeMessage}
             </div>
           ) : null}
 

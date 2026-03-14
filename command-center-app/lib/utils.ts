@@ -32,6 +32,30 @@ export function formatOptionalDateTime(value?: string | Date | null) {
   );
 }
 
+export function toDateInputValue(value?: string | Date | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = typeof value === "string" ? new Date(value) : value;
+
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 10);
+}
+
+export function toDateTimeLocalValue(value?: string | Date | null) {
+  if (!value) {
+    return "";
+  }
+
+  const date = typeof value === "string" ? new Date(value) : value;
+
+  return new Date(date.getTime() - date.getTimezoneOffset() * 60000)
+    .toISOString()
+    .slice(0, 16);
+}
+
 export function formatEnumLabel(value: string) {
   return value
     .toLowerCase()

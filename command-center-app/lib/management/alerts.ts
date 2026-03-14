@@ -7,6 +7,7 @@ import {
 import type { AlertTableRow } from "@/lib/dashboard/types";
 import { prisma } from "@/lib/db";
 import { MANAGEMENT_PAGE_SIZE, getOrganizationOptions } from "@/lib/management/organizations";
+import { getProjectOptions } from "@/lib/management/projects";
 import { getSiteOptions } from "@/lib/management/sites";
 import {
   getScopedRecordWhere,
@@ -65,6 +66,7 @@ export type AlertsListFilters = {
   query: string;
   organizationId: string;
   siteId: string;
+  projectInstallationId: string;
   severity: AlertSeverity | "";
   status: AlertStatus | "";
   page: number;
@@ -87,6 +89,30 @@ function buildAlertsWhere(
       filters.siteId
         ? {
             siteId: filters.siteId
+          }
+        : {},
+      filters.projectInstallationId
+        ? {
+            OR: [
+              {
+                device: {
+                  is: {
+                    projectInstallationId: filters.projectInstallationId
+                  }
+                }
+              },
+              {
+                site: {
+                  is: {
+                    projectSites: {
+                      some: {
+                        projectInstallationId: filters.projectInstallationId
+                      }
+                    }
+                  }
+                }
+              }
+            ]
           }
         : {},
       filters.severity
@@ -140,7 +166,7 @@ export async function getAlertsList(user: TenantUser, filters: AlertsListFilters
   const where = buildAlertsWhere(user, filters);
   const skip = (filters.page - 1) * MANAGEMENT_PAGE_SIZE;
 
-  const [totalCount, alerts, organizations, sites] = await Promise.all([
+  const [totalCount, alerts, organizations, sites, projects] = await Promise.all([
     prisma.alert.count({ where }),
     prisma.alert.findMany({
       where,
@@ -152,13 +178,15 @@ export async function getAlertsList(user: TenantUser, filters: AlertsListFilters
       select: alertWithRelationsSelect
     }),
     getOrganizationOptions(user),
-    getSiteOptions(user, filters.organizationId || undefined)
+    getSiteOptions(user, filters.organizationId || undefined),
+    getProjectOptions(user, filters.organizationId || undefined)
   ]);
 
   return {
     alerts,
     organizations,
     sites,
+    projects,
     totalCount,
     pageSize: MANAGEMENT_PAGE_SIZE,
     totalPages: Math.max(1, Math.ceil(totalCount / MANAGEMENT_PAGE_SIZE))
@@ -180,6 +208,7 @@ export async function getRecentAlertsForScope(
   options?: {
     siteId?: string;
     deviceId?: string;
+    projectInstallationId?: string;
     limit?: number;
   }
 ) {
@@ -195,6 +224,30 @@ export async function getRecentAlertsForScope(
         ? {
             deviceId: options.deviceId
           }
+        : {}),
+      ...(options?.projectInstallationId
+        ? {
+            OR: [
+              {
+                device: {
+                  is: {
+                    projectInstallationId: options.projectInstallationId
+                  }
+                }
+              },
+              {
+                site: {
+                  is: {
+                    projectSites: {
+                      some: {
+                        projectInstallationId: options.projectInstallationId
+                      }
+                    }
+                  }
+                }
+              }
+            ]
+          }
         : {})
     },
     orderBy: {
@@ -207,9 +260,15 @@ export async function getRecentAlertsForScope(
 
 export async function getRecentAlertsTableRows(
   user: TenantUser,
-  limit = 8
+  limit = 8,
+  options?: {
+    siteId?: string;
+    deviceId?: string;
+    projectInstallationId?: string;
+  }
 ): Promise<AlertTableRow[]> {
   const alerts = await getRecentAlertsForScope(user, {
+    ...options,
     limit
   });
 
