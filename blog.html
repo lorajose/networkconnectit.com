@@ -456,6 +456,11 @@
                 pointer-events: auto;
             }
 
+            .blog-modal {
+                padding: 1rem;
+                box-sizing: border-box;
+            }
+
             .blog-modal__backdrop,
             .comments-drawer__backdrop {
                 position: absolute;
@@ -468,32 +473,70 @@
             .blog-modal__panel {
                 position: relative;
                 margin: auto;
-                width: min(920px, calc(100% - 2rem));
+                width: min(920px, 100%);
                 max-height: calc(100dvh - 2rem);
-                overflow: auto;
+                overflow: hidden;
+                display: flex;
+                flex-direction: column;
                 border-radius: 22px;
                 border: 1px solid rgba(114, 182, 255, 0.36);
                 background: linear-gradient(165deg, rgba(8, 24, 46, 0.98), rgba(6, 16, 33, 0.98));
                 box-shadow: 0 24px 66px rgba(3, 12, 26, 0.7);
-                padding: 1.2rem;
+                padding: 0;
             }
 
             .blog-modal__header {
                 display: flex;
+                align-items: flex-start;
                 justify-content: space-between;
                 gap: 1rem;
-                margin-bottom: 0.75rem;
+                position: sticky;
+                top: 0;
+                z-index: 3;
+                padding: calc(1rem + env(safe-area-inset-top, 0px)) 1.2rem 0.95rem;
+                background: linear-gradient(180deg, rgba(9, 28, 53, 0.99), rgba(8, 24, 46, 0.94));
+                border-bottom: 1px solid rgba(114, 182, 255, 0.2);
             }
 
             .blog-modal__title {
                 color: #ffffff;
                 margin: 0;
+                flex: 1;
+                min-width: 0;
+            }
+
+            .blog-modal__body {
+                min-height: 0;
+                overflow-y: auto;
+                padding: 1rem 1.2rem calc(1.2rem + env(safe-area-inset-bottom, 0px));
+                -webkit-overflow-scrolling: touch;
+                overscroll-behavior: contain;
+                scrollbar-gutter: stable both-edges;
             }
 
             .blog-modal__meta {
                 color: var(--blog-muted);
                 margin-bottom: 0.85rem;
                 font-size: 0.88rem;
+            }
+
+            .blog-modal__stats {
+                display: flex;
+                flex-wrap: wrap;
+                gap: 0.55rem;
+                margin-bottom: 1rem;
+            }
+
+            .blog-modal__stat {
+                display: inline-flex;
+                align-items: center;
+                gap: 0.35rem;
+                padding: 0.35rem 0.72rem;
+                border-radius: 999px;
+                font-size: 0.78rem;
+                color: #dce9ff;
+                border: 1px solid rgba(114, 182, 255, 0.36);
+                background: rgba(7, 20, 40, 0.45);
             }
 
             .blog-modal__image {
@@ -537,13 +580,23 @@
 
             .modal-close {
                 border: 1px solid rgba(114, 182, 255, 0.45);
-                width: 38px;
-                height: 38px;
+                width: 44px;
+                height: 44px;
+                min-width: 44px;
                 border-radius: 50%;
                 display: inline-grid;
                 place-items: center;
                 color: #e8f2ff;
                 background: rgba(11, 29, 53, 0.65);
+                cursor: pointer;
+                z-index: 4;
+            }
+
+            .modal-close:hover,
+            .modal-close:focus-visible {
+                border-color: rgba(78, 255, 209, 0.8);
+                box-shadow: 0 0 0 1px rgba(78, 255, 209, 0.24), 0 0 20px rgba(29, 181, 255, 0.28);
+                outline: none;
             }
 
             .comments-drawer {
@@ -681,9 +734,26 @@
                     text-align: center;
                 }
 
+                .blog-modal {
+                    padding: 0.5rem;
+                }
+
                 .blog-modal__panel {
-                    width: calc(100% - 1rem);
-                    padding: 1rem;
+                    width: 100%;
+                    max-height: calc(100dvh - 1rem);
+                    border-radius: 18px;
+                }
+
+                .blog-modal__header {
+                    padding: calc(0.85rem + env(safe-area-inset-top, 0px)) 0.9rem 0.8rem;
+                }
+
+                .blog-modal__body {
+                    padding: 0.9rem 0.9rem calc(1rem + env(safe-area-inset-bottom, 0px));
+                }
+
+                .blog-modal__image {
+                    max-height: 220px;
                 }
             }
 
@@ -794,16 +864,19 @@
 
         <div class="blog-modal" id="articleModal" aria-hidden="true">
             <button class="blog-modal__backdrop" type="button" data-close-article></button>
-            <div class="blog-modal__panel" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle">
+            <div class="blog-modal__panel" role="dialog" aria-modal="true" aria-labelledby="articleModalTitle" tabindex="-1">
                 <div class="blog-modal__header">
                     <h3 class="blog-modal__title" id="articleModalTitle"></h3>
                     <button class="modal-close" type="button" data-close-article aria-label="Close article">
                         <i class="fa fa-times"></i>
                     </button>
                 </div>
-                <p class="blog-modal__meta" id="articleModalMeta"></p>
-                <img class="blog-modal__image" id="articleModalImage" src="" alt="">
-                <div class="blog-modal__content" id="articleModalContent"></div>
+                <div class="blog-modal__body" id="articleModalBody">
+                    <p class="blog-modal__meta" id="articleModalMeta"></p>
+                    <div class="blog-modal__stats" id="articleModalStats" aria-live="polite"></div>
+                    <img class="blog-modal__image" id="articleModalImage" src="" alt="">
+                    <div class="blog-modal__content" id="articleModalContent"></div>
+                </div>
             </div>
         </div>
 
@@ -876,9 +949,9 @@
                         <div class="footer-item d-flex flex-column">
                             <h4 class="mb-4 text-dark">Contact Info</h4>
                             <a href=""><i class="fa fa-map-marker-alt me-2"></i> 117 Berkshire Dr, Farmingville, NY 11738, USA</a>
-                            <a href=""><i class="fas fa-envelope me-2"></i> Email us at:: network@networkconnectit.com</a>
-                            <!-- <a href=""><i class="fas fa-envelope me-2"></i> Email us at:: networkconnectit@gmail.com</a> -->
-                             <a href=""><i class="fas fa-phone me-2"></i>Call us at:: 1 917 403 7129 inglés and español</a>
+                            <a href="mailto:networkconnectit@gmail.com"><i class="fas fa-envelope me-2"></i> Email us at: networkconnectit@gmail.com</a>
+                            <!-- <a href="mailto:networkconnectit@gmail.com"><i class="fas fa-envelope me-2"></i> Email us at: networkconnectit@gmail.com</a> -->
+                             <a href="tel:+19174037129"><i class="fas fa-phone me-2"></i> Call us at: +1 917 403 7129 (English and Spanish)</a>
                             <!-- <a href=""><i class="fas fa-phone me-2"></i>Call us at:: 631 505 9244  español</a> -->
                            <!-- <a href="" class="mb-3"><i class="fas fa-print me-2"></i> +012 345 67890</a> -->
                             <div class="d-flex align-items-center">
@@ -1261,6 +1334,85 @@
                         <h2>Final CTA</h2>
                         <p><strong>Don't let your cables hold back your intelligence. Schedule an AI-Ready Readiness Assessment with NetworkConnectIt.</strong></p>
                     `
+                },
+                {
+                    id: "router-upgrade-seamlessly",
+                    layout: "wide",
+                    title: "Worried a New Router Will Break Your Wi-Fi? Here\u2019s How to Upgrade Seamlessly",
+                    category: "Wi-Fi Upgrades",
+                    date: "2026-03-16",
+                    readTime: 8,
+                    image: "img/router-upgrade-networkconnectit.svg",
+                    excerpt: "Router upgrades should improve coverage and capacity, not force you to reconnect every device. Here is the field-tested approach we use to swap aging routers with minimal disruption.",
+                    creditLabel: "Inspired by the original guide published by PCMag.",
+                    creditUrl: "https://www.pcmag.com/how-to/worried-a-new-router-will-break-your-wi-fi-heres-how-to-upgrade-seamlessly",
+                    likes: 24,
+                    contentHtml: `
+                        <h2>Worried a New Router Will Break Your Wi-Fi? Here\u2019s How to Upgrade Seamlessly</h2>
+                        <p><strong>By NetworkConnectIT</strong></p>
+                        <p>Upgrading your router should improve your network, not disrupt it. However, many homeowners and small businesses hesitate to replace aging networking equipment because they fear losing Wi-Fi names, reconnecting dozens of devices, or breaking smart home systems.</p>
+                        <p>At NetworkConnectIT, we regularly upgrade networks for homes, offices, retail stores, and surveillance infrastructures across New York, Long Island, New Jersey, and Connecticut. With the right approach, a router upgrade can be completed seamlessly with zero downtime for users.</p>
+                        <p>In this guide, we explain the best practices to upgrade your router safely and efficiently.</p>
+
+                        <p style="margin-top:1rem;border-top:1px solid rgba(255,255,255,0.16);padding-top:0.8rem;font-size:0.93rem;">
+                            <strong>Inspired by the original guide published by PCMag.</strong>
+                            Read the source that inspired this post:
+                            <a href="https://www.pcmag.com/how-to/worried-a-new-router-will-break-your-wi-fi-heres-how-to-upgrade-seamlessly" target="_blank" rel="noopener noreferrer">PCMag</a>.
+                        </p>
+
+                        <h2>1. Keep the Same Wi-Fi Network Name (SSID)</h2>
+                        <p>The easiest way to avoid reconnecting every device in your home or office is to reuse the same Wi-Fi network name and password.</p>
+                        <p>When your new router uses the same SSID and security key, phones reconnect automatically, laptops reconnect automatically, smart TVs and IoT devices stay connected, and cameras and smart home devices continue working.</p>
+                        <p>For businesses, this also prevents disruptions to POS systems, IP phones, and security cameras.</p>
+
+                        <h2>2. Take a Photo of Your Current Router Settings</h2>
+                        <p>Before replacing a router, document your existing configuration. That includes the Wi-Fi network name, Wi-Fi password, LAN IP address, port forwarding rules, DHCP reservations, and VLAN configuration if it is being used.</p>
+                        <p>This ensures your new router can replicate the same network behavior instead of forcing a redesign during a live cutover.</p>
+
+                        <h2>3. Upgrade to Modern Wi-Fi Standards</h2>
+                        <p>Older routers often struggle with modern workloads such as 4K streaming, cloud applications, security cameras, remote work VPN connections, and AI-powered video analytics.</p>
+                        <p>Modern routers supporting Wi-Fi 6 or Wi-Fi 7 provide better device capacity, improved latency, stronger signal stability, and faster speeds.</p>
+                        <p>At NetworkConnectIT, we frequently deploy enterprise-grade solutions such as Ubiquiti UniFi, Cisco small business networking, and managed mesh Wi-Fi systems.</p>
+
+                        <h2>4. Consider Mesh Wi-Fi for Larger Homes or Offices</h2>
+                        <p>If you experience dead zones, upgrading to a mesh Wi-Fi system can dramatically improve coverage.</p>
+                        <ul>
+                            <li>Seamless roaming between nodes</li>
+                            <li>Stronger coverage across multiple floors</li>
+                            <li>Better performance for smart homes and offices</li>
+                        </ul>
+                        <p>Mesh systems are ideal for multi-floor homes, retail spaces, warehouses, and surveillance deployments.</p>
+
+                        <h2>5. Test Everything After the Upgrade</h2>
+                        <p>After installing the new router, validate the systems that matter before considering the job complete.</p>
+                        <ul>
+                            <li>Internet speed</li>
+                            <li>Wi-Fi coverage</li>
+                            <li>Security cameras</li>
+                            <li>Printers</li>
+                            <li>Smart devices</li>
+                            <li>VPN connections</li>
+                        </ul>
+                        <p>This validation step ensures that the upgrade delivers the performance improvements expected.</p>
+
+                        <h2>When to Call a Professional</h2>
+                        <p>Router upgrades may become complex when networks include CCTV camera systems, access control systems, VLAN segmentation, Starlink or 5G failover, or PoE switching infrastructure.</p>
+                        <p>Professional installation ensures minimal downtime and optimal configuration. At NetworkConnectIT, we help businesses modernize their networks while maintaining reliability and security.</p>
+
+                        <h2>Need Help Upgrading Your Network?</h2>
+                        <p>If you are planning to upgrade your router or redesign your Wi-Fi infrastructure, our team can help with network assessments, router and switch installation, enterprise Wi-Fi deployment, CCTV network optimization, and structured cabling.</p>
+                        <p><strong>Serving NYC, Long Island, NJ, and CT.</strong></p>
+                        <p>Visit: <a href="https://networkconnectit.com" target="_blank" rel="noopener noreferrer">https://networkconnectit.com</a></p>
+
+                        <h2>Reference</h2>
+                        <p>This article was inspired by the original guide published by PCMag. We thank the PCMag team for their excellent insights on home networking upgrades.</p>
+                        <p>Original source:
+                            <a href="https://www.pcmag.com/how-to/worried-a-new-router-will-break-your-wi-fi-heres-how-to-upgrade-seamlessly" target="_blank" rel="noopener noreferrer">https://www.pcmag.com/how-to/worried-a-new-router-will-break-your-wi-fi-heres-how-to-upgrade-seamlessly</a>
+                        </p>
+
+                        <h2>SEO Tags</h2>
+                        <p>router upgrade, wifi upgrade guide, replace router without reconnecting devices, wifi 6 upgrade, networkconnectit networking services, enterprise wifi installation nyc</p>
+                    `
                 }
             ];
 
@@ -1277,7 +1429,8 @@
                 { type: "cta" },
                 { type: "post", id: "preventive-maintenance-sla" },
                 { type: "ad" },
-                { type: "post", id: "network-security-audit" }
+                { type: "post", id: "network-security-audit" },
+                { type: "post", id: "router-upgrade-seamlessly" }
             ];
 
             const postMap = new Map(blogPosts.map(function (post) {
@@ -1288,11 +1441,23 @@
             const progressBar = document.getElementById("readingProgressBar");
             const articleModal = document.getElementById("articleModal");
             const commentsDrawer = document.getElementById("commentsDrawer");
-            if (!grid || !progressBar || !articleModal || !commentsDrawer) {
+            const articleModalPanel = document.querySelector(".blog-modal__panel");
+            const articleModalBody = document.getElementById("articleModalBody");
+            const articleModalTitle = document.getElementById("articleModalTitle");
+            const articleModalMeta = document.getElementById("articleModalMeta");
+            const articleModalImage = document.getElementById("articleModalImage");
+            const articleModalContent = document.getElementById("articleModalContent");
+            const articleModalStats = document.getElementById("articleModalStats");
+            const articleModalCloseButton = articleModal.querySelector(".modal-close[data-close-article]");
+            if (!grid || !progressBar || !articleModal || !commentsDrawer || !articleModalPanel || !articleModalBody || !articleModalTitle || !articleModalMeta || !articleModalImage || !articleModalContent || !articleModalStats || !articleModalCloseButton) {
                 return;
             }
 
             let activeCommentsPostId = null;
+            let activeArticleId = null;
+            let activeArticleTrigger = null;
+            let lockedScrollY = 0;
+            let isPageScrollLocked = false;
             const state = loadState();
 
             renderGrid();
@@ -1315,6 +1480,9 @@
                 blogPosts.forEach(function (post) {
                     if (!parsed[post.id] || typeof parsed[post.id] !== "object") {
                         parsed[post.id] = {};
+                    }
+                    if (typeof parsed[post.id].views !== "number") {
+                        parsed[post.id].views = typeof post.views === "number" ? post.views : 0;
                     }
                     if (!Array.isArray(parsed[post.id].comments)) {
                         parsed[post.id].comments = [];
@@ -1365,6 +1533,7 @@
                                         '<span class="' + categoryPillClass + '"><i class="fa fa-bookmark"></i> ' + escapeHtml(post.category) + "</span>" +
                                         '<span class="meta-pill"><i class="fa fa-calendar-alt"></i> ' + formatDate(post.date) + "</span>" +
                                         '<span class="meta-pill meta-pill--read"><i class="fa fa-hourglass-half"></i> ' + post.readTime + " min read</span>" +
+                                        '<span class="meta-pill"><i class="fa fa-eye"></i> <span data-view-count="' + post.id + '">' + itemState.views + "</span> views</span>" +
                                     "</div>" +
                                     "<h3>" + escapeHtml(post.title) + "</h3>" +
                                     "<p>" + escapeHtml(post.excerpt) + "</p>" +
@@ -1373,7 +1542,7 @@
                                         : "") +
                                     '<div class="bento-card__actions">' +
                                         '<button type="button" class="neon-btn ripple-btn js-read-more" data-post-id="' + post.id + '"><i class="fa fa-arrow-right btn-icon"></i>Read More</button>' +
-                                        '<button type="button" class="ghost-btn ripple-btn js-like ' + likedClass + '" data-post-id="' + post.id + '">' +
+                                        '<button type="button" class="ghost-btn ripple-btn js-like ' + likedClass + '" data-post-id="' + post.id + '" aria-pressed="' + (itemState.liked ? "true" : "false") + '">' +
                                             '<i class="fa fa-heart btn-icon"></i><span data-like-count="' + post.id + '">' + itemState.likes + "</span>" +
                                         "</button>" +
                                         '<button type="button" class="ghost-btn ripple-btn js-open-comments" data-post-id="' + post.id + '">' +
@@ -1482,13 +1651,13 @@
                 grid.addEventListener("click", function (event) {
                     const readButton = event.target.closest(".js-read-more");
                     if (readButton) {
-                        openArticleModal(readButton.getAttribute("data-post-id"));
+                        openArticleModal(readButton.getAttribute("data-post-id"), readButton);
                         return;
                     }
 
                     const likeButton = event.target.closest(".js-like");
                     if (likeButton) {
-                        toggleLike(likeButton.getAttribute("data-post-id"));
+                        incrementArticleLike(likeButton.getAttribute("data-post-id"));
                         return;
                     }
 
@@ -1561,62 +1730,164 @@
                 }, 620);
             }
 
-            function openArticleModal(postId) {
+            function lockPageScroll() {
+                if (isPageScrollLocked) {
+                    return;
+                }
+
+                lockedScrollY = window.scrollY || window.pageYOffset || 0;
+                document.body.style.position = "fixed";
+                document.body.style.top = "-" + lockedScrollY + "px";
+                document.body.style.left = "0";
+                document.body.style.right = "0";
+                document.body.style.width = "100%";
+                document.body.style.overflow = "hidden";
+                document.documentElement.style.overflow = "hidden";
+                isPageScrollLocked = true;
+            }
+
+            function unlockPageScroll() {
+                if (!isPageScrollLocked) {
+                    return;
+                }
+
+                const savedTop = document.body.style.top;
+                document.body.style.position = "";
+                document.body.style.top = "";
+                document.body.style.left = "";
+                document.body.style.right = "";
+                document.body.style.width = "";
+                document.body.style.overflow = "";
+                document.documentElement.style.overflow = "";
+                isPageScrollLocked = false;
+                window.scrollTo(0, Math.abs(parseInt(savedTop || "0", 10)) || lockedScrollY);
+            }
+
+            function syncPageScrollLock() {
+                if (articleModal.classList.contains("is-open") || commentsDrawer.classList.contains("is-open")) {
+                    lockPageScroll();
+                    return;
+                }
+                unlockPageScroll();
+            }
+
+            function focusWithoutScroll(element) {
+                if (!element || typeof element.focus !== "function") {
+                    return;
+                }
+
+                try {
+                    element.focus({ preventScroll: true });
+                } catch (error) {
+                    element.focus();
+                }
+            }
+
+            function renderModalStats(postId) {
+                if (!state[postId]) {
+                    articleModalStats.innerHTML = "";
+                    return;
+                }
+
+                articleModalStats.innerHTML =
+                    '<span class="blog-modal__stat"><i class="fa fa-eye"></i> <span data-view-count="' + postId + '">' + state[postId].views + '</span> views</span>' +
+                    '<span class="blog-modal__stat"><i class="fa fa-heart"></i> <span data-like-count="' + postId + '">' + state[postId].likes + '</span> likes</span>' +
+                    '<span class="blog-modal__stat"><i class="fa fa-comment"></i> <span data-comment-count="' + postId + '">' + state[postId].comments.length + '</span> comments</span>';
+            }
+
+            function syncEngagementUI(postId) {
+                if (!state[postId]) {
+                    return;
+                }
+
+                if (activeArticleId === postId) {
+                    renderModalStats(postId);
+                }
+
+                document.querySelectorAll('[data-like-count="' + postId + '"]').forEach(function (counter) {
+                    counter.textContent = state[postId].likes;
+                });
+
+                document.querySelectorAll('[data-view-count="' + postId + '"]').forEach(function (counter) {
+                    counter.textContent = state[postId].views;
+                });
+
+                document.querySelectorAll('.js-like[data-post-id="' + postId + '"]').forEach(function (button) {
+                    button.classList.toggle("is-active", state[postId].liked);
+                    button.setAttribute("aria-pressed", state[postId].liked ? "true" : "false");
+                });
+            }
+
+            function incrementArticleView(postId) {
+                if (!state[postId]) {
+                    return;
+                }
+
+                state[postId].views += 1;
+                saveState();
+                syncEngagementUI(postId);
+            }
+
+            function incrementArticleLike(postId) {
+                if (!state[postId]) {
+                    return;
+                }
+
+                if (state[postId].liked) {
+                    syncEngagementUI(postId);
+                    return;
+                }
+
+                state[postId].liked = true;
+                state[postId].likes += 1;
+                saveState();
+                syncEngagementUI(postId);
+            }
+
+            function openArticleModal(postId, triggerElement) {
                 const post = postMap.get(postId);
                 if (!post) {
                     return;
                 }
 
-                document.getElementById("articleModalTitle").textContent = post.title;
-                document.getElementById("articleModalMeta").textContent = formatDate(post.date) + "  |  " + post.readTime + " min read  |  " + post.category;
+                activeArticleId = postId;
+                activeArticleTrigger = triggerElement || document.activeElement;
 
-                const image = document.getElementById("articleModalImage");
-                image.src = post.image;
-                image.alt = post.title;
+                articleModalTitle.textContent = post.title;
+                articleModalMeta.textContent = formatDate(post.date) + "  |  " + post.readTime + " min read  |  " + post.category;
+                articleModalImage.src = post.image;
+                articleModalImage.alt = post.title;
 
-                const content = document.getElementById("articleModalContent");
                 if (typeof post.contentHtml === "string" && post.contentHtml.trim() !== "") {
-                    content.innerHTML = post.contentHtml;
+                    articleModalContent.innerHTML = post.contentHtml;
                 } else if (Array.isArray(post.content)) {
-                    content.innerHTML = post.content.map(function (paragraph) {
+                    articleModalContent.innerHTML = post.content.map(function (paragraph) {
                         return "<p>" + escapeHtml(paragraph) + "</p>";
                     }).join("");
                 } else {
-                    content.innerHTML = "<p>Article content is not available yet.</p>";
+                    articleModalContent.innerHTML = "<p>Article content is not available yet.</p>";
                 }
 
+                incrementArticleView(postId);
+                articleModalBody.scrollTop = 0;
+                articleModalPanel.scrollTop = 0;
                 articleModal.classList.add("is-open");
                 articleModal.setAttribute("aria-hidden", "false");
-                document.body.style.overflow = "hidden";
+                syncPageScrollLock();
+                window.requestAnimationFrame(function () {
+                    focusWithoutScroll(articleModalCloseButton);
+                });
             }
 
             function closeArticleModal() {
                 articleModal.classList.remove("is-open");
                 articleModal.setAttribute("aria-hidden", "true");
-                if (!commentsDrawer.classList.contains("is-open")) {
-                    document.body.style.overflow = "";
+                activeArticleId = null;
+                syncPageScrollLock();
+                if (activeArticleTrigger && document.contains(activeArticleTrigger) && typeof activeArticleTrigger.focus === "function") {
+                    focusWithoutScroll(activeArticleTrigger);
                 }
-            }
-
-            function toggleLike(postId) {
-                if (!state[postId]) {
-                    return;
-                }
-                const postState = state[postId];
-                postState.liked = !postState.liked;
-                postState.likes += postState.liked ? 1 : -1;
-                if (postState.likes < 0) {
-                    postState.likes = 0;
-                }
-                saveState();
-
-                document.querySelectorAll('[data-like-count="' + postId + '"]').forEach(function (counter) {
-                    counter.textContent = postState.likes;
-                });
-
-                document.querySelectorAll('.js-like[data-post-id="' + postId + '"]').forEach(function (button) {
-                    button.classList.toggle("is-active", postState.liked);
-                });
+                activeArticleTrigger = null;
             }
 
             function openComments(postId) {
@@ -1629,15 +1900,13 @@
                 renderComments(postId);
                 commentsDrawer.classList.add("is-open");
                 commentsDrawer.setAttribute("aria-hidden", "false");
-                document.body.style.overflow = "hidden";
+                syncPageScrollLock();
             }
 
             function closeComments() {
                 commentsDrawer.classList.remove("is-open");
                 commentsDrawer.setAttribute("aria-hidden", "true");
-                if (!articleModal.classList.contains("is-open")) {
-                    document.body.style.overflow = "";
-                }
+                syncPageScrollLock();
             }
 
             function renderComments(postId) {
@@ -1679,6 +1948,9 @@
 
             function syncCommentCounters(postId) {
                 const count = state[postId] && state[postId].comments ? state[postId].comments.length : 0;
+                if (activeArticleId === postId) {
+                    renderModalStats(postId);
+                }
                 document.querySelectorAll('[data-comment-count="' + postId + '"]').forEach(function (counter) {
                     counter.textContent = count;
                 });

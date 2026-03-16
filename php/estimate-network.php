@@ -203,12 +203,12 @@ if (file_exists($autoloadPath)) {
         $mail->isSMTP();
         $mail->Host = 'mail.networkconnectit.com';
         $mail->SMTPAuth = true;
-        $mail->Username = 'network@networkconnectit.com';
+        $mail->Username = 'networkconnectit@gmail.com';
         $mail->Password = 'CarlosJose2024';
         $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
         $mail->Port = 587;
 
-        $mail->setFrom('network@networkconnectit.com', 'NetworkConnectIT');
+        $mail->setFrom('networkconnectit@gmail.com', 'NetworkConnectIT');
         $mail->addAddress($to);
         $mail->addReplyTo($email);
         $mail->isHTML(true);

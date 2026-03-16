@@ -246,11 +246,11 @@ export function AuthShell({ children }: { children: ReactNode }) {
                   <span>117 Berkshire Dr, Farmingville, NY 11738, USA</span>
                 </a>
                 <a
-                  href="mailto:network@networkconnectit.com"
+                  href="mailto:networkconnectit@gmail.com"
                   className="flex items-start gap-3 transition-colors hover:text-sky-700"
                 >
                   <Mail className="mt-0.5 h-4 w-4 shrink-0" />
-                  <span>network@networkconnectit.com</span>
+                  <span>networkconnectit@gmail.com</span>
                 </a>
                 <a
                   href="tel:+19174037129"

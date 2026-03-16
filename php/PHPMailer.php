@@ -25,7 +25,7 @@ if ($_SERVER["REQUEST_METHOD"] == "POST") {
             $mail->isSMTP();
             $mail->Host = 'mail.networkconnectit.com';
             $mail->SMTPAuth = true;
-            $mail->Username = 'network@networkconnectit.com';  // Tu correo SMTP
+            $mail->Username = 'networkconnectit@gmail.com';  // Tu correo SMTP
             $mail->Password = 'CarlosJose2024';  // Tu contraseña SMTP
             $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // o PHPMailer::ENCRYPTION_SMTPS para SSL
             $mail->Port = 587; // o 465 para SSL
