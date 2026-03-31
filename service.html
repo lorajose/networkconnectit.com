@@ -119,6 +119,129 @@ header a:hover {
             color: #004080;
             margin-bottom: 10px;
         }
+        .service-card ul {
+            color: #555;
+            line-height: 1.7;
+        }
+        .service-card li + li {
+            margin-top: 0.2rem;
+        }
+        .service-focus-hero {
+            background: linear-gradient(135deg, rgba(45,212,255,0.18), rgba(11,16,32,0.96));
+            color: #e2e8f0;
+            text-align: center;
+            padding: 56px 20px;
+        }
+        .service-focus-hero h1 {
+            font-size: clamp(2.2rem, 4vw, 3.4rem);
+            margin: 0 0 1rem;
+            color: #ffffff;
+        }
+        .service-focus-hero p {
+            max-width: 920px;
+            margin: 0 auto 1.5rem;
+            color: #cbd5e1;
+        }
+        .service-hero-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+        }
+        .service-focus-trust-line {
+            margin-top: 1rem;
+            font-size: 0.98rem;
+            font-weight: 600;
+            color: #9eff00;
+        }
+        .service-focus-section {
+            background: linear-gradient(180deg, rgba(255,255,255,0.98), rgba(245,249,255,0.96));
+        }
+        .service-badges {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 0.8rem;
+            margin: 1.4rem auto 2rem;
+            max-width: 1000px;
+        }
+        .service-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 0.5rem;
+            padding: 0.7rem 1rem;
+            border-radius: 999px;
+            background: #0b1220;
+            color: #e2e8f0;
+            border: 1px solid rgba(45,212,255,0.2);
+            font-size: 0.95rem;
+            font-weight: 600;
+        }
+        .service-trust-grid {
+            max-width: 1200px;
+            margin: 2.5rem auto 0;
+        }
+        .trust-item {
+            height: 100%;
+            padding: 1.25rem;
+            border-radius: 12px;
+            background: #f9f9f9;
+            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.08);
+            color: #234;
+        }
+        .trust-item i {
+            color: #2dd4ff;
+            font-size: 1.25rem;
+            margin-bottom: 0.75rem;
+        }
+        .trust-item h3 {
+            font-size: 1.1rem;
+            color: #004080;
+            margin-bottom: 0;
+        }
+        .cta-section {
+            max-width: 1200px;
+            margin: 36px auto 0;
+            padding: 44px 24px;
+            border-radius: 16px;
+            text-align: center;
+            background: linear-gradient(135deg, rgba(45,212,255,0.18), rgba(11,16,32,0.95));
+            box-shadow: 0 8px 18px rgba(0, 0, 0, 0.14);
+        }
+        .cta-section h2 {
+            font-size: clamp(2rem, 3vw, 2.8rem);
+            color: #ffffff;
+            margin-bottom: 12px;
+        }
+        .cta-section p {
+            color: #cbd5e1;
+            margin-bottom: 24px;
+        }
+        .service-cta-actions {
+            display: flex;
+            flex-wrap: wrap;
+            justify-content: center;
+            gap: 1rem;
+            margin-bottom: 1rem;
+        }
+        .service-cta-note {
+            margin-bottom: 0;
+            color: #9eff00;
+            font-size: 0.98rem;
+            font-weight: 600;
+        }
+        @media (max-width: 767.98px) {
+            .service-focus-hero,
+            .cta-section {
+                padding: 40px 18px;
+            }
+
+            .service-hero-actions,
+            .service-cta-actions {
+                flex-direction: column;
+                align-items: stretch;
+            }
+        }
         .contact-form {
             background-color: #f9f9f9;
             padding: 40px;
@@ -1096,43 +1219,141 @@ header a:hover {
             </div>
             <!-- Portfolio CTA End -->
                  
-           <!--New part about inseego starts -->  
+           <!-- Core Services Focus Start -->  
                  
-<header>
-    <h1>Inseego Installation Services</h1>
-    <p>Explore our 5G & 4G LTE solutions. Choose from powerful indoor and outdoor options for reliable, high-speed wireless internet access wherever you need it.</p>
-    <a href="contact.html">Get a Quote</a>
+<header class="service-focus-hero">
+    <h1 class="service-title">Professional Low Voltage, CCTV &amp; Network Services</h1>
+    <p class="service-subtitle">Secure, connect, and strengthen your business with reliable infrastructure solutions built for performance, safety, and uptime. NetworkConnectIT delivers professional installations and support for surveillance, structured cabling, Wi-Fi, and business networks.</p>
+    <div class="service-hero-actions">
+        <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-5">Get a Quote</a>
+        <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Contact Us</a>
+    </div>
+    <p class="service-focus-trust-line">Serving businesses across NY, NYC, Long Island, NJ, and CT.</p>
 </header>
 
-<section>
-    <h2>Our Inseego Installation Services</h2>
-    <p>We install and support Inseego 5G/4G to add redundant wireless backbones for branches and warehouses—keeping scanners, PoS, and CCTV up when wired circuits drop.</p>
+<section class="service-focus-section">
+    <h2 class="section-title">Infrastructure That Keeps Your Business Running</h2>
+    <p class="section-description">We help businesses build dependable technology environments with clean, code-conscious, and scalable installations. From CCTV systems and low-voltage cabling to enterprise Wi-Fi and Cisco router configuration, our services are designed to reduce downtime, improve visibility, and support growth.</p>
 
-    <div class="service">
-        <img src="https://cdn.inseego.com/images/trgu17ld/production/2439bb1a31b1629f6f174787108789203c5f827d-2554x1327.jpg?auto=format" alt="Inseego Indoor Solution" style="max-width:320px;object-fit:cover;">
+    <div class="service-badges">
+        <span class="service-badge"><i class="fas fa-check-circle"></i> Fast, Professional Installations</span>
+        <span class="service-badge"><i class="fas fa-shield-alt"></i> Secure &amp; Scalable Solutions</span>
+        <span class="service-badge"><i class="fas fa-briefcase"></i> Support for Commercial Environments</span>
+    </div>
+
+    <p class="section-description">We support business owners, property managers, general contractors, retail stores, warehouses, offices, multi-site businesses, and security integrators that need a reliable field partner for installations, upgrades, and service calls.</p>
+
+    <div class="service service-card">
+        <img src="/img/cctv.png" alt="CCTV installation">
         <div>
-            <h3>Indoor Solutions</h3>
-            <p>Install Inseego's high-performance indoor 5G and 4G LTE devices for reliable wireless internet access in homes and offices.</p>
+            <h3>CCTV &amp; Surveillance Installation</h3>
+            <p>Protect your property, staff, and operations with professionally installed surveillance systems. We deploy reliable camera solutions for offices, retail stores, warehouses, residential properties, and commercial facilities.</p>
+            <ul class="text-start d-inline-block mb-0 ps-3">
+                <li>IP camera installation</li>
+                <li>NVR / DVR setup</li>
+                <li>Remote viewing configuration</li>
+                <li>Coverage planning and optimization</li>
+            </ul>
         </div>
     </div>
 
-    <div class="service">
-        <img src="img/hero-img-1.png" alt="Outdoor failover-ready network stack" style="max-width:320px;object-fit:cover;">
+    <div class="service service-card">
+        <img src="/img/example-cabling.png" alt="Structured cabling">
         <div>
-            <h3>Outdoor Solutions</h3>
-            <p>Deploy rugged outdoor Inseego solutions for stable, high-speed internet access in challenging environments.</p>
+            <h3>Low Voltage &amp; Structured Cabling</h3>
+            <p>Build a clean and organized foundation for your technology systems with structured cabling solutions designed for performance and future growth.</p>
+            <ul class="text-start d-inline-block mb-0 ps-3">
+                <li>Cat5e / Cat6 / Cat6A installation</li>
+                <li>Fiber optic runs</li>
+                <li>Patch panels and rack cleanup</li>
+                <li>Labeling and cable organization</li>
+            </ul>
         </div>
     </div>
 
-    <div class="service">
-        <img src="https://cdn.inseego.com/images/trgu17ld/production/dee0b1b2c0c059ca0f75a3dc3b2b0cad56a41539-1816x1629.png?auto=format" alt="Support and Maintenance" style="max-width:320px;object-fit:cover;">
+    <div class="service service-card">
+        <img src="/img/hero-img-1.png" alt="Business network services">
         <div>
-            <h3>Support & Maintenance</h3>
-            <p>Get ongoing support and maintenance for your Inseego devices, ensuring optimal performance and uptime.</p>
+            <h3>Business Network Services</h3>
+            <p>Improve stability, speed, and connectivity with network services tailored for modern business operations and multi-device environments.</p>
+            <ul class="text-start d-inline-block mb-0 ps-3">
+                <li>Business Wi-Fi solutions and tuning</li>
+                <li>Network upgrades</li>
+                <li>Switch and access point installation</li>
+                <li>Small office to multi-site support</li>
+            </ul>
         </div>
+    </div>
+
+    <div class="service service-card">
+        <img src="/img/router-upgrade-networkconnectit.svg" alt="Cisco router configuration">
+        <div>
+            <h3>Cisco Router &amp; Firewall Configuration</h3>
+            <p>Strengthen network performance and security with professional router, switch, and firewall configuration for your business environment.</p>
+            <ul class="text-start d-inline-block mb-0 ps-3">
+                <li>Cisco router setup</li>
+                <li>VLAN configuration</li>
+                <li>VPN and remote access</li>
+                <li>Security hardening and troubleshooting</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="service service-card">
+        <img src="/img/costumer.png" alt="Support and maintenance">
+        <div>
+            <h3>Support &amp; Maintenance</h3>
+            <p>Keep your systems operating at their best with ongoing support, troubleshooting, upgrades, and preventive maintenance services.</p>
+            <ul class="text-start d-inline-block mb-0 ps-3">
+                <li>System diagnostics</li>
+                <li>Maintenance visits</li>
+                <li>Network troubleshooting</li>
+                <li>Equipment replacement support</li>
+            </ul>
+        </div>
+    </div>
+
+    <div class="service-trust-grid">
+        <h2 class="section-title">Why Businesses Choose NetworkConnectIT</h2>
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="trust-item">
+                    <i class="fas fa-check-circle"></i>
+                    <h3>Professional, clean installations</h3>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="trust-item">
+                    <i class="fas fa-bolt"></i>
+                    <h3>Reliable communication and fast turnaround</h3>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="trust-item">
+                    <i class="fas fa-network-wired"></i>
+                    <h3>Experience with security and network infrastructure</h3>
+                </div>
+            </div>
+            <div class="col-md-6 col-lg-3">
+                <div class="trust-item">
+                    <i class="fas fa-tools"></i>
+                    <h3>Support for new installs, upgrades, and service calls</h3>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="cta-section">
+        <h2>Need a Reliable Low Voltage &amp; Network Partner?</h2>
+        <p>Whether you need CCTV installation, structured cabling, network upgrades, or Cisco configuration, NetworkConnectIT is ready to support your next project with professional service and dependable results.</p>
+        <div class="service-cta-actions">
+            <a href="/contact.html" class="btn btn-primary rounded-pill py-3 px-5">Request a Quote</a>
+            <a href="/contact.html" class="btn btn-light border border-primary text-primary rounded-pill py-3 px-5">Contact Us</a>
+        </div>
+        <p class="service-cta-note">Available for commercial projects, upgrades, maintenance, and contract support.</p>
     </div>
 </section>
-           <!--New part about inseego end  -->      
+           <!-- Core Services Focus End -->      
                  
                  
            <!--New part start -->
