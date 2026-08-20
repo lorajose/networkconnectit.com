@@ -1,0 +1,78 @@
+name: Deploy Website to cPanel
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [main]
+    paths-ignore:
+      - 'command-center-app/**'
+      - 'docs/**'
+      - '**/*.md'
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-cpanel
+  cancel-in-progress: false
+
+jobs:
+  deploy:
+    name: Deploy static website
+    runs-on: ubuntu-latest
+    environment: production
+    steps:
+      - name: Validate deployment configuration
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+          CPANEL_USER: ${{ vars.CPANEL_USER }}
+          CPANEL_REPO_PATH: ${{ vars.CPANEL_REPO_PATH }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          test -n "$CPANEL_HOST"
+          test -n "$CPANEL_PORT"
+          test -n "$CPANEL_USER"
+          test -n "$CPANEL_REPO_PATH"
+          test -n "$CPANEL_SSH_KEY"
+
+      - name: Configure SSH
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+          CPANEL_SSH_KEY: ${{ secrets.CPANEL_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          install -m 700 -d ~/.ssh
+          printf '%s\n' "$CPANEL_SSH_KEY" > ~/.ssh/cpanel_deploy
+          chmod 600 ~/.ssh/cpanel_deploy
+          ssh-keyscan -p "$CPANEL_PORT" -H "$CPANEL_HOST" >> ~/.ssh/known_hosts
+
+      - name: Update cPanel repository and deploy approved revision
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+          CPANEL_USER: ${{ vars.CPANEL_USER }}
+          CPANEL_REPO_PATH: ${{ vars.CPANEL_REPO_PATH }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
+            "$CPANEL_USER@$CPANEL_HOST" \
+            "cd '$CPANEL_REPO_PATH' && git fetch origin main && git checkout main && git reset --hard origin/main && git status --short && git rev-parse HEAD"
+
+      - name: Trigger cPanel deployment tasks
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+          CPANEL_USER: ${{ vars.CPANEL_USER }}
+          CPANEL_REPO_PATH: ${{ vars.CPANEL_REPO_PATH }}
+        run: |
+          set -euo pipefail
+          ssh -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
+            "$CPANEL_USER@$CPANEL_HOST" \
+            "uapi VersionControlDeployment create repository_root='$CPANEL_REPO_PATH'"
