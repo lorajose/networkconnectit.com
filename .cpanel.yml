@@ -1,6 +1,22 @@
 ---
 deployment:
   tasks:
-    - export DEPLOYPATH=/home/oblm9wnyeimr/networkconnectit.com/
-    - /bin/rsync -av --delete --exclude '.git' /home/oblm9wnyeimr/repositories/networkconnectit.com/ $DEPLOYPATH
-
+    - export REPOPATH=/home/oblm9wnyeimr/repositories/networkconnectit.com
+    - export DEPLOYPATH=/home/oblm9wnyeimr/networkconnectit.com
+    - /bin/mkdir -p "$DEPLOYPATH"
+    # Deploy only explicitly public website files. Application source and repository
+    # configuration remain outside the public document root.
+    - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 -type f \( -name '*.html' -o -name '*.txt' -o -name '*.xml' -o -name '*.ico' -o -name '.htaccess' \) -delete
+    - /bin/rm -rf "$DEPLOYPATH/css" "$DEPLOYPATH/img" "$DEPLOYPATH/js" "$DEPLOYPATH/lib" "$DEPLOYPATH/tools" "$DEPLOYPATH/mail"
+    - /bin/cp -f "$REPOPATH"/*.html "$DEPLOYPATH/"
+    - /bin/cp -f "$REPOPATH"/ads.txt "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -f "$REPOPATH"/robots.txt "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -f "$REPOPATH"/sitemap.xml "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -f "$REPOPATH"/favicon.ico "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -f "$REPOPATH"/.htaccess "$DEPLOYPATH/"
+    - /bin/cp -a "$REPOPATH/css" "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -a "$REPOPATH/img" "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -a "$REPOPATH/js" "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -a "$REPOPATH/lib" "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -a "$REPOPATH/tools" "$DEPLOYPATH/" 2>/dev/null || true
+    - /bin/cp -a "$REPOPATH/mail" "$DEPLOYPATH/" 2>/dev/null || true
