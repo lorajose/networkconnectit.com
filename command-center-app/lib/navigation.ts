@@ -6,6 +6,7 @@ import {
   Calculator,
   Cpu,
   Eye,
+  FileText,
   LayoutDashboard,
   MapPinned,
   Radar,
@@ -65,6 +66,14 @@ export const appNavigation: AppNavigationItem[] = [
     description: "Price low-voltage jobs, protect margin, and prepare proposals.",
     icon: Calculator,
     allowedRoles: routeAccess.estimates
+  },
+  {
+    group: "workspace",
+    title: "Proposals",
+    href: "/proposals",
+    description: "Turn approved pricing into polished client-facing proposals.",
+    icon: FileText,
+    allowedRoles: routeAccess.proposals
   },
   {
     group: "workspace",
