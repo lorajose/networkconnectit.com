@@ -3,6 +3,7 @@ import {
   Bell,
   BriefcaseBusiness,
   Building2,
+  Calculator,
   Cpu,
   Eye,
   LayoutDashboard,
@@ -56,6 +57,14 @@ export const appNavigation: AppNavigationItem[] = [
     description: "Installed projects, rollouts, and managed handoffs.",
     icon: BriefcaseBusiness,
     allowedRoles: routeAccess.projects
+  },
+  {
+    group: "workspace",
+    title: "Estimates",
+    href: "/estimates",
+    description: "Price low-voltage jobs, protect margin, and prepare proposals.",
+    icon: Calculator,
+    allowedRoles: routeAccess.estimates
   },
   {
     group: "workspace",
