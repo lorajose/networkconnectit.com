@@ -51,18 +51,37 @@ jobs:
           chmod 600 ~/.ssh/cpanel_deploy
           ssh-keyscan -p "$CPANEL_PORT" -H "$CPANEL_HOST" >> ~/.ssh/known_hosts
 
-      - name: Update cPanel repository and deploy approved revision
+      - name: Verify remote shell
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+          CPANEL_USER: ${{ vars.CPANEL_USER }}
+        run: |
+          set -euo pipefail
+          output="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
+            "$CPANEL_USER@$CPANEL_HOST" \
+            "printf '__NCI_SHELL_OK__\\n'")"
+          printf '%s\n' "$output"
+          grep -qx '__NCI_SHELL_OK__' <<< "$output"
+
+      - name: Update cPanel repository to approved revision
         shell: bash
         env:
           CPANEL_HOST: ${{ vars.CPANEL_HOST }}
           CPANEL_PORT: ${{ vars.CPANEL_PORT }}
           CPANEL_USER: ${{ vars.CPANEL_USER }}
           CPANEL_REPO_PATH: ${{ vars.CPANEL_REPO_PATH }}
+          EXPECTED_SHA: ${{ github.sha }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
+          output="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
             "$CPANEL_USER@$CPANEL_HOST" \
-            "cd '$CPANEL_REPO_PATH' && git fetch origin main && git checkout main && git reset --hard origin/main && git status --short && git rev-parse HEAD"
+            "set -e; cd '$CPANEL_REPO_PATH'; git fetch origin main; git checkout main; git reset --hard origin/main; actual=\$(git rev-parse HEAD); printf '__NCI_HEAD__=%s\\n' \"\$actual\"; test \"\$actual\" = '$EXPECTED_SHA'")"
+          printf '%s\n' "$output"
+          grep -q "^__NCI_HEAD__=$EXPECTED_SHA$" <<< "$output"
 
       - name: Trigger cPanel deployment tasks
         shell: bash
@@ -73,6 +92,26 @@ jobs:
           CPANEL_REPO_PATH: ${{ vars.CPANEL_REPO_PATH }}
         run: |
           set -euo pipefail
-          ssh -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
+          output="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
             "$CPANEL_USER@$CPANEL_HOST" \
-            "uapi VersionControlDeployment create repository_root='$CPANEL_REPO_PATH'"
+            "set -e; uapi --output=json VersionControlDeployment create repository_root='$CPANEL_REPO_PATH'")"
+          printf '%s\n' "$output"
+          grep -Eq '"status"[[:space:]]*:[[:space:]]*1' <<< "$output"
+
+      - name: Verify deployed repository revision
+        shell: bash
+        env:
+          CPANEL_HOST: ${{ vars.CPANEL_HOST }}
+          CPANEL_PORT: ${{ vars.CPANEL_PORT }}
+          CPANEL_USER: ${{ vars.CPANEL_USER }}
+          CPANEL_REPO_PATH: ${{ vars.CPANEL_REPO_PATH }}
+          EXPECTED_SHA: ${{ github.sha }}
+        run: |
+          set -euo pipefail
+          output="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
+            -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
+            "$CPANEL_USER@$CPANEL_HOST" \
+            "cd '$CPANEL_REPO_PATH' && printf '__NCI_FINAL_HEAD__=%s\\n' \"\$(git rev-parse HEAD)\"")"
+          printf '%s\n' "$output"
+          grep -q "^__NCI_FINAL_HEAD__=$EXPECTED_SHA$" <<< "$output"
