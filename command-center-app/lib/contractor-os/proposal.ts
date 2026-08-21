@@ -1,4 +1,4 @@
-import type { EstimateTotals } from "@/lib/contractor-os/cost-engine";
+import type { EstimateTotals } from "./cost-engine";
 
 export type ProposalBranding = {
   companyName: string;
