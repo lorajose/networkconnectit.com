@@ -43,5 +43,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Verify staging build
-        run: npm run verify:staging
+      - name: Run security regressions and staging verification
+        run: npm run verify:ci
