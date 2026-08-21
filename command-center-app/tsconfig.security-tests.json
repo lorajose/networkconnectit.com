@@ -1,0 +1,19 @@
+{
+  "compilerOptions": {
+    "target": "ES2020",
+    "module": "CommonJS",
+    "moduleResolution": "Node",
+    "strict": true,
+    "esModuleInterop": true,
+    "skipLibCheck": true,
+    "noEmit": false,
+    "incremental": false,
+    "rootDir": ".",
+    "outDir": ".security-test-build"
+  },
+  "include": [
+    "lib/rbac.ts",
+    "lib/management/tenant-policy.ts",
+    "tests/security/**/*.ts"
+  ]
+}
