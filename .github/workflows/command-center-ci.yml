@@ -42,19 +42,28 @@ jobs:
           account_meta = re.compile(r'(?P<indent>^[ \t]*)<meta\s+name="google-adsense-account"\s+content="[^"]+"\s*/?>', re.MULTILINE)
           ad_slot = re.compile(r'(?P<indent>^[ \t]*)(<ins\b[^>]*class="[^"]*adsbygoogle[^"]*"[^>]*>.*?</ins>)', re.MULTILINE | re.DOTALL)
           push_script = re.compile(r'(?P<indent>^[ \t]*)(<script[^>]*>\s*\(adsbygoogle\s*=\s*window\.adsbygoogle\s*\|\|\s*\[\]\)\.push\(\{\}\);\s*</script>)', re.MULTILINE | re.DOTALL)
+          dynamic_blog = re.compile(
+              r'(?P<indent>^[ \t]*)if \(/\^\\d\+\$/\.test\(ADSENSE_SLOT\)\) \{.*?placeholder\.textContent = "Set ADSENSE_SLOT in blog\.html to activate this module\.";\s*\}',
+              re.MULTILINE | re.DOTALL,
+          )
 
-          def comment(label, indent, block):
+          def html_comment(label, indent, block):
               return f'{indent}<!-- NCI-038: {label} temporarily disabled for Contractor OS product focus.\n{block}\n{indent}-->'
+
+          def js_comment(label, indent, block):
+              return f'{indent}/* NCI-038: {label} temporarily disabled for Contractor OS product focus.\n{block}\n{indent}*/\n{indent}placeholder.textContent = "Advertising temporarily disabled while Contractor OS is prioritized.";'
 
           for path in sorted(Path('.').rglob('*.html')):
               if '.git' in path.parts or 'command-center-app' in path.parts:
                   continue
               text = path.read_text(encoding='utf-8')
               original = text
-              text = loader.sub(lambda m: comment('Google AdSense loader', m.group('indent'), m.group(0).lstrip()), text)
-              text = account_meta.sub(lambda m: comment('Google AdSense account metadata', m.group('indent'), m.group(0).lstrip()), text)
-              text = ad_slot.sub(lambda m: comment('Google AdSense slot', m.group('indent'), m.group(2)), text)
-              text = push_script.sub(lambda m: comment('Google AdSense slot initializer', m.group('indent'), m.group(2)), text)
+              text = loader.sub(lambda m: html_comment('Google AdSense loader', m.group('indent'), m.group(0).lstrip()), text)
+              text = account_meta.sub(lambda m: html_comment('Google AdSense account metadata', m.group('indent'), m.group(0).lstrip()), text)
+              text = ad_slot.sub(lambda m: html_comment('Google AdSense slot', m.group('indent'), m.group(2)), text)
+              text = push_script.sub(lambda m: html_comment('Google AdSense slot initializer', m.group('indent'), m.group(2)), text)
+              if path.as_posix() == 'blog.html':
+                  text = dynamic_blog.sub(lambda m: js_comment('dynamic Google AdSense blog module', m.group('indent'), m.group(0).lstrip()), text)
               if text != original:
                   path.write_text(text, encoding='utf-8')
                   changed.append(str(path))
@@ -66,10 +75,13 @@ jobs:
           for path in sorted(Path('.').rglob('*.html')):
               if '.git' in path.parts or 'command-center-app' in path.parts:
                   continue
-              active = re.sub(r'<!--.*?-->', '', path.read_text(encoding='utf-8'), flags=re.DOTALL)
+              active = path.read_text(encoding='utf-8')
+              active = re.sub(r'<!--.*?-->', '', active, flags=re.DOTALL)
+              active = re.sub(r'/\*.*?\*/', '', active, flags=re.DOTALL)
               markers = [
                   'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
                   'class="adsbygoogle',
+                  '(window.adsbygoogle = window.adsbygoogle || []).push',
                   '(adsbygoogle = window.adsbygoogle || []).push',
                   'name="google-adsense-account"',
               ]
