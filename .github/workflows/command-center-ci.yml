@@ -4,8 +4,6 @@ on:
   pull_request:
     paths:
       - 'command-center-app/**'
-      - '*.html'
-      - 'tools/**/*.html'
       - '.github/workflows/command-center-ci.yml'
   push:
     branches: [main]
@@ -14,96 +12,14 @@ on:
       - '.github/workflows/command-center-ci.yml'
 
 permissions:
-  contents: write
+  contents: read
 
 concurrency:
   group: command-center-ci-${{ github.ref }}
   cancel-in-progress: true
 
 jobs:
-  nci038-transform:
-    if: github.event_name == 'pull_request' && github.head_ref == 'nci-038-disable-google-ads' && github.actor != 'github-actions[bot]'
-    runs-on: ubuntu-latest
-    steps:
-      - name: Checkout NCI-038 branch
-        uses: actions/checkout@v4
-        with:
-          ref: nci-038-disable-google-ads
-          fetch-depth: 0
-
-      - name: Comment Google AdSense code site-wide
-        shell: python
-        run: |
-          from pathlib import Path
-          import re
-
-          changed = []
-          loader = re.compile(r'(?P<indent>^[ \t]*)<script\s+async\s+src="https://pagead2\.googlesyndication\.com/pagead/js/adsbygoogle\.js\?client=[^"]+"\s*\n?\s*crossorigin="anonymous"></script>', re.MULTILINE)
-          account_meta = re.compile(r'(?P<indent>^[ \t]*)<meta\s+name="google-adsense-account"\s+content="[^"]+"\s*/?>', re.MULTILINE)
-          ad_slot = re.compile(r'(?P<indent>^[ \t]*)(<ins\b[^>]*class="[^"]*adsbygoogle[^"]*"[^>]*>.*?</ins>)', re.MULTILINE | re.DOTALL)
-          push_script = re.compile(r'(?P<indent>^[ \t]*)(<script[^>]*>\s*\(adsbygoogle\s*=\s*window\.adsbygoogle\s*\|\|\s*\[\]\)\.push\(\{\}\);\s*</script>)', re.MULTILINE | re.DOTALL)
-          dynamic_blog = re.compile(
-              r'(?P<indent>^[ \t]*)if \(/\^\\d\+\$/\.test\(ADSENSE_SLOT\)\) \{.*?placeholder\.textContent = "Set ADSENSE_SLOT in blog\.html to activate this module\.";\s*\}',
-              re.MULTILINE | re.DOTALL,
-          )
-
-          def html_comment(label, indent, block):
-              return f'{indent}<!-- NCI-038: {label} temporarily disabled for Contractor OS product focus.\n{block}\n{indent}-->'
-
-          def js_comment(label, indent, block):
-              return f'{indent}/* NCI-038: {label} temporarily disabled for Contractor OS product focus.\n{block}\n{indent}*/\n{indent}placeholder.textContent = "Advertising temporarily disabled while Contractor OS is prioritized.";'
-
-          for path in sorted(Path('.').rglob('*.html')):
-              if '.git' in path.parts or 'command-center-app' in path.parts:
-                  continue
-              text = path.read_text(encoding='utf-8')
-              original = text
-              text = loader.sub(lambda m: html_comment('Google AdSense loader', m.group('indent'), m.group(0).lstrip()), text)
-              text = account_meta.sub(lambda m: html_comment('Google AdSense account metadata', m.group('indent'), m.group(0).lstrip()), text)
-              text = ad_slot.sub(lambda m: html_comment('Google AdSense slot', m.group('indent'), m.group(2)), text)
-              text = push_script.sub(lambda m: html_comment('Google AdSense slot initializer', m.group('indent'), m.group(2)), text)
-              if path.as_posix() == 'blog.html':
-                  text = dynamic_blog.sub(lambda m: js_comment('dynamic Google AdSense blog module', m.group('indent'), m.group(0).lstrip()), text)
-              if text != original:
-                  path.write_text(text, encoding='utf-8')
-                  changed.append(str(path))
-
-          print(f'Updated {len(changed)} HTML files')
-          print('\n'.join(changed))
-
-          violations = []
-          for path in sorted(Path('.').rglob('*.html')):
-              if '.git' in path.parts or 'command-center-app' in path.parts:
-                  continue
-              active = path.read_text(encoding='utf-8')
-              active = re.sub(r'<!--.*?-->', '', active, flags=re.DOTALL)
-              active = re.sub(r'/\*.*?\*/', '', active, flags=re.DOTALL)
-              markers = [
-                  'pagead2.googlesyndication.com/pagead/js/adsbygoogle.js',
-                  'class="adsbygoogle',
-                  '(window.adsbygoogle = window.adsbygoogle || []).push',
-                  '(adsbygoogle = window.adsbygoogle || []).push',
-                  'name="google-adsense-account"',
-              ]
-              if any(marker in active for marker in markers):
-                  violations.append(str(path))
-          if violations:
-              raise SystemExit('Active AdSense code remains in: ' + ', '.join(violations))
-
-      - name: Commit transformed HTML
-        run: |
-          if git diff --quiet; then
-            echo "No AdSense changes needed"
-            exit 0
-          fi
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add -- '*.html' 'tools/**/*.html'
-          git commit -m "NCI-038: comment Google AdSense code site-wide"
-          git push origin HEAD:nci-038-disable-google-ads
-
   verify:
-    if: github.event_name != 'pull_request' || github.head_ref != 'nci-038-disable-google-ads'
     runs-on: ubuntu-latest
     defaults:
       run:
