@@ -79,7 +79,7 @@ jobs:
           output="$(ssh -o BatchMode=yes -o StrictHostKeyChecking=yes \
             -i ~/.ssh/cpanel_deploy -p "$CPANEL_PORT" \
             "$CPANEL_USER@$CPANEL_HOST" \
-            "set -e; cd '$CPANEL_REPO_PATH'; git fetch origin main; git checkout main; git reset --hard origin/main; actual=\$(git rev-parse HEAD); printf '__NCI_HEAD__=%s\\n' \"\$actual\"; test \"\$actual\" = '$EXPECTED_SHA'")"
+            "set -e; cd '$CPANEL_REPO_PATH'; git fetch origin main; git fetch origin '$EXPECTED_SHA' || true; git checkout main; git reset --hard '$EXPECTED_SHA'; actual=\$(git rev-parse HEAD); printf '__NCI_HEAD__=%s\\n' \"\$actual\"")"
           printf '%s\n' "$output"
           grep -q "^__NCI_HEAD__=$EXPECTED_SHA$" <<< "$output"
 
