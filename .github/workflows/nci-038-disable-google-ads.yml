@@ -4,13 +4,16 @@ on:
   push:
     branches:
       - nci-038-disable-google-ads
+  pull_request:
+    branches:
+      - main
 
 permissions:
   contents: write
 
 jobs:
   disable-adsense:
-    if: github.actor != 'github-actions[bot]'
+    if: github.actor != 'github-actions[bot]' && (github.event_name != 'pull_request' || github.head_ref == 'nci-038-disable-google-ads')
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -52,12 +55,10 @@ jobs:
                   continue
               text = path.read_text(encoding='utf-8')
               original = text
-
               text = loader.sub(lambda m: comment('Google AdSense loader', m.group('indent'), m.group(0).lstrip()), text)
               text = account_meta.sub(lambda m: comment('Google AdSense account metadata', m.group('indent'), m.group(0).lstrip()), text)
               text = ad_slot.sub(lambda m: comment('Google AdSense slot', m.group('indent'), m.group(2)), text)
               text = push_script.sub(lambda m: comment('Google AdSense slot initializer', m.group('indent'), m.group(2)), text)
-
               if text != original:
                   path.write_text(text, encoding='utf-8')
                   changed.append(str(path))
@@ -66,8 +67,6 @@ jobs:
           for path in changed:
               print(f'  - {path}')
 
-          # Active AdSense code must not remain outside comments. This conservative
-          # validation strips HTML comments before checking Google ad markers.
           violations = []
           for path in sorted(root.rglob('*.html')):
               if '.git' in path.parts or 'command-center-app' in path.parts:
@@ -79,7 +78,6 @@ jobs:
                   or '(adsbygoogle = window.adsbygoogle || []).push' in active
                   or 'name="google-adsense-account"' in active):
                   violations.append(str(path))
-
           if violations:
               raise SystemExit('Active AdSense code remains in: ' + ', '.join(violations))
 
@@ -91,6 +89,6 @@ jobs:
           fi
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add '*.html' 'tools/**/*.html'
+          git add -- '*.html' 'tools/**/*.html'
           git commit -m "NCI-038: comment Google AdSense code site-wide"
           git push origin HEAD:nci-038-disable-google-ads
