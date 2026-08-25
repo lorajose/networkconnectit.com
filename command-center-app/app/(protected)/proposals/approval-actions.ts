@@ -59,7 +59,7 @@ export async function approveProposalAction(
       approvedAtIso: receipt.approvedAtIso,
       approvedAmount: receipt.approvedAmount,
       signerName: receipt.signerName,
-      signerEmail: receipt.signerEmail,
+      signerEmail: receipt.signerEmail ?? undefined,
     };
   } catch (error) {
     console.error("Proposal approval failed", error);
