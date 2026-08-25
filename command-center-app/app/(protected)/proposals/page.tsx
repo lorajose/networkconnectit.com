@@ -2,6 +2,7 @@ import { requireRoles } from "@/lib/auth";
 import { calculateEstimate } from "@/lib/contractor-os/cost-engine";
 import { buildProposalDocument } from "@/lib/contractor-os/proposal";
 import { routeAccess } from "@/lib/rbac";
+import { ProposalActions } from "./proposal-actions";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
@@ -58,7 +59,7 @@ export default async function ProposalsPage() {
 
   return (
     <div className="space-y-6">
-      <div className="flex flex-wrap items-end justify-between gap-4">
+      <div className="flex flex-wrap items-end justify-between gap-4 print:hidden">
         <div>
           <p className="text-sm font-medium uppercase tracking-wider text-sky-600">Contractor OS</p>
           <h1 className="text-3xl font-bold tracking-tight">Proposal Builder</h1>
@@ -67,8 +68,8 @@ export default async function ProposalsPage() {
         <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Demo proposal</div>
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr]">
-        <aside className="space-y-4">
+      <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr] print:block">
+        <aside className="space-y-4 print:hidden">
           <section className="rounded-2xl border border-slate-200 bg-white p-5 shadow-sm">
             <h2 className="font-semibold">Commercial controls</h2>
             <div className="mt-4 space-y-3 text-sm">
@@ -82,22 +83,28 @@ export default async function ProposalsPage() {
             <h3 className="font-semibold">Margin stays private</h3>
             <p className="mt-2">The proposal receives the selling price and tax only. Direct cost, burden, contingency and gross margin remain internal to Contractor OS.</p>
           </section>
+          <ProposalActions
+            proposalNumber={proposal.proposalNumber}
+            customerName={proposal.customer.companyName}
+            customerTotal={proposal.customerTotal}
+            validUntilIso={proposal.validUntilIso}
+          />
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950">
-            <h3 className="font-semibold">Next</h3>
-            <p className="mt-2">Persist proposals per project, add branding/settings, PDF export, customer approval and version history.</p>
+            <h3 className="font-semibold">Commercial handoff</h3>
+            <p className="mt-2">PDF export now uses the browser print pipeline so the proposal can be saved or printed without exposing Contractor OS controls. Approval capture is visible in this increment; durable database persistence is the next production step.</p>
           </section>
         </aside>
 
-        <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg">
-          <header className="border-b border-slate-200 bg-slate-950 px-8 py-7 text-white">
+        <article className="overflow-hidden rounded-2xl border border-slate-200 bg-white shadow-lg print:rounded-none print:border-0 print:shadow-none">
+          <header className="border-b border-slate-200 bg-slate-950 px-8 py-7 text-white print:bg-white print:text-slate-950">
             <div className="flex flex-wrap items-start justify-between gap-6">
               <div>
                 <div className="text-2xl font-bold">{proposal.branding.companyName}</div>
-                <div className="mt-2 text-sm text-slate-300">{proposal.branding.website} · {proposal.branding.email}</div>
+                <div className="mt-2 text-sm text-slate-300 print:text-slate-600">{proposal.branding.website} · {proposal.branding.email}</div>
               </div>
-              <div className="text-right text-sm text-slate-300">
-                <div className="text-xs uppercase tracking-[0.18em] text-sky-300">Proposal</div>
-                <div className="mt-1 text-lg font-semibold text-white">{proposal.proposalNumber}</div>
+              <div className="text-right text-sm text-slate-300 print:text-slate-600">
+                <div className="text-xs uppercase tracking-[0.18em] text-sky-300 print:text-slate-500">Proposal</div>
+                <div className="mt-1 text-lg font-semibold text-white print:text-slate-950">{proposal.proposalNumber}</div>
               </div>
             </div>
           </header>
