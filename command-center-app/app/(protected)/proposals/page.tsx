@@ -1,14 +1,13 @@
 import { requireRoles } from "@/lib/auth";
 import { calculateEstimate } from "@/lib/contractor-os/cost-engine";
-import { buildProposalDocument } from "@/lib/contractor-os/proposal";
+import { buildProposalDocument, type ProposalDocument } from "@/lib/contractor-os/proposal";
+import { loadLatestPersistedProposal } from "@/lib/contractor-os/proposal-reader";
 import { routeAccess } from "@/lib/rbac";
 import { ProposalActions } from "./proposal-actions";
 
 const currency = new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" });
 
-export default async function ProposalsPage() {
-  await requireRoles(routeAccess.proposals);
-
+function buildDemoProposal(): ProposalDocument {
   const totals = calculateEstimate({
     markupPercent: 35,
     taxPercent: 8.625,
@@ -24,12 +23,11 @@ export default async function ProposalsPage() {
     ],
   });
 
-  const proposal = buildProposalDocument({
+  return buildProposalDocument({
     proposalNumber: "NCI-P-1001",
     title: "16-Camera IP Video Surveillance Upgrade",
     branding: {
       companyName: "NetworkConnectIT LLC",
-      phone: "(000) 000-0000",
       email: "sales@networkconnectit.com",
       website: "networkconnectit.com",
     },
@@ -56,6 +54,32 @@ export default async function ProposalsPage() {
     warranty: "One-year workmanship warranty. Manufacturer warranties apply to supplied equipment.",
     validForDays: 30,
   });
+}
+
+export default async function ProposalsPage() {
+  const user = await requireRoles(routeAccess.proposals);
+
+  let persisted: Awaited<ReturnType<typeof loadLatestPersistedProposal>> = null;
+  let persistenceUnavailable = false;
+
+  try {
+    persisted = await loadLatestPersistedProposal({
+      role: user.role,
+      organizationId: user.organizationId ?? null,
+    });
+  } catch (error) {
+    persistenceUnavailable = true;
+    console.error("Persisted proposal load failed", error);
+  }
+
+  const proposal = persisted?.document ?? buildDemoProposal();
+  const persistence = persisted
+    ? {
+        organizationId: persisted.organizationId,
+        proposalId: persisted.proposalId,
+        proposalVersion: persisted.proposalVersion,
+      }
+    : undefined;
 
   return (
     <div className="space-y-6">
@@ -65,8 +89,16 @@ export default async function ProposalsPage() {
           <h1 className="text-3xl font-bold tracking-tight">Proposal Builder</h1>
           <p className="mt-2 max-w-3xl text-sm text-slate-600">Turn protected estimate economics into a client-ready sales document without exposing internal cost or margin.</p>
         </div>
-        <div className="rounded-full bg-emerald-50 px-3 py-1 text-xs font-semibold text-emerald-700">Demo proposal</div>
+        <div className={`rounded-full px-3 py-1 text-xs font-semibold ${persisted ? "bg-emerald-50 text-emerald-700" : "bg-amber-50 text-amber-800"}`}>
+          {persisted ? `Live proposal · ${persisted.status}` : "Demo proposal"}
+        </div>
       </div>
+
+      {persistenceUnavailable ? (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-900 print:hidden">
+          Commercial persistence is not available in this environment yet. The Proposal Builder is showing the safe demo document and approval remains disabled until the Contractor OS commercial migration is applied.
+        </div>
+      ) : null}
 
       <div className="grid gap-6 xl:grid-cols-[0.72fr_1.28fr] print:block">
         <aside className="space-y-4 print:hidden">
@@ -77,21 +109,26 @@ export default async function ProposalsPage() {
               <Info label="Customer" value={proposal.customer.companyName} />
               <Info label="Valid through" value={new Date(proposal.validUntilIso).toLocaleDateString("en-US")} />
               <Info label="Customer total" value={currency.format(proposal.customerTotal)} />
+              {persisted ? <Info label="Version" value={`v${persisted.proposalVersion}`} /> : null}
             </div>
           </section>
+
           <section className="rounded-2xl border border-amber-200 bg-amber-50 p-5 text-sm text-amber-950">
             <h3 className="font-semibold">Margin stays private</h3>
             <p className="mt-2">The proposal receives the selling price and tax only. Direct cost, burden, contingency and gross margin remain internal to Contractor OS.</p>
           </section>
+
           <ProposalActions
             proposalNumber={proposal.proposalNumber}
             customerName={proposal.customer.companyName}
             customerTotal={proposal.customerTotal}
             validUntilIso={proposal.validUntilIso}
+            persistence={persistence}
           />
+
           <section className="rounded-2xl border border-sky-200 bg-sky-50 p-5 text-sm text-sky-950">
             <h3 className="font-semibold">Commercial handoff</h3>
-            <p className="mt-2">PDF export now uses the browser print pipeline so the proposal can be saved or printed without exposing Contractor OS controls. Approval capture is visible in this increment; durable database persistence is the next production step.</p>
+            <p className="mt-2">PDF export uses the browser print pipeline. When a persisted Proposal + ProposalVersion is available, customer approval writes an immutable ApprovalReceipt against that exact version.</p>
           </section>
         </aside>
 
