@@ -1,0 +1,7 @@
+User-agent: *
+Allow: /
+
+# Authenticated SaaS surfaces should not be indexed.
+Disallow: /tools/command-center/
+
+Sitemap: https://networkconnectit.com/sitemap.xml
