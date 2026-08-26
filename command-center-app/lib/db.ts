@@ -9,7 +9,14 @@ function configureManagedLinuxPrismaEngine() {
     return;
   }
 
-  process.env.PRISMA_QUERY_ENGINE_LIBRARY = `${process.cwd()}/node_modules/.prisma/client/libquery_engine-debian-openssl-3.0.x.so.node`;
+  const report = process.report?.getReport?.();
+  const glibcVersion = report?.header?.glibcVersionRuntime;
+  const engineFile = glibcVersion
+    ? "libquery_engine-debian-openssl-3.0.x.so.node"
+    : "libquery_engine-linux-musl-openssl-3.0.x.so.node";
+
+  process.env.PRISMA_QUERY_ENGINE_LIBRARY =
+    `${process.cwd()}/node_modules/.prisma/client/${engineFile}`;
 }
 
 configureManagedLinuxPrismaEngine();
