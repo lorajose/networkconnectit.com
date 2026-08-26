@@ -4,6 +4,8 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
+import { pushTakeoffBomToEstimate } from "@/lib/contractor-os/takeoff-estimate-handoff";
+import { updateBomPricing } from "@/lib/contractor-os/takeoff-pricing-repository";
 import {
   addTakeoffItem,
   createTakeoffWorkspace,
@@ -12,6 +14,7 @@ import {
   updateTakeoffItemQuantity,
 } from "@/lib/contractor-os/takeoff-repository";
 import type { TakeoffCategory, TakeoffSource } from "@/lib/contractor-os/takeoff";
+import type { CostLineType } from "@/lib/contractor-os/cost-engine";
 
 function formString(formData: FormData, key: string) {
   const value = formData.get(key);
@@ -96,6 +99,29 @@ export async function updateBomOverrideAction(formData: FormData) {
     overrideQuantity: optionalNumber(formData, "overrideQuantity"),
   });
   revalidatePath(`/takeoffs/${workspaceId}`);
+}
+
+export async function updateBomPricingAction(formData: FormData) {
+  const user = await requireUser();
+  const organizationId = formString(formData, "organizationId");
+  const workspaceId = formString(formData, "workspaceId");
+  await updateBomPricing(actor(user), {
+    organizationId,
+    workspaceId,
+    bomItemId: formString(formData, "bomItemId"),
+    lineType: formString(formData, "lineType") as CostLineType,
+    unitCostOverride: optionalNumber(formData, "unitCostOverride"),
+  });
+  revalidatePath(`/takeoffs/${workspaceId}`);
+}
+
+export async function pushTakeoffToEstimateAction(formData: FormData) {
+  const user = await requireUser();
+  const organizationId = formString(formData, "organizationId");
+  const workspaceId = formString(formData, "workspaceId");
+  await pushTakeoffBomToEstimate(actor(user), organizationId, workspaceId);
+  revalidatePath(`/takeoffs/${workspaceId}`);
+  revalidatePath("/estimates");
 }
 
 export async function deleteTakeoffItemAction(formData: FormData) {
