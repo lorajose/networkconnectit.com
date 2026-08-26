@@ -100,7 +100,7 @@ export async function snapshotBidEvidenceForEstimate(
     FROM EstimateEvidenceSnapshot
     WHERE estimateId = ${estimate.id} AND organizationId = ${organizationId}
   `);
-  const version = Number(versions[0]?.nextVersion ?? 1n);
+  const version = Number(versions[0]?.nextVersion ?? BigInt(1));
   const id = randomUUID();
 
   await prisma.$executeRaw(Prisma.sql`
