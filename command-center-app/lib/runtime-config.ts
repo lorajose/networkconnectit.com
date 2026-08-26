@@ -7,6 +7,9 @@ export type RuntimeConfigWarning = {
 
 const DEVELOPMENT_AUTH_FALLBACK_SECRET =
   "development-only-command-center-secret";
+const BUILD_ONLY_AUTH_FALLBACK_SECRET =
+  "build-only-command-center-secret-never-use-at-runtime";
+const NEXT_PHASE_PRODUCTION_BUILD = "phase-production-build";
 const FIRST_ADMIN_BOOTSTRAP_TOKEN_MIN_LENGTH = 24;
 
 function normalizeBasePath(value: string | undefined) {
@@ -58,6 +61,15 @@ export function getAuthSecret() {
   }
 
   if (process.env.NODE_ENV === "production") {
+    // Some managed hosts expose encrypted runtime secrets only after the
+    // application build has completed. Next.js evaluates authOptions while
+    // collecting page data, so allow a build-only placeholder during the
+    // production build phase. Runtime still fails closed when the secret is
+    // missing because NEXT_PHASE is no longer phase-production-build.
+    if (process.env.NEXT_PHASE === NEXT_PHASE_PRODUCTION_BUILD) {
+      return BUILD_ONLY_AUTH_FALLBACK_SECRET;
+    }
+
     throw new Error(
       "NEXTAUTH_SECRET is required in production and staging environments."
     );
