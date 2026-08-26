@@ -4,13 +4,22 @@ declare global {
   var prisma: PrismaClient | undefined;
 }
 
+type NodeDiagnosticReport = {
+  header?: {
+    glibcVersionRuntime?: string;
+  };
+};
+
 function configureManagedLinuxPrismaEngine() {
   if (process.platform !== "linux" || process.env.PRISMA_QUERY_ENGINE_LIBRARY) {
     return;
   }
 
   const report = process.report?.getReport?.();
-  const glibcVersion = report?.header?.glibcVersionRuntime;
+  const glibcVersion =
+    report && typeof report === "object" && "header" in report
+      ? (report as NodeDiagnosticReport).header?.glibcVersionRuntime
+      : undefined;
   const engineFile = glibcVersion
     ? "libquery_engine-debian-openssl-3.0.x.so.node"
     : "libquery_engine-linux-musl-openssl-3.0.x.so.node";
