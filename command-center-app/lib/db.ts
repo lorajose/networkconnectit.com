@@ -1,8 +1,31 @@
+import fs from "node:fs";
+import path from "node:path";
+
 import { PrismaClient } from "@prisma/client";
 
 declare global {
   var prisma: PrismaClient | undefined;
 }
+
+function configureManagedLinuxPrismaEngine() {
+  if (process.platform !== "linux" || process.env.PRISMA_QUERY_ENGINE_LIBRARY) {
+    return;
+  }
+
+  const openssl3EnginePath = path.join(
+    process.cwd(),
+    "node_modules",
+    ".prisma",
+    "client",
+    "libquery_engine-debian-openssl-3.0.x.so.node"
+  );
+
+  if (fs.existsSync(openssl3EnginePath)) {
+    process.env.PRISMA_QUERY_ENGINE_LIBRARY = openssl3EnginePath;
+  }
+}
+
+configureManagedLinuxPrismaEngine();
 
 export const prisma =
   global.prisma ??
