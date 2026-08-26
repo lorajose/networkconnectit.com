@@ -11,7 +11,7 @@ import { requireRoles } from "@/lib/auth";
 import { BID_DOCUMENT_TYPES } from "@/lib/contractor-os/bid-intake";
 import { BID_STATUSES, getBidWorkspace } from "@/lib/contractor-os/bid-repository";
 import { routeAccess } from "@/lib/rbac";
-import { addBidDocumentAction, updateBidAction } from "../actions";
+import { snapshotBidEvidenceAction, updateBidAction, uploadBidDocumentAction } from "../actions";
 
 type Props = { params: { bidId: string }; searchParams?: { organizationId?: string } };
 
@@ -40,7 +40,7 @@ export default async function BidDetailPage({ params, searchParams }: Props) {
           <Link href={`/bids?organizationId=${encodeURIComponent(organizationId)}`} className="text-sm text-primary hover:underline">← Back to bids</Link>
           <p className="mt-3 text-sm font-medium uppercase tracking-[0.2em] text-primary">{bid.bidNumber}</p>
           <h1 className="text-3xl font-semibold tracking-tight">{bid.title}</h1>
-          <p className="mt-2 text-sm text-muted-foreground">Edit commercial context and retain each drawing/specification revision as traceable source evidence.</p>
+          <p className="mt-2 text-sm text-muted-foreground">Edit commercial context, upload private bid documents, and freeze the exact evidence package used for estimating.</p>
         </div>
         <div className="rounded-2xl border px-4 py-3 text-sm">
           <p className="font-medium">{bid.status.replaceAll("_", " ")}</p>
@@ -70,33 +70,49 @@ export default async function BidDetailPage({ params, searchParams }: Props) {
         </Card>
 
         <Card>
-          <CardHeader><CardTitle>Register source document</CardTitle><CardDescription>Stores revision metadata and a private storage key. Binary upload is wired separately from database persistence.</CardDescription></CardHeader>
+          <CardHeader>
+            <CardTitle>Upload source document</CardTitle>
+            <CardDescription>Files are written to configured private storage outside the public web root; only opaque storage keys are persisted in MySQL.</CardDescription>
+          </CardHeader>
           <CardContent>
-            <form action={addBidDocumentAction} className="space-y-4">
+            <form action={uploadBidDocumentAction} className="space-y-4">
               <input type="hidden" name="organizationId" value={organizationId} />
               <input type="hidden" name="bidId" value={bid.id} />
-              <div className="space-y-2"><Label htmlFor="fileName">File name</Label><Input id="fileName" name="fileName" placeholder="T-101.pdf" required /></div>
+              <div className="space-y-2"><Label htmlFor="file">Document</Label><Input id="file" name="file" type="file" accept=".pdf,.png,.jpg,.jpeg,.webp,.txt,.csv,.zip,.xls,.xlsx,.doc,.docx" required /></div>
               <div className="grid gap-4 sm:grid-cols-2">
                 <div className="space-y-2"><Label htmlFor="documentType">Document type</Label><Select id="documentType" name="documentType">{BID_DOCUMENT_TYPES.map((type) => <option key={type} value={type}>{type.replaceAll("_", " ")}</option>)}</Select></div>
                 <div className="space-y-2"><Label htmlFor="documentRevision">Revision</Label><Input id="documentRevision" name="revision" placeholder="Rev A" /></div>
               </div>
-              <div className="space-y-2"><Label htmlFor="sourceKey">Private storage key</Label><Input id="sourceKey" name="sourceKey" placeholder="tenant/org/bids/.../T-101.pdf" required /></div>
-              <div className="grid gap-4 sm:grid-cols-2">
-                <div className="space-y-2"><Label htmlFor="sourceMimeType">MIME type</Label><Input id="sourceMimeType" name="sourceMimeType" placeholder="application/pdf" /></div>
-                <div className="space-y-2"><Label htmlFor="sourceSizeBytes">Size bytes</Label><Input id="sourceSizeBytes" name="sourceSizeBytes" type="number" min="0" /></div>
-              </div>
-              <Button type="submit">Register document revision</Button>
+              <p className="text-xs text-muted-foreground">Default upload limit: 50 MB per file. Configure BID_PRIVATE_STORAGE_ROOT to a persistent absolute server path.</p>
+              <Button type="submit">Upload private document</Button>
             </form>
           </CardContent>
         </Card>
       </div>
 
       <Card>
-        <CardHeader><CardTitle>Source evidence history</CardTitle><CardDescription>Each row is retained independently so estimates can later snapshot the exact bid package used for pricing.</CardDescription></CardHeader>
+        <CardHeader>
+          <CardTitle>Estimate evidence handoff</CardTitle>
+          <CardDescription>Create an immutable snapshot of this bid revision and all currently registered source documents before continuing pricing in NCI-010.</CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap items-center justify-between gap-4">
+          <div className="text-sm text-muted-foreground">
+            {bid.estimateId ? <>Linked estimate: <span className="font-mono text-foreground">{bid.estimateId}</span></> : "Link an Estimate ID above before creating a snapshot."}
+          </div>
+          <form action={snapshotBidEvidenceAction}>
+            <input type="hidden" name="organizationId" value={organizationId} />
+            <input type="hidden" name="bidId" value={bid.id} />
+            <Button type="submit" disabled={!bid.estimateId}>Snapshot evidence → Estimate</Button>
+          </form>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader><CardTitle>Source evidence history</CardTitle><CardDescription>Each uploaded revision remains an independent row so estimate snapshots can preserve exactly what was used for pricing.</CardDescription></CardHeader>
         <CardContent className="space-y-3">
-          {bid.documents.length === 0 ? <p className="text-sm text-muted-foreground">No documents registered yet.</p> : bid.documents.map((document) => (
+          {bid.documents.length === 0 ? <p className="text-sm text-muted-foreground">No documents uploaded yet.</p> : bid.documents.map((document) => (
             <div key={document.id} className="flex flex-wrap items-start justify-between gap-3 rounded-2xl border p-4">
-              <div><p className="font-medium">{document.fileName}</p><p className="text-sm text-muted-foreground">{document.documentType.replaceAll("_", " ")}{document.revision ? ` · ${document.revision}` : ""}</p><p className="mt-1 break-all text-xs text-muted-foreground">{document.sourceKey}</p></div>
+              <div><p className="font-medium">{document.fileName}</p><p className="text-sm text-muted-foreground">{document.documentType.replaceAll("_", " ")}{document.revision ? ` · ${document.revision}` : ""}</p><p className="mt-1 break-all text-xs text-muted-foreground">Private key: {document.sourceKey}</p></div>
               <div className="text-right text-xs text-muted-foreground"><p>{document.sourceMimeType ?? "Unknown MIME"}</p><p>{document.sourceSizeBytes?.toString() ?? "Unknown size"} bytes</p></div>
             </div>
           ))}
