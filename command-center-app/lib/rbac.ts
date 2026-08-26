@@ -19,6 +19,7 @@ export const routeAccess = {
   commandMap: ["SUPER_ADMIN", "INTERNAL_ADMIN"] as const,
   organizations: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   projects: APP_ROLES,
+  bids: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   estimates: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   proposals: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   sites: APP_ROLES,

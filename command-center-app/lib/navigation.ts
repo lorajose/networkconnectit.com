@@ -4,6 +4,7 @@ import {
   BriefcaseBusiness,
   Building2,
   Calculator,
+  ClipboardList,
   Cpu,
   Eye,
   FileText,
@@ -58,6 +59,14 @@ export const appNavigation: AppNavigationItem[] = [
     description: "Installed projects, rollouts, and managed handoffs.",
     icon: BriefcaseBusiness,
     allowedRoles: routeAccess.projects
+  },
+  {
+    group: "workspace",
+    title: "Bids",
+    href: "/bids",
+    description: "Organize bid packages, revisions, due dates, and source documents.",
+    icon: ClipboardList,
+    allowedRoles: routeAccess.bids
   },
   {
     group: "workspace",
