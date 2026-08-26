@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { ArrowLeft, Boxes, FileSearch, PencilRuler, Trash2 } from "lucide-react";
+import { ArrowLeft, Boxes, Calculator, FileSearch, PencilRuler, Trash2 } from "lucide-react";
 import { notFound } from "next/navigation";
 
 import { Button } from "@/components/ui/button";
@@ -41,7 +41,10 @@ export default async function TakeoffDetailPage({ params, searchParams }: Takeof
     <div className="space-y-6">
       <div className="flex flex-wrap items-start justify-between gap-4">
         <div className="space-y-2"><Link href={`/takeoffs?organizationId=${encodeURIComponent(organizationId)}`} className="inline-flex items-center gap-2 text-sm text-muted-foreground hover:text-foreground"><ArrowLeft className="h-4 w-4" />Back to takeoffs</Link><p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Digital Takeoff</p><h1 className="text-3xl font-semibold tracking-tight">{workspace.name}</h1><p className="max-w-3xl text-muted-foreground">{workspace.notes || "Capture drawing counts, preserve source references, and approve the BOM before pricing."}</p></div>
-        <div className="rounded-2xl border px-4 py-3 text-sm"><p className="font-medium">{workspace.status}</p><p className="text-muted-foreground">{workspace.bidWorkspaceId ? `Bid linked` : "No bid link"}{workspace.estimateId ? " · Estimate linked" : ""}</p></div>
+        <div className="flex flex-col items-end gap-3">
+          <div className="rounded-2xl border px-4 py-3 text-sm"><p className="font-medium">{workspace.status}</p><p className="text-muted-foreground">{workspace.bidWorkspaceId ? `Bid linked` : "No bid link"}{workspace.estimateId ? " · Estimate linked" : ""}</p></div>
+          <Button asChild className="gap-2"><Link href={`/takeoffs/${workspace.id}/pricing?organizationId=${encodeURIComponent(organizationId)}`}><Calculator className="h-4 w-4" />Price BOM &amp; push to Estimate</Link></Button>
+        </div>
       </div>
 
       <div className="grid gap-6 xl:grid-cols-[minmax(360px,0.75fr)_minmax(0,1.25fr)]">
