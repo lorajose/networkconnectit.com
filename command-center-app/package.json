@@ -5,8 +5,8 @@
   "packageManager": "npm@10.8.2",
   "scripts": {
     "dev": "next dev",
-    "build": "npm run prisma:generate && next build",
-    "start": "node .next/standalone/server.js",
+    "build": "npm run prisma:generate && next build && node scripts/prepare-standalone-prisma.mjs",
+    "start": "node scripts/start-godaddy.mjs",
     "postinstall": "node scripts/prepare-prisma-godaddy.mjs && prisma generate",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --incremental false",
