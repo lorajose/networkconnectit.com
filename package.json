@@ -1,0 +1,12 @@
+{
+  "name": "networkconnectit-monorepo",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "npm@10.8.2",
+  "scripts": {
+    "postinstall": "npm --prefix command-center-app install",
+    "build": "npm --prefix command-center-app run build",
+    "dev": "npm --prefix command-center-app run dev",
+    "start": "npm --prefix command-center-app run start"
+  }
+}
