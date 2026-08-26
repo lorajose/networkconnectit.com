@@ -6,6 +6,11 @@ const basePath =
 const nextConfig = {
   reactStrictMode: true,
   output: "standalone",
+  experimental: {
+    serverActions: {
+      bodySizeLimit: "52mb"
+    }
+  },
   ...(basePath
     ? {
         basePath,
