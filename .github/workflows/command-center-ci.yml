@@ -3,11 +3,15 @@ name: Command Center CI
 on:
   pull_request:
     paths:
+      - 'package.json'
+      - 'package-lock.json'
       - 'command-center-app/**'
       - '.github/workflows/command-center-ci.yml'
   push:
     branches: [main]
     paths:
+      - 'package.json'
+      - 'package-lock.json'
       - 'command-center-app/**'
       - '.github/workflows/command-center-ci.yml'
 
@@ -45,3 +49,27 @@ jobs:
 
       - name: Run security regressions and staging verification
         run: npm run verify:ci
+
+  godaddy-root-build:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: package-lock.json
+
+      - name: Install from repository root like GoDaddy
+        run: npm ci
+
+      - name: Build from repository root like GoDaddy
+        run: npm run build
+
+      - name: Verify standalone build artifacts
+        run: |
+          test -f command-center-app/.next/build-manifest.json
+          test -f command-center-app/.next/standalone/server.js
