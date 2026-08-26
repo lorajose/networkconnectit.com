@@ -30,6 +30,10 @@ const policies = [
     required: ["\"use server\"", "requireUser(", "requireInventoryWriteAccess"]
   },
   {
+    file: "app/(protected)/bids/actions.ts",
+    required: ["\"use server\"", "requireUser(", "createBidWorkspace("]
+  },
+  {
     file: "app/(protected)/infrastructure-actions.ts",
     required: ["\"use server\"", "requireUser(", "requireInventoryWriteAccess"]
   },
