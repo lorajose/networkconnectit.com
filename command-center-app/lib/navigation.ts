@@ -10,6 +10,7 @@ import {
   FileText,
   LayoutDashboard,
   MapPinned,
+  PencilRuler,
   Radar,
   Settings,
   Users2
@@ -67,6 +68,14 @@ export const appNavigation: AppNavigationItem[] = [
     description: "Organize bid packages, revisions, due dates, and source documents.",
     icon: ClipboardList,
     allowedRoles: routeAccess.bids
+  },
+  {
+    group: "workspace",
+    title: "Takeoffs",
+    href: "/takeoffs",
+    description: "Count drawing scope and turn approved quantities into an editable BOM.",
+    icon: PencilRuler,
+    allowedRoles: routeAccess.takeoffs
   },
   {
     group: "workspace",
