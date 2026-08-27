@@ -17,6 +17,9 @@ if (!fs.existsSync(serverPath)) {
 }
 
 process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+process.env.HOSTNAME = "0.0.0.0";
+
 console.log(`Using Prisma query engine: ${enginePath}`);
+console.log(`Binding Next.js standalone server to ${process.env.HOSTNAME}:${process.env.PORT ?? "3000"}`);
 
 await import(pathToFileURL(serverPath).href);
