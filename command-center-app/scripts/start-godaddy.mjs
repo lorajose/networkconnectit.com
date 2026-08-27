@@ -4,7 +4,9 @@ import { spawnSync } from "node:child_process";
 import { pathToFileURL } from "node:url";
 
 const engineName = "libquery_engine-linux-musl-openssl-3.0.x.so.node";
+const schemaEngineName = "schema-engine-linux-musl-openssl-3.0.x";
 const enginePath = path.join(process.cwd(), ".next", "standalone", "prisma-engine", engineName);
+const schemaEnginePath = path.join(process.cwd(), "node_modules", "@prisma", "engines", schemaEngineName);
 const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 
@@ -49,6 +51,14 @@ if (!fs.existsSync(enginePath)) {
   process.exit(1);
 }
 
+if (!fs.existsSync(schemaEnginePath)) {
+  console.error(
+    `Prisma schema engine not found: ${schemaEnginePath}. ` +
+      "Ensure PRISMA_CLI_BINARY_TARGETS=linux-musl-openssl-3.0.x is present during npm install."
+  );
+  process.exit(1);
+}
+
 if (!fs.existsSync(serverPath)) {
   console.error(`Next standalone server not found: ${serverPath}`);
   process.exit(1);
@@ -60,7 +70,9 @@ if (!fs.existsSync(prismaCliPath)) {
 }
 
 configureDatabaseUrlFromDiscreteSecrets();
+process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
 
+console.log(`Using Prisma schema engine: ${schemaEnginePath}`);
 console.log("Applying pending Prisma migrations...");
 const migrationResult = spawnSync(
   process.execPath,
