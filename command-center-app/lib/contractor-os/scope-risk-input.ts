@@ -90,18 +90,24 @@ export async function buildScopeRiskInput(
       description: string;
       quantity: Prisma.Decimal;
       unit: string | null;
-      sourceTakeoffBomItemId: string | null;
+      takeoffItemCode: string | null;
+      takeoffDescription: string | null;
     }>>(Prisma.sql`
-      SELECT id,description,quantity,unit,sourceTakeoffBomItemId
-      FROM EstimateLine
-      WHERE estimateId=${input.estimateId} AND organizationId=${organizationId}
-      ORDER BY position ASC,createdAt ASC
+      SELECT el.id,el.description,el.quantity,el.unit,
+        ti.itemCode AS takeoffItemCode,ti.description AS takeoffDescription
+      FROM EstimateLine el
+      LEFT JOIN TakeoffBomItem bom
+        ON bom.id=el.sourceTakeoffBomItemId AND bom.organizationId=el.organizationId
+      LEFT JOIN TakeoffItem ti
+        ON ti.id=bom.takeoffItemId AND ti.organizationId=bom.organizationId
+      WHERE el.estimateId=${input.estimateId} AND el.organizationId=${organizationId}
+      ORDER BY el.position ASC,el.createdAt ASC
     `);
     for (const row of rows) {
       quantities.push({
         source: "ESTIMATE",
         sourceId: row.id,
-        key: row.sourceTakeoffBomItemId || row.description,
+        key: row.takeoffItemCode || row.takeoffDescription || row.description,
         description: row.description,
         quantity: number(row.quantity),
         unit: row.unit,
