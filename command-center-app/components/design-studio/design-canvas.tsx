@@ -37,6 +37,7 @@ type CanvasBackground = {
   locked: boolean;
   width: number;
   height: number;
+  pdfPage?: number | null;
 };
 
 type DesignCanvasProps = {
@@ -175,6 +176,8 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   }
 
   const imageBackground = background && background.visible && background.mimeType.startsWith("image/") ? background : null;
+  const pdfBackground = background && background.visible && background.mimeType === "application/pdf" ? background : null;
+  const pdfUrl = pdfBackground ? `${pdfBackground.url}#page=${pdfBackground.pdfPage ?? 1}&toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit` : null;
 
   return (
     <div tabIndex={0} onKeyDown={handleKeyDown} className="overflow-hidden rounded-2xl border bg-background outline-none focus:ring-2 focus:ring-primary/40">
@@ -195,46 +198,62 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         </div>
       </div>
 
-      <svg ref={svgRef} className="h-[620px] w-full touch-none select-none bg-slate-950" onPointerDown={beginPan} onPointerMove={movePointer} onPointerUp={endPointer} onPointerCancel={endPointer}>
-        <defs><pattern id="design-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" /></pattern></defs>
-        <rect width="100%" height="100%" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" />
-        <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
-          {imageBackground ? (
-            <image
-              href={imageBackground.url}
-              x="0"
-              y="0"
-              width={imageBackground.width}
-              height={imageBackground.height}
-              preserveAspectRatio="xMidYMid meet"
-              opacity={imageBackground.opacity}
-              pointerEvents={imageBackground.locked ? "none" : "auto"}
-            />
-          ) : (
-            <>
-              <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
-              <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
-            </>
-          )}
-          {document.elements.filter((item) => !item.hidden).map((element) => {
-            const point = element.geometry.points[0];
-            const width = element.geometry.width ?? 48;
-            const height = element.geometry.height ?? 32;
-            const active = selected.has(element.id);
-            return (
-              <g key={element.id} transform={`translate(${point.x} ${point.y}) rotate(${element.geometry.rotation ?? 0})`} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
-                <rect x={-width / 2} y={-height / 2} width={width} height={height} rx="8" fill={active ? "#0ea5e9" : element.locked ? "#64748b" : "#1e293b"} stroke={active ? "#bae6fd" : "#94a3b8"} strokeWidth={active ? 3 : 2} />
-                <circle cx={width / 2 - 7} cy="0" r="5" fill="#e2e8f0" />
-                <text x="0" y={height / 2 + 18} textAnchor="middle" fontSize="12" fill="#cbd5e1" transform={`rotate(${-(element.geometry.rotation ?? 0)})`}>{element.id}{element.locked ? " · locked" : ""}</text>
-                {active ? <circle cx="0" cy={-height / 2 - 18} r="6" fill="#38bdf8" stroke="#e0f2fe" strokeWidth="2" /> : null}
-              </g>
-            );
-          })}
-        </g>
-      </svg>
+      <div className="relative h-[620px] overflow-hidden bg-slate-950">
+        {pdfBackground && pdfUrl ? (
+          <iframe
+            title={`PDF floor plan page ${pdfBackground.pdfPage ?? 1}`}
+            src={pdfUrl}
+            className="pointer-events-none absolute left-0 top-0 border-0 bg-white"
+            style={{
+              width: `${pdfBackground.width}px`,
+              height: `${pdfBackground.height}px`,
+              opacity: pdfBackground.opacity,
+              transform: `translate(${document.viewport.x}px, ${document.viewport.y}px) scale(${document.viewport.zoom})`,
+              transformOrigin: "top left",
+            }}
+          />
+        ) : null}
+        <svg ref={svgRef} className="absolute inset-0 h-full w-full touch-none select-none bg-transparent" onPointerDown={beginPan} onPointerMove={movePointer} onPointerUp={endPointer} onPointerCancel={endPointer}>
+          <defs><pattern id="design-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" /></pattern></defs>
+          <rect width="100%" height="100%" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" />
+          <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
+            {imageBackground ? (
+              <image
+                href={imageBackground.url}
+                x="0"
+                y="0"
+                width={imageBackground.width}
+                height={imageBackground.height}
+                preserveAspectRatio="xMidYMid meet"
+                opacity={imageBackground.opacity}
+                pointerEvents="none"
+              />
+            ) : !pdfBackground ? (
+              <>
+                <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
+                <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
+              </>
+            ) : null}
+            {document.elements.filter((item) => !item.hidden).map((element) => {
+              const point = element.geometry.points[0];
+              const width = element.geometry.width ?? 48;
+              const height = element.geometry.height ?? 32;
+              const active = selected.has(element.id);
+              return (
+                <g key={element.id} transform={`translate(${point.x} ${point.y}) rotate(${element.geometry.rotation ?? 0})`} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
+                  <rect x={-width / 2} y={-height / 2} width={width} height={height} rx="8" fill={active ? "#0ea5e9" : element.locked ? "#64748b" : "#1e293b"} stroke={active ? "#bae6fd" : "#94a3b8"} strokeWidth={active ? 3 : 2} />
+                  <circle cx={width / 2 - 7} cy="0" r="5" fill="#e2e8f0" />
+                  <text x="0" y={height / 2 + 18} textAnchor="middle" fontSize="12" fill="#cbd5e1" transform={`rotate(${-(element.geometry.rotation ?? 0)})`}>{element.id}{element.locked ? " · locked" : ""}</text>
+                  {active ? <circle cx="0" cy={-height / 2 - 18} r="6" fill="#38bdf8" stroke="#e0f2fe" strokeWidth="2" /> : null}
+                </g>
+              );
+            })}
+          </g>
+        </svg>
+      </div>
       <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
         <span>Autosaves after 1.5s idle</span><span>Add device to place equipment</span><span>Drag devices to move</span><span>Shift/Ctrl/Cmd + click for multi-select</span><span>Arrow keys nudge</span><span>Delete removes</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
-        {background?.mimeType === "application/pdf" ? <span>PDF source attached; page rendering is handled in the PDF page-selection increment.</span> : null}
+        {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
       </div>
     </div>
   );
