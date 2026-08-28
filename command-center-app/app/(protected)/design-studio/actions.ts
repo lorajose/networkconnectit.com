@@ -7,6 +7,7 @@ import { requireRoles } from "@/lib/auth";
 import { persistFloorPlanAssetAndAttach } from "@/lib/contractor-os/design-asset-repository";
 import type { CanvasDocument } from "@/lib/contractor-os/design-canvas-state";
 import { designFloorPlanStorageKey, validateDesignFloorPlanUpload } from "@/lib/contractor-os/design-floor-plan";
+import { updateDesignFloorBackgroundSettings } from "@/lib/contractor-os/design-floor-background-repository";
 import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
@@ -68,6 +69,30 @@ export async function uploadDesignFloorPlanAction(formData: FormData): Promise<v
     await deletePrivateDesignAsset(storageKey);
     throw error;
   }
+
+  revalidatePath(`/design-studio/${projectId}`);
+}
+
+export async function updateDesignFloorBackgroundAction(formData: FormData): Promise<void> {
+  const user = await requireRoles(routeAccess.designStudio);
+  const requestedOrganizationId = formString(formData, "organizationId");
+  const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
+  const projectId = formString(formData, "projectId");
+  const floorId = formString(formData, "floorId");
+  const opacityPercent = Number(formString(formData, "opacityPercent"));
+
+  if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await updateDesignFloorBackgroundSettings(
+    { role: user.role, organizationId: user.organizationId },
+    {
+      organizationId,
+      projectId,
+      floorId,
+      opacity: opacityPercent / 100,
+      visible: formData.get("visible") === "on",
+      locked: formData.get("locked") === "on",
+    },
+  );
 
   revalidatePath(`/design-studio/${projectId}`);
 }
