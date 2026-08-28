@@ -26,7 +26,13 @@ const starter = createCanvasDocument([
   { id: "rack-01", locked: true, geometry: { schemaVersion: 1, points: [{ x: 600, y: 180 }], rotation: 0, width: 70, height: 54 } },
 ]);
 
-type DragState = { pointerId: number; lastX: number; lastY: number; mode: "move" | "pan" } | null;
+type DragState = {
+  pointerId: number;
+  lastX: number;
+  lastY: number;
+  mode: "move" | "pan";
+  startDocument: CanvasDocument;
+} | null;
 
 export function DesignCanvas() {
   const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(starter));
@@ -56,14 +62,15 @@ export function DesignCanvas() {
     const selectedDocument = selected.has(id) ? document : setCanvasSelection(document, [id], additive);
     if (selectedDocument !== document) setHistory((current) => ({ ...current, present: selectedDocument }));
     const point = toDesignPoint(event.clientX, event.clientY);
-    setDrag({ pointerId: event.pointerId, lastX: point.x, lastY: point.y, mode: "move" });
+    setDrag({ pointerId: event.pointerId, lastX: point.x, lastY: point.y, mode: "move", startDocument: selectedDocument });
   }
 
   function beginPan(event: React.PointerEvent<SVGSVGElement>) {
     if (event.target !== event.currentTarget) return;
     event.currentTarget.setPointerCapture(event.pointerId);
-    setHistory((current) => ({ ...current, present: setCanvasSelection(current.present, []) }));
-    setDrag({ pointerId: event.pointerId, lastX: event.clientX, lastY: event.clientY, mode: "pan" });
+    const deselected = setCanvasSelection(document, []);
+    setHistory((current) => ({ ...current, present: deselected }));
+    setDrag({ pointerId: event.pointerId, lastX: event.clientX, lastY: event.clientY, mode: "pan", startDocument: deselected });
   }
 
   function movePointer(event: React.PointerEvent<SVGSVGElement>) {
@@ -85,7 +92,8 @@ export function DesignCanvas() {
 
   function endPointer() {
     if (!drag) return;
-    setHistory((current) => commitCanvas({ ...current, present: current.past.at(-1) ?? current.present }, current.present));
+    const startDocument = drag.startDocument;
+    setHistory((current) => commitCanvas({ ...current, present: startDocument }, current.present));
     setDrag(null);
   }
 
