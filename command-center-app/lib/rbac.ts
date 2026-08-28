@@ -20,6 +20,7 @@ export const routeAccess = {
   organizations: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   projects: APP_ROLES,
   bids: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
+  designStudio: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   takeoffs: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   scopeRisks: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   estimates: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
