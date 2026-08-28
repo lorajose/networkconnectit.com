@@ -12,6 +12,7 @@ import {
   MapPinned,
   PencilRuler,
   Radar,
+  Ruler,
   Settings,
   Users2
 } from "lucide-react";
@@ -29,122 +30,23 @@ export type AppNavigationItem = {
 };
 
 export const appNavigation: AppNavigationItem[] = [
-  {
-    group: "workspace",
-    title: "Dashboard",
-    href: "/dashboard",
-    description: "Operational overview and deployment summary.",
-    icon: LayoutDashboard,
-    allowedRoles: routeAccess.dashboard
-  },
-  {
-    group: "workspace",
-    title: "Organizations",
-    href: "/organizations",
-    description: "Tenant and customer account structure.",
-    icon: Building2,
-    allowedRoles: routeAccess.organizations
-  },
-  {
-    group: "workspace",
-    title: "Command Map",
-    href: "/command-map",
-    description: "Global NOC visibility across clients, projects, and site health.",
-    icon: Radar,
-    allowedRoles: routeAccess.commandMap
-  },
-  {
-    group: "workspace",
-    title: "Projects",
-    href: "/projects",
-    description: "Installed projects, rollouts, and managed handoffs.",
-    icon: BriefcaseBusiness,
-    allowedRoles: routeAccess.projects
-  },
-  {
-    group: "workspace",
-    title: "Bids",
-    href: "/bids",
-    description: "Organize bid packages, revisions, due dates, and source documents.",
-    icon: ClipboardList,
-    allowedRoles: routeAccess.bids
-  },
-  {
-    group: "workspace",
-    title: "Takeoffs",
-    href: "/takeoffs",
-    description: "Count drawing scope and turn approved quantities into an editable BOM.",
-    icon: PencilRuler,
-    allowedRoles: routeAccess.takeoffs
-  },
-  {
-    group: "workspace",
-    title: "Estimates",
-    href: "/estimates",
-    description: "Price low-voltage jobs, protect margin, and prepare proposals.",
-    icon: Calculator,
-    allowedRoles: routeAccess.estimates
-  },
-  {
-    group: "workspace",
-    title: "Proposals",
-    href: "/proposals",
-    description: "Turn approved pricing into polished client-facing proposals.",
-    icon: FileText,
-    allowedRoles: routeAccess.proposals
-  },
-  {
-    group: "workspace",
-    title: "Sites",
-    href: "/sites",
-    description: "Location inventory and deployment mapping.",
-    icon: MapPinned,
-    allowedRoles: routeAccess.sites
-  },
-  {
-    group: "workspace",
-    title: "Devices",
-    href: "/devices",
-    description: "Hardware inventory, status, and health history.",
-    icon: Cpu,
-    allowedRoles: routeAccess.devices
-  },
-  {
-    group: "workspace",
-    title: "Alerts",
-    href: "/alerts",
-    description: "Operational events and incident triage.",
-    icon: Bell,
-    allowedRoles: routeAccess.alerts
-  },
-  {
-    group: "workspace",
-    title: "Viewer Portal",
-    href: "/viewer",
-    description: "Read-only client monitoring and summary views.",
-    icon: Eye,
-    allowedRoles: routeAccess.viewer
-  },
-  {
-    group: "administration",
-    title: "Users",
-    href: "/users",
-    description: "Identity and access placeholders for future delivery.",
-    icon: Users2,
-    allowedRoles: routeAccess.users
-  },
-  {
-    group: "administration",
-    title: "Settings",
-    href: "/settings",
-    description: "Environment and tenant settings placeholders.",
-    icon: Settings,
-    allowedRoles: routeAccess.settings
-  }
+  { group: "workspace", title: "Dashboard", href: "/dashboard", description: "Operational overview and deployment summary.", icon: LayoutDashboard, allowedRoles: routeAccess.dashboard },
+  { group: "workspace", title: "Organizations", href: "/organizations", description: "Tenant and customer account structure.", icon: Building2, allowedRoles: routeAccess.organizations },
+  { group: "workspace", title: "Command Map", href: "/command-map", description: "Global NOC visibility across clients, projects, and site health.", icon: Radar, allowedRoles: routeAccess.commandMap },
+  { group: "workspace", title: "Projects", href: "/projects", description: "Installed projects, rollouts, and managed handoffs.", icon: BriefcaseBusiness, allowedRoles: routeAccess.projects },
+  { group: "workspace", title: "Bids", href: "/bids", description: "Organize bid packages, revisions, due dates, and source documents.", icon: ClipboardList, allowedRoles: routeAccess.bids },
+  { group: "workspace", title: "Design Studio", href: "/design-studio", description: "Lay out CCTV, access, network and cable paths on an interactive plan.", icon: Ruler, allowedRoles: routeAccess.designStudio },
+  { group: "workspace", title: "Takeoffs", href: "/takeoffs", description: "Count drawing scope and turn approved quantities into an editable BOM.", icon: PencilRuler, allowedRoles: routeAccess.takeoffs },
+  { group: "workspace", title: "Estimates", href: "/estimates", description: "Price low-voltage jobs, protect margin, and prepare proposals.", icon: Calculator, allowedRoles: routeAccess.estimates },
+  { group: "workspace", title: "Proposals", href: "/proposals", description: "Turn approved pricing into polished client-facing proposals.", icon: FileText, allowedRoles: routeAccess.proposals },
+  { group: "workspace", title: "Sites", href: "/sites", description: "Location inventory and deployment mapping.", icon: MapPinned, allowedRoles: routeAccess.sites },
+  { group: "workspace", title: "Devices", href: "/devices", description: "Hardware inventory, status, and health history.", icon: Cpu, allowedRoles: routeAccess.devices },
+  { group: "workspace", title: "Alerts", href: "/alerts", description: "Operational events and incident triage.", icon: Bell, allowedRoles: routeAccess.alerts },
+  { group: "workspace", title: "Viewer Portal", href: "/viewer", description: "Read-only client monitoring and summary views.", icon: Eye, allowedRoles: routeAccess.viewer },
+  { group: "administration", title: "Users", href: "/users", description: "Identity and access placeholders for future delivery.", icon: Users2, allowedRoles: routeAccess.users },
+  { group: "administration", title: "Settings", href: "/settings", description: "Environment and tenant settings placeholders.", icon: Settings, allowedRoles: routeAccess.settings }
 ];
 
 export function navigationForRole(role: AppRole) {
-  return appNavigation.filter((item) =>
-    hasRequiredRole(role, item.allowedRoles)
-  );
+  return appNavigation.filter((item) => hasRequiredRole(role, item.allowedRoles));
 }
