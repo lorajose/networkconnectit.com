@@ -1,10 +1,16 @@
-import { createHash, randomUUID } from "node:crypto";
+import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import type { CommercialActor } from "./commercial-access";
 import { commercialReadScope, requireCommercialWriteAccess } from "./commercial-access";
 import { assertFiniteDesignGeometry, type DesignGeometry } from "./design-studio";
+import {
+  canonicalizeDesignSnapshot,
+  hashDesignSnapshot,
+  type DesignProjectSnapshot,
+  type SnapshotElement,
+} from "./design-version-snapshot";
 
 export type DesignVersionSummary = {
   id: string;
@@ -15,52 +21,6 @@ export type DesignVersionSummary = {
   createdByUserId: string;
   createdAt: Date;
 };
-
-type SnapshotElement = {
-  id: string;
-  floorId: string;
-  layerId: string;
-  kind: string;
-  geometry: DesignGeometry;
-  metadata: Record<string, unknown> | null;
-  schemaVersion: number;
-};
-
-export type DesignProjectSnapshot = {
-  schemaVersion: 1;
-  projectId: string;
-  sourceRevision: number;
-  floors: Array<{
-    id: string;
-    name: string;
-    levelOrder: number;
-    canvasWidth: string;
-    canvasHeight: string;
-    scaleUnit: string;
-    realUnitsPerDesignUnit: string | null;
-  }>;
-  elements: SnapshotElement[];
-};
-
-export function canonicalizeDesignSnapshot(snapshot: DesignProjectSnapshot) {
-  const normalized: DesignProjectSnapshot = {
-    ...snapshot,
-    floors: [...snapshot.floors].sort((a, b) => a.id.localeCompare(b.id)),
-    elements: [...snapshot.elements]
-      .sort((a, b) => a.id.localeCompare(b.id))
-      .map((element) => ({
-        ...element,
-        metadata: element.metadata
-          ? Object.fromEntries(Object.entries(element.metadata).sort(([a], [b]) => a.localeCompare(b)))
-          : null,
-      })),
-  };
-  return JSON.stringify(normalized);
-}
-
-export function hashDesignSnapshot(snapshot: DesignProjectSnapshot) {
-  return createHash("sha256").update(canonicalizeDesignSnapshot(snapshot)).digest("hex");
-}
 
 function parseMetadata(value: string | null) {
   if (!value) return null;
