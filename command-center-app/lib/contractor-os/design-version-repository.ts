@@ -32,6 +32,13 @@ function parseMetadata(value: string | null) {
   }
 }
 
+function parseSnapshot(snapshotJson: string, projectId: string) {
+  const snapshot = JSON.parse(snapshotJson) as DesignProjectSnapshot;
+  if (snapshot.schemaVersion !== 1 || snapshot.projectId !== projectId) throw new Error("Invalid design version snapshot");
+  for (const element of snapshot.elements) assertFiniteDesignGeometry(element.geometry);
+  return snapshot;
+}
+
 async function buildSnapshot(tx: Prisma.TransactionClient, organizationId: string, projectId: string, sourceRevision: number) {
   const floors = await tx.$queryRaw<Array<{
     id: string;
@@ -101,6 +108,22 @@ export async function listDesignVersions(actor: CommercialActor, projectId: stri
     WHERE organizationId=${scope.organizationId} AND designProjectId=${projectId}
     ORDER BY versionNumber DESC
   `);
+}
+
+export async function getDesignVersionSnapshot(
+  actor: CommercialActor,
+  projectId: string,
+  versionId: string,
+  requestedOrganizationId?: string,
+) {
+  const scope = commercialReadScope(actor, requestedOrganizationId);
+  const rows = await prisma.$queryRaw<Array<{ snapshotJson: string }>>(Prisma.sql`
+    SELECT snapshotJson FROM DesignVersion
+    WHERE id=${versionId} AND organizationId=${scope.organizationId} AND designProjectId=${projectId}
+    LIMIT 1
+  `);
+  if (!rows[0]) throw new Error("Design version not found");
+  return parseSnapshot(rows[0].snapshotJson, projectId);
 }
 
 export async function createDesignVersionCheckpoint(
@@ -173,9 +196,7 @@ export async function restoreDesignVersion(
       LIMIT 1
     `);
     if (!versions[0]) throw new Error("Design version not found");
-    const snapshot = JSON.parse(versions[0].snapshotJson) as DesignProjectSnapshot;
-    if (snapshot.schemaVersion !== 1 || snapshot.projectId !== input.projectId) throw new Error("Invalid design version snapshot");
-    for (const element of snapshot.elements) assertFiniteDesignGeometry(element.geometry);
+    const snapshot = parseSnapshot(versions[0].snapshotJson, input.projectId);
 
     const floorIds = new Set(snapshot.floors.map((floor) => floor.id));
     const layerIds = new Set(snapshot.elements.map((element) => element.layerId));
