@@ -6,7 +6,7 @@ import { redirect } from "next/navigation";
 import { requireRoles } from "@/lib/auth";
 import type { CanvasDocument } from "@/lib/contractor-os/design-canvas-state";
 import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
-import { createDesignVersionCheckpoint, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
+import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
 import { routeAccess } from "@/lib/rbac";
 
 function formString(formData: FormData, key: string) {
@@ -68,6 +68,22 @@ export async function createDesignCheckpointAction(input: {
   );
   revalidatePath(`/design-studio/${input.projectId}`);
   return version;
+}
+
+export async function getDesignVersionPreviewAction(input: {
+  organizationId: string;
+  projectId: string;
+  versionId: string;
+}) {
+  const user = await requireRoles(routeAccess.designStudio);
+  const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : input.organizationId.trim();
+  if (!organizationId) throw new Error("Organization context is required");
+  return getDesignVersionSnapshot(
+    { role: user.role, organizationId: user.organizationId },
+    input.projectId,
+    input.versionId,
+    organizationId,
+  );
 }
 
 export async function restoreDesignVersionAction(input: {
