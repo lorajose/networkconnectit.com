@@ -115,7 +115,7 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
                 <div className="overflow-hidden rounded-lg border bg-muted/20">
                   <iframe title={`PDF preview page ${background.backgroundPdfPage}`} src={pdfPreviewUrl} className="h-[520px] w-full" />
                 </div>
-                <p className="text-xs text-muted-foreground">This authenticated preview uses the browser PDF renderer and persists the selected page per floor. Canvas rasterization remains a separate compatibility hardening step for browsers without reliable embedded PDF support.</p>
+                <p className="text-xs text-muted-foreground">The selected page is also aligned beneath the interactive Design Studio canvas. Authenticated byte-range responses improve embedded PDF compatibility while keeping the source private.</p>
               </div>
             ) : null}
             <p className="text-xs text-muted-foreground">Maximum 50 MB by default. MIME, file signature and extension must agree before the file is accepted.</p>
@@ -124,7 +124,7 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
       ) : null}
 
       {selectedFloor && initialDocument ? (
-        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} background={background && backgroundUrl ? { url: backgroundUrl, mimeType: background.mimeType, opacity: Number(background.backgroundOpacity), visible: background.backgroundVisible, locked: background.backgroundLocked, width: Number(selectedFloor.canvasWidth), height: Number(selectedFloor.canvasHeight) } : null} /></div>
+        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} background={background && backgroundUrl ? { url: backgroundUrl, mimeType: background.mimeType, opacity: Number(background.backgroundOpacity), visible: background.backgroundVisible, locked: background.backgroundLocked, width: Number(selectedFloor.canvasWidth), height: Number(selectedFloor.canvasHeight), pdfPage: background.backgroundPdfPage } : null} /></div>
       ) : null}
 
       <Card>
