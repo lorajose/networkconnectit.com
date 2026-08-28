@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { canonicalizeDesignSnapshot, hashDesignSnapshot, type DesignProjectSnapshot } from "../../lib/contractor-os/design-version-repository";
+import { canonicalizeDesignSnapshot, hashDesignSnapshot, type DesignProjectSnapshot } from "../../lib/contractor-os/design-version-snapshot";
 
 const base: DesignProjectSnapshot = {
   schemaVersion: 1,
