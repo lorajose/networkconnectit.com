@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Plus, RotateCcw, RotateCw, Save, Trash2, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 
 import { saveDesignCanvasAction } from "@/app/(protected)/design-studio/actions";
@@ -37,13 +37,22 @@ type DesignCanvasProps = {
   initialRevision?: number;
 };
 
+function persistedElementsSignature(document: CanvasDocument) {
+  return JSON.stringify(document.elements);
+}
+
 export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision }: DesignCanvasProps) {
-  const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(initialDocument ?? createCanvasDocument()));
+  const initial = initialDocument ?? createCanvasDocument();
+  const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(initial));
   const [revision, setRevision] = useState(initialRevision ?? 1);
   const [saveMessage, setSaveMessage] = useState<string | null>(null);
+  const [saveCycle, setSaveCycle] = useState(0);
   const [isSaving, startSaving] = useTransition();
   const [drag, setDrag] = useState<DragState>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
+  const revisionRef = useRef(initialRevision ?? 1);
+  const savingRef = useRef(false);
+  const lastSavedElementsRef = useRef(persistedElementsSignature(initial));
   const document = history.present;
   const canPersist = Boolean(organizationId && projectId && floorId);
 
@@ -67,19 +76,48 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     apply(next);
   }
 
-  function saveCanvas() {
-    if (!canPersist || !organizationId || !projectId || !floorId) return;
-    setSaveMessage(null);
+  const persistCanvas = useCallback((documentToSave: CanvasDocument, source: "manual" | "autosave") => {
+    if (!canPersist || !organizationId || !projectId || !floorId || savingRef.current) return;
+    const signature = persistedElementsSignature(documentToSave);
+    if (signature === lastSavedElementsRef.current) {
+      if (source === "manual") setSaveMessage(`Saved revision ${revisionRef.current}`);
+      return;
+    }
+
+    savingRef.current = true;
+    if (source === "manual") setSaveMessage(null);
     startSaving(async () => {
       try {
-        const result = await saveDesignCanvasAction({ organizationId, projectId, floorId, expectedRevision: revision, document });
+        const result = await saveDesignCanvasAction({
+          organizationId,
+          projectId,
+          floorId,
+          expectedRevision: revisionRef.current,
+          document: documentToSave,
+        });
+        revisionRef.current = result.revision;
         setRevision(result.revision);
-        setSaveMessage(`Saved revision ${result.revision}`);
+        lastSavedElementsRef.current = signature;
+        setSaveMessage(source === "autosave" ? `Autosaved revision ${result.revision}` : `Saved revision ${result.revision}`);
       } catch (error) {
         setSaveMessage(error instanceof Error ? error.message : "Unable to save design");
+      } finally {
+        savingRef.current = false;
+        setSaveCycle((cycle) => cycle + 1);
       }
     });
+  }, [canPersist, floorId, organizationId, projectId, startSaving]);
+
+  function saveCanvas() {
+    persistCanvas(document, "manual");
   }
+
+  useEffect(() => {
+    if (!canPersist || drag || savingRef.current) return;
+    if (persistedElementsSignature(document) === lastSavedElementsRef.current) return;
+    const timer = window.setTimeout(() => persistCanvas(document, "autosave"), 1500);
+    return () => window.clearTimeout(timer);
+  }, [canPersist, document, drag, persistCanvas, saveCycle]);
 
   function toDesignPoint(clientX: number, clientY: number) {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -166,6 +204,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         <Button type="button" size="sm" variant="outline" onClick={() => apply(deleteSelected(document))} disabled={!document.selectedIds.length}><Trash2 className="h-4 w-4" /></Button>
         {canPersist ? <Button type="button" size="sm" variant="outline" onClick={saveCanvas} disabled={isSaving}><Save className="mr-2 h-4 w-4" />{isSaving ? "Saving..." : "Save"}</Button> : null}
         {saveMessage ? <span className="text-xs text-muted-foreground">{saveMessage}</span> : null}
+        <span className="text-xs text-muted-foreground">Revision {revision}</span>
         <div className="ml-auto flex items-center gap-2">
           <Button type="button" size="sm" variant="outline" onClick={() => setHistory((current) => ({ ...current, present: zoomCanvas(current.present, 0.8) }))}><ZoomOut className="h-4 w-4" /></Button>
           <span className="min-w-14 text-center text-xs text-muted-foreground">{Math.round(document.viewport.zoom * 100)}%</span>
@@ -177,7 +216,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         <defs><pattern id="design-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" /></pattern></defs>
         <rect width="100%" height="100%" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" />
         <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
-          <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+          <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
           <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
           {document.elements.filter((item) => !item.hidden).map((element) => {
             const point = element.geometry.points[0];
@@ -196,7 +235,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         </g>
       </svg>
       <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-        <span>Add device to place equipment</span><span>Drag devices to move</span><span>Shift/Ctrl/Cmd + click for multi-select</span><span>Arrow keys nudge</span><span>Delete removes</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+        <span>Autosaves after 1.5s idle</span><span>Add device to place equipment</span><span>Drag devices to move</span><span>Shift/Ctrl/Cmd + click for multi-select</span><span>Arrow keys nudge</span><span>Delete removes</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
       </div>
     </div>
   );
