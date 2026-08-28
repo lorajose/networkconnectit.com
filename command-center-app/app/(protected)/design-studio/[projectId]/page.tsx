@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { updateDesignFloorBackgroundAction, uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
+import { updateDesignFloorBackgroundAction, updateDesignFloorPdfPageAction, uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
 import { DesignCanvas } from "@/components/design-studio/design-canvas";
 import { DesignVersionHistory } from "@/components/design-studio/design-version-history";
 import { Button } from "@/components/ui/button";
@@ -50,6 +50,9 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
   const backgroundUrl = selectedFloor && background
     ? `${appBasePath()}/api/design-studio/background?organizationId=${encodeURIComponent(requestedOrganizationId)}&projectId=${encodeURIComponent(project.id)}&floorId=${encodeURIComponent(selectedFloor.id)}`
     : null;
+  const pdfPreviewUrl = backgroundUrl && background?.mimeType === "application/pdf"
+    ? `${backgroundUrl}#page=${background.backgroundPdfPage}&toolbar=0&navpanes=0`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -97,8 +100,25 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
                 <Button type="submit" variant="outline">Apply display</Button>
               </form>
             ) : null}
+            {background?.mimeType === "application/pdf" && pdfPreviewUrl ? (
+              <div className="space-y-3 rounded-xl border p-3">
+                <form action={updateDesignFloorPdfPageAction} className="flex flex-wrap items-end gap-3">
+                  <input type="hidden" name="organizationId" value={requestedOrganizationId} />
+                  <input type="hidden" name="projectId" value={project.id} />
+                  <input type="hidden" name="floorId" value={selectedFloor.id} />
+                  <label className="text-sm font-medium">PDF page
+                    <input className="mt-2 block w-28 rounded-lg border bg-background px-3 py-2" type="number" name="pdfPage" min="1" max="10000" step="1" defaultValue={background.backgroundPdfPage} required />
+                  </label>
+                  <Button type="submit" variant="outline">Use page</Button>
+                  <span className="pb-2 text-xs text-muted-foreground">Selected page {background.backgroundPdfPage}</span>
+                </form>
+                <div className="overflow-hidden rounded-lg border bg-muted/20">
+                  <iframe title={`PDF preview page ${background.backgroundPdfPage}`} src={pdfPreviewUrl} className="h-[520px] w-full" />
+                </div>
+                <p className="text-xs text-muted-foreground">This authenticated preview uses the browser PDF renderer and persists the selected page per floor. Canvas rasterization remains a separate compatibility hardening step for browsers without reliable embedded PDF support.</p>
+              </div>
+            ) : null}
             <p className="text-xs text-muted-foreground">Maximum 50 MB by default. MIME, file signature and extension must agree before the file is accepted.</p>
-            {background?.mimeType === "application/pdf" ? <p className="text-xs text-amber-600">PDF source is stored securely. Canvas page rendering and page selection are handled in the next PDF-specific increment.</p> : null}
           </CardContent>
         </Card>
       ) : null}
