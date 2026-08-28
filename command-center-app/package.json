@@ -10,7 +10,7 @@
     "postinstall": "node scripts/install-prisma-godaddy-engines.mjs && node scripts/prepare-prisma-godaddy.mjs && prisma generate",
     "lint": "next lint",
     "typecheck": "tsc --noEmit --incremental false",
-    "security:test": "rm -rf .security-test-build && tsc -p tsconfig.security-tests.json && node --test .security-test-build/tests/security/*.test.js && node scripts/security-action-policy.mjs",
+    "security:test": "rm -rf .security-test-build && tsc -p tsconfig.security-tests.json && node --test .security-test-build/tests/security/*.test.js .security-test-build/tests/design-floor-plan.test.js && node scripts/security-action-policy.mjs",
     "verify:staging": "npm run lint && npm run build && npm run typecheck && npm run prisma:validate",
     "verify:ci": "npm run security:test && npm run verify:staging",
     "prisma:generate": "node scripts/prepare-prisma-godaddy.mjs && node scripts/run-prisma.mjs generate",
@@ -18,7 +18,7 @@
     "prisma:migrate:dev": "node scripts/run-prisma.mjs migrate dev",
     "prisma:migrate:deploy": "node scripts/run-prisma.mjs migrate deploy",
     "prisma:studio": "node scripts/run-prisma.mjs studio",
-    "prisma:seed": "node scripts/run-prisma.mjs db seed",
+    "prisma:seed": "node prisma/seed.cjs",
     "bootstrap:local": "node scripts/bootstrap-local.mjs"
   },
   "prisma": {
@@ -41,6 +41,7 @@
     "react-hook-form": "^7.53.0",
     "react-leaflet": "^4.2.1",
     "tailwind-merge": "^2.5.2",
+    "tailwindcss-animate": "^1.0.7",
     "zod": "^3.23.8"
   },
   "devDependencies": {
@@ -55,7 +56,6 @@
     "picomatch": "^4.0.3",
     "postcss": "^8.4.45",
     "tailwindcss": "^3.4.10",
-    "tailwindcss-animate": "^1.0.7",
     "typescript": "^5.5.4"
   }
 }
