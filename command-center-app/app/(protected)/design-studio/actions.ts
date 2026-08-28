@@ -4,9 +4,12 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireRoles } from "@/lib/auth";
+import { persistFloorPlanAssetAndAttach } from "@/lib/contractor-os/design-asset-repository";
 import type { CanvasDocument } from "@/lib/contractor-os/design-canvas-state";
+import { designFloorPlanStorageKey, validateDesignFloorPlanUpload } from "@/lib/contractor-os/design-floor-plan";
 import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
+import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
 import { routeAccess } from "@/lib/rbac";
 
 function formString(formData: FormData, key: string) {
@@ -33,6 +36,41 @@ export async function createDesignProjectAction(formData: FormData) {
 
   revalidatePath("/design-studio");
   redirect(`/design-studio/${projectId}?organizationId=${encodeURIComponent(organizationId)}`);
+}
+
+export async function uploadDesignFloorPlanAction(formData: FormData) {
+  const user = await requireRoles(routeAccess.designStudio);
+  const requestedOrganizationId = formString(formData, "organizationId");
+  const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
+  const projectId = formString(formData, "projectId");
+  const floorId = formString(formData, "floorId");
+  const uploaded = formData.get("file");
+
+  if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  if (!(uploaded instanceof File) || !uploaded.name) throw new Error("Select a PDF, JPG or PNG floor plan");
+
+  const bytes = new Uint8Array(await uploaded.arrayBuffer());
+  const asset = validateDesignFloorPlanUpload({
+    fileName: uploaded.name,
+    mimeType: uploaded.type.toLowerCase(),
+    byteSize: bytes.byteLength,
+    bytes,
+  });
+  const storageKey = designFloorPlanStorageKey(organizationId, projectId, asset.assetId, asset.extension);
+
+  await storePrivateDesignAsset(storageKey, bytes);
+  try {
+    await persistFloorPlanAssetAndAttach(
+      { role: user.role, organizationId: user.organizationId },
+      { organizationId, projectId, floorId, storageKey, asset, createdByUserId: user.id },
+    );
+  } catch (error) {
+    await deletePrivateDesignAsset(storageKey);
+    throw error;
+  }
+
+  revalidatePath(`/design-studio/${projectId}`);
+  return { assetId: asset.assetId };
 }
 
 export async function saveDesignCanvasAction(input: {
