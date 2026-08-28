@@ -38,7 +38,7 @@ export async function createDesignProjectAction(formData: FormData) {
   redirect(`/design-studio/${projectId}?organizationId=${encodeURIComponent(organizationId)}`);
 }
 
-export async function uploadDesignFloorPlanAction(formData: FormData) {
+export async function uploadDesignFloorPlanAction(formData: FormData): Promise<void> {
   const user = await requireRoles(routeAccess.designStudio);
   const requestedOrganizationId = formString(formData, "organizationId");
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
@@ -70,7 +70,6 @@ export async function uploadDesignFloorPlanAction(formData: FormData) {
   }
 
   revalidatePath(`/design-studio/${projectId}`);
-  return { assetId: asset.assetId };
 }
 
 export async function saveDesignCanvasAction(input: {
