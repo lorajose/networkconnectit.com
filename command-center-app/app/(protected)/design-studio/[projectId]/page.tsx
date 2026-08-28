@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
+import { updateDesignFloorBackgroundAction, uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
 import { DesignCanvas } from "@/components/design-studio/design-canvas";
 import { DesignVersionHistory } from "@/components/design-studio/design-version-history";
 import { Button } from "@/components/ui/button";
@@ -24,6 +24,11 @@ function formatBytes(value: bigint) {
   return `${(bytes / (1024 * 1024)).toFixed(1)} MB`;
 }
 
+function appBasePath() {
+  const raw = process.env.NEXT_PUBLIC_APP_BASE_PATH?.trim() ?? "";
+  return raw && raw !== "/" ? raw.replace(/\/+$/, "") : "";
+}
+
 export default async function DesignStudioProjectPage({ params, searchParams }: ProjectPageProps) {
   const user = await requireRoles(routeAccess.designStudio);
   const requestedOrganizationId = user.organizationId ?? searchParams?.organizationId ?? "";
@@ -42,6 +47,9 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
         getDesignFloorBackground(actor, params.projectId, selectedFloor.id, requestedOrganizationId),
       ])
     : [null, null];
+  const backgroundUrl = selectedFloor && background
+    ? `${appBasePath()}/api/design-studio/background?organizationId=${encodeURIComponent(requestedOrganizationId)}&projectId=${encodeURIComponent(project.id)}&floorId=${encodeURIComponent(selectedFloor.id)}`
+    : null;
 
   return (
     <div className="space-y-6">
@@ -76,13 +84,27 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
               <label className="flex-1 text-sm font-medium">Floor plan file<input className="mt-2 block w-full rounded-lg border bg-background px-3 py-2 text-sm" type="file" name="file" accept="application/pdf,image/jpeg,image/png,.pdf,.jpg,.jpeg,.png" required /></label>
               <Button type="submit">{background ? "Replace background" : "Upload background"}</Button>
             </form>
+            {background ? (
+              <form action={updateDesignFloorBackgroundAction} className="grid gap-3 rounded-xl border p-3 sm:grid-cols-[1fr_auto_auto_auto] sm:items-end">
+                <input type="hidden" name="organizationId" value={requestedOrganizationId} />
+                <input type="hidden" name="projectId" value={project.id} />
+                <input type="hidden" name="floorId" value={selectedFloor.id} />
+                <label className="text-sm font-medium">Opacity
+                  <input className="mt-2 w-full" type="range" name="opacityPercent" min="10" max="100" step="5" defaultValue={Math.round(Number(background.backgroundOpacity) * 100)} />
+                </label>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="visible" defaultChecked={background.backgroundVisible} />Visible</label>
+                <label className="flex items-center gap-2 text-sm"><input type="checkbox" name="locked" defaultChecked={background.backgroundLocked} />Locked</label>
+                <Button type="submit" variant="outline">Apply display</Button>
+              </form>
+            ) : null}
             <p className="text-xs text-muted-foreground">Maximum 50 MB by default. MIME, file signature and extension must agree before the file is accepted.</p>
+            {background?.mimeType === "application/pdf" ? <p className="text-xs text-amber-600">PDF source is stored securely. Canvas page rendering and page selection are handled in the next PDF-specific increment.</p> : null}
           </CardContent>
         </Card>
       ) : null}
 
       {selectedFloor && initialDocument ? (
-        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} /></div>
+        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} background={background && backgroundUrl ? { url: backgroundUrl, mimeType: background.mimeType, opacity: Number(background.backgroundOpacity), visible: background.backgroundVisible, locked: background.backgroundLocked, width: Number(selectedFloor.canvasWidth), height: Number(selectedFloor.canvasHeight) } : null} /></div>
       ) : null}
 
       <Card>
