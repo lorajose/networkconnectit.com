@@ -29,19 +29,30 @@ type DragState = {
   startDocument: CanvasDocument;
 } | null;
 
+type CanvasBackground = {
+  url: string;
+  mimeType: string;
+  opacity: number;
+  visible: boolean;
+  locked: boolean;
+  width: number;
+  height: number;
+};
+
 type DesignCanvasProps = {
   initialDocument?: CanvasDocument;
   organizationId?: string;
   projectId?: string;
   floorId?: string;
   initialRevision?: number;
+  background?: CanvasBackground | null;
 };
 
 function persistedElementsSignature(document: CanvasDocument) {
   return JSON.stringify(document.elements);
 }
 
-export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision }: DesignCanvasProps) {
+export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background }: DesignCanvasProps) {
   const initial = initialDocument ?? createCanvasDocument();
   const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(initial));
   const [revision, setRevision] = useState(initialRevision ?? 1);
@@ -55,7 +66,6 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   const lastSavedElementsRef = useRef(persistedElementsSignature(initial));
   const document = history.present;
   const canPersist = Boolean(organizationId && projectId && floorId);
-
   const selected = useMemo(() => new Set(document.selectedIds), [document.selectedIds]);
 
   function apply(next: CanvasDocument) {
@@ -65,15 +75,11 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
 
   function addDevice() {
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `device-${Date.now()}`;
-    const next = {
+    apply({
       ...document,
-      elements: [
-        ...document.elements,
-        { id, geometry: { schemaVersion: 1 as const, points: [{ x: 240, y: 180 }], rotation: 0, width: 54, height: 34 } },
-      ],
+      elements: [...document.elements, { id, geometry: { schemaVersion: 1 as const, points: [{ x: 240, y: 180 }], rotation: 0, width: 54, height: 34 } }],
       selectedIds: [id],
-    };
-    apply(next);
+    });
   }
 
   const persistCanvas = useCallback((documentToSave: CanvasDocument, source: "manual" | "autosave") => {
@@ -83,18 +89,11 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
       if (source === "manual") setSaveMessage(`Saved revision ${revisionRef.current}`);
       return;
     }
-
     savingRef.current = true;
     if (source === "manual") setSaveMessage(null);
     startSaving(async () => {
       try {
-        const result = await saveDesignCanvasAction({
-          organizationId,
-          projectId,
-          floorId,
-          expectedRevision: revisionRef.current,
-          document: documentToSave,
-        });
+        const result = await saveDesignCanvasAction({ organizationId, projectId, floorId, expectedRevision: revisionRef.current, document: documentToSave });
         revisionRef.current = result.revision;
         setRevision(result.revision);
         lastSavedElementsRef.current = signature;
@@ -108,9 +107,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     });
   }, [canPersist, floorId, organizationId, projectId, startSaving]);
 
-  function saveCanvas() {
-    persistCanvas(document, "manual");
-  }
+  function saveCanvas() { persistCanvas(document, "manual"); }
 
   useEffect(() => {
     if (!canPersist || drag || savingRef.current) return;
@@ -122,10 +119,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   function toDesignPoint(clientX: number, clientY: number) {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return { x: clientX, y: clientY };
-    return {
-      x: (clientX - rect.left - document.viewport.x) / document.viewport.zoom,
-      y: (clientY - rect.top - document.viewport.y) / document.viewport.zoom,
-    };
+    return { x: (clientX - rect.left - document.viewport.x) / document.viewport.zoom, y: (clientY - rect.top - document.viewport.y) / document.viewport.zoom };
   }
 
   function beginElementDrag(event: React.PointerEvent<SVGGElement>, id: string) {
@@ -155,7 +149,6 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
       setDrag({ ...drag, lastX: event.clientX, lastY: event.clientY });
       return;
     }
-
     const point = toDesignPoint(event.clientX, event.clientY);
     const dx = point.x - drag.lastX;
     const dy = point.y - drag.lastY;
@@ -172,26 +165,16 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   }
 
   function handleKeyDown(event: React.KeyboardEvent<HTMLDivElement>) {
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") {
-      event.preventDefault();
-      saveCanvas();
-      return;
-    }
-    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") {
-      event.preventDefault();
-      setHistory((current) => event.shiftKey ? redoCanvas(current) : undoCanvas(current));
-      return;
-    }
-    if (event.key === "Delete" || event.key === "Backspace") {
-      event.preventDefault();
-      apply(deleteSelected(document));
-      return;
-    }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "s") { event.preventDefault(); saveCanvas(); return; }
+    if ((event.metaKey || event.ctrlKey) && event.key.toLowerCase() === "z") { event.preventDefault(); setHistory((current) => event.shiftKey ? redoCanvas(current) : undoCanvas(current)); return; }
+    if (event.key === "Delete" || event.key === "Backspace") { event.preventDefault(); apply(deleteSelected(document)); return; }
     if (event.key === "ArrowLeft") apply(translateSelected(document, { x: -5, y: 0 }));
     if (event.key === "ArrowRight") apply(translateSelected(document, { x: 5, y: 0 }));
     if (event.key === "ArrowUp") apply(translateSelected(document, { x: 0, y: -5 }));
     if (event.key === "ArrowDown") apply(translateSelected(document, { x: 0, y: 5 }));
   }
+
+  const imageBackground = background && background.visible && background.mimeType.startsWith("image/") ? background : null;
 
   return (
     <div tabIndex={0} onKeyDown={handleKeyDown} className="overflow-hidden rounded-2xl border bg-background outline-none focus:ring-2 focus:ring-primary/40">
@@ -216,8 +199,23 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         <defs><pattern id="design-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" /></pattern></defs>
         <rect width="100%" height="100%" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" />
         <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
-          <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
-          <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
+          {imageBackground ? (
+            <image
+              href={imageBackground.url}
+              x="0"
+              y="0"
+              width={imageBackground.width}
+              height={imageBackground.height}
+              preserveAspectRatio="xMidYMid meet"
+              opacity={imageBackground.opacity}
+              pointerEvents={imageBackground.locked ? "none" : "auto"}
+            />
+          ) : (
+            <>
+              <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
+              <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
+            </>
+          )}
           {document.elements.filter((item) => !item.hidden).map((element) => {
             const point = element.geometry.points[0];
             const width = element.geometry.width ?? 48;
@@ -236,6 +234,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
       </svg>
       <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
         <span>Autosaves after 1.5s idle</span><span>Add device to place equipment</span><span>Drag devices to move</span><span>Shift/Ctrl/Cmd + click for multi-select</span><span>Arrow keys nudge</span><span>Delete removes</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+        {background?.mimeType === "application/pdf" ? <span>PDF source attached; page rendering is handled in the PDF page-selection increment.</span> : null}
       </div>
     </div>
   );
