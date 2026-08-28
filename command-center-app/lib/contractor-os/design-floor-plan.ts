@@ -6,6 +6,21 @@ export type DesignFloorPlanMimeType = (typeof DESIGN_FLOOR_PLAN_MIME_TYPES)[numb
 
 export const DEFAULT_DESIGN_FLOOR_PLAN_MAX_BYTES = 50 * 1024 * 1024;
 const MAX_FILE_NAME_LENGTH = 255;
+const PDF_EOF_SCAN_BYTES = 4096;
+const BLOCKED_PDF_TOKENS = [
+  "/JavaScript",
+  "/JS",
+  "/OpenAction",
+  "/AA",
+  "/Launch",
+  "/EmbeddedFile",
+  "/EmbeddedFiles",
+  "/RichMedia",
+  "/SubmitForm",
+  "/ImportData",
+  "/XFA",
+  "/Encrypt",
+] as const;
 
 export type DesignFloorPlanUpload = {
   fileName: string;
@@ -35,6 +50,23 @@ function detectMimeType(bytes: Uint8Array): DesignFloorPlanMimeType | null {
   return null;
 }
 
+function validatePdfSafety(bytes: Uint8Array) {
+  const buffer = Buffer.from(bytes.buffer, bytes.byteOffset, bytes.byteLength);
+  const header = buffer.subarray(0, Math.min(buffer.length, 16)).toString("ascii");
+  if (!/^%PDF-(?:1\.[0-7]|2\.0)(?:\r|\n|\s)/.test(header)) {
+    throw new Error("PDF header version is invalid or unsupported");
+  }
+
+  const tail = buffer.subarray(Math.max(0, buffer.length - PDF_EOF_SCAN_BYTES)).toString("latin1");
+  if (!tail.includes("%%EOF")) throw new Error("PDF is incomplete or missing its end marker");
+
+  for (const token of BLOCKED_PDF_TOKENS) {
+    if (buffer.includes(Buffer.from(token, "ascii"))) {
+      throw new Error(`PDF contains blocked active content token ${token}`);
+    }
+  }
+}
+
 export function validateDesignFloorPlanUpload(input: DesignFloorPlanUpload): ValidatedDesignFloorPlan {
   const originalName = basename(input.fileName.trim());
   if (!originalName) throw new Error("Floor plan file name is required");
@@ -46,6 +78,8 @@ export function validateDesignFloorPlanUpload(input: DesignFloorPlanUpload): Val
   if (!detected || !DESIGN_FLOOR_PLAN_MIME_TYPES.includes(input.mimeType as DesignFloorPlanMimeType) || detected !== input.mimeType) {
     throw new Error("Floor plan file type is not allowed or does not match its content");
   }
+
+  if (detected === "application/pdf") validatePdfSafety(input.bytes);
 
   const extension = detected === "application/pdf" ? ".pdf" : detected === "image/png" ? ".png" : ".jpg";
   const suppliedExtension = extname(originalName).toLowerCase();

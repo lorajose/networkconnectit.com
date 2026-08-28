@@ -5,7 +5,11 @@ import { designFloorPlanStorageKey, validateDesignFloorPlanUpload } from "../lib
 
 const png = Uint8Array.from([0x89,0x50,0x4e,0x47,0x0d,0x0a,0x1a,0x0a,0x00]);
 const jpg = Uint8Array.from([0xff,0xd8,0xff,0xe0,0x00]);
-const pdf = new TextEncoder().encode("%PDF-1.7\n");
+const pdf = new TextEncoder().encode("%PDF-1.7\n1 0 obj\n<< /Type /Catalog >>\nendobj\ntrailer\n<<>>\n%%EOF\n");
+
+function pdfWith(content: string) {
+  return new TextEncoder().encode(`%PDF-1.7\n1 0 obj\n<< ${content} >>\nendobj\ntrailer\n<<>>\n%%EOF\n`);
+}
 
 test("accepts PDF, PNG and JPEG only when MIME, extension and magic bytes agree", () => {
   for (const sample of [
@@ -22,6 +26,20 @@ test("accepts PDF, PNG and JPEG only when MIME, extension and magic bytes agree"
 test("rejects spoofed content and mismatched extensions", () => {
   assert.throws(() => validateDesignFloorPlanUpload({ fileName: "bad.pdf", mimeType: "application/pdf", byteSize: png.byteLength, bytes: png }), /does not match/);
   assert.throws(() => validateDesignFloorPlanUpload({ fileName: "bad.exe", mimeType: "image/png", byteSize: png.byteLength, bytes: png }), /extension/);
+});
+
+test("rejects incomplete PDFs and active or encrypted PDF content", () => {
+  const incomplete = new TextEncoder().encode("%PDF-1.7\n1 0 obj\n<<>>\nendobj\n");
+  assert.throws(() => validateDesignFloorPlanUpload({ fileName: "incomplete.pdf", mimeType: "application/pdf", byteSize: incomplete.byteLength, bytes: incomplete }), /end marker/);
+
+  for (const token of ["/JavaScript", "/OpenAction", "/Launch", "/EmbeddedFile", "/RichMedia", "/XFA", "/Encrypt"]) {
+    const bytes = pdfWith(`${token} 2 0 R`);
+    assert.throws(
+      () => validateDesignFloorPlanUpload({ fileName: "unsafe.pdf", mimeType: "application/pdf", byteSize: bytes.byteLength, bytes }),
+      /blocked active content token/,
+      token,
+    );
+  }
 });
 
 test("builds tenant and project scoped storage keys and rejects traversal identifiers", () => {
