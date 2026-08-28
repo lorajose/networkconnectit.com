@@ -40,7 +40,8 @@ export function isEnabledEnvironmentFlag(value: string | undefined) {
     normalized === "1" ||
     normalized === "true" ||
     normalized === "yes" ||
-    normalized === "on"
+    normalized === "on" ||
+    normalized === "enabled"
   );
 }
 
@@ -86,8 +87,11 @@ export function getRuntimeConfigWarnings(): RuntimeConfigWarning[] {
   const marketingSiteUrl =
     process.env.NEXT_PUBLIC_MARKETING_SITE_URL?.trim() ?? "";
   const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
+  const firstAdminBootstrapFlag =
+    process.env.NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP ??
+    process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP;
   const firstAdminBootstrapEnabled = isEnabledEnvironmentFlag(
-    process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP
+    firstAdminBootstrapFlag
   );
   const firstAdminBootstrapToken =
     process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN?.trim() ?? "";
@@ -178,7 +182,7 @@ export function getRuntimeConfigWarnings(): RuntimeConfigWarning[] {
       tone: "critical",
       title: "First-admin bootstrap is enabled without a token",
       description:
-        "Set FIRST_ADMIN_BOOTSTRAP_TOKEN before exposing the one-time bootstrap route, or disable ENABLE_FIRST_ADMIN_BOOTSTRAP."
+        "Set FIRST_ADMIN_BOOTSTRAP_TOKEN before exposing the one-time bootstrap route, or disable NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP."
     });
   } else if (
     firstAdminBootstrapEnabled &&
@@ -200,7 +204,7 @@ export function getRuntimeConfigWarnings(): RuntimeConfigWarning[] {
       tone: "warning",
       title: "First-admin bootstrap is still enabled",
       description:
-        "Disable ENABLE_FIRST_ADMIN_BOOTSTRAP after creating the first internal admin so the bootstrap route cannot be reused."
+        "Disable NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP after creating the first internal admin so the bootstrap route cannot be reused."
     });
   }
 
