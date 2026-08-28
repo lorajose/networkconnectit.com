@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useMemo, useRef, useState, useTransition } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from "react";
 import { Plus, RotateCcw, RotateCw, Save, Trash2, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 
 import { saveDesignCanvasAction } from "@/app/(protected)/design-studio/actions";
@@ -76,7 +76,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     apply(next);
   }
 
-  function persistCanvas(documentToSave: CanvasDocument, source: "manual" | "autosave") {
+  const persistCanvas = useCallback((documentToSave: CanvasDocument, source: "manual" | "autosave") => {
     if (!canPersist || !organizationId || !projectId || !floorId || savingRef.current) return;
     const signature = persistedElementsSignature(documentToSave);
     if (signature === lastSavedElementsRef.current) {
@@ -106,7 +106,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         setSaveCycle((cycle) => cycle + 1);
       }
     });
-  }
+  }, [canPersist, floorId, organizationId, projectId, startSaving]);
 
   function saveCanvas() {
     persistCanvas(document, "manual");
@@ -117,7 +117,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     if (persistedElementsSignature(document) === lastSavedElementsRef.current) return;
     const timer = window.setTimeout(() => persistCanvas(document, "autosave"), 1500);
     return () => window.clearTimeout(timer);
-  }, [canPersist, document, drag, saveCycle]);
+  }, [canPersist, document, drag, persistCanvas, saveCycle]);
 
   function toDesignPoint(clientX: number, clientY: number) {
     const rect = svgRef.current?.getBoundingClientRect();
@@ -216,7 +216,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         <defs><pattern id="design-grid" width="40" height="40" patternUnits="userSpaceOnUse"><path d="M 40 0 L 0 0 0 40" fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" /></pattern></defs>
         <rect width="100%" height="100%" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" />
         <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
-          <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" />
+          <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
           <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
           {document.elements.filter((item) => !item.hidden).map((element) => {
             const point = element.geometry.points[0];
