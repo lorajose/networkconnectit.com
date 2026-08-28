@@ -33,6 +33,13 @@ function getBootstrapToken() {
   return process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN?.trim() ?? "";
 }
 
+function getBootstrapFlag() {
+  return (
+    process.env.NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP ??
+    process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP
+  );
+}
+
 function isBootstrapTokenStrongEnough(token: string) {
   return (
     token.length >= FIRST_ADMIN_BOOTSTRAP_TOKEN_MIN_LENGTH &&
@@ -81,7 +88,7 @@ async function withFirstAdminBootstrapLock<T>(
 }
 
 export function isFirstAdminBootstrapEnabled() {
-  return isEnabledEnvironmentFlag(process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP);
+  return isEnabledEnvironmentFlag(getBootstrapFlag());
 }
 
 export async function getFirstAdminBootstrapAvailability(): Promise<FirstAdminBootstrapAvailability> {
