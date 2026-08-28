@@ -5,7 +5,7 @@ import { DesignCanvas } from "@/components/design-studio/design-canvas";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRoles } from "@/lib/auth";
-import { getDesignProject, listDesignFloors } from "@/lib/contractor-os/design-studio-repository";
+import { getDesignProject, listDesignFloors, loadDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { routeAccess } from "@/lib/rbac";
 
 type ProjectPageProps = {
@@ -22,6 +22,9 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
   if (!project) notFound();
   const floors = await listDesignFloors(actor, params.projectId, requestedOrganizationId);
   const selectedFloor = floors.find((floor) => floor.id === searchParams?.floorId) ?? floors[0] ?? null;
+  const initialDocument = selectedFloor
+    ? await loadDesignFloorCanvas(actor, params.projectId, selectedFloor.id, requestedOrganizationId)
+    : null;
 
   return (
     <div className="space-y-6">
@@ -30,13 +33,13 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
         <Button asChild variant="outline"><Link href={`/design-studio?organizationId=${encodeURIComponent(requestedOrganizationId)}`}>All designs</Link></Button>
       </div>
 
-      <Card><CardHeader><CardTitle className="text-lg">Floors / areas</CardTitle><CardDescription>Each floor is loaded through the tenant-scoped DesignProject relationship.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">
+      <Card><CardHeader><CardTitle className="text-lg">Floors / areas</CardTitle><CardDescription>Each floor and its canvas elements are loaded through the tenant-scoped DesignProject relationship.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">
         {floors.map((floor) => <Button key={floor.id} asChild size="sm" variant={floor.id === selectedFloor?.id ? "default" : "outline"}><Link href={`/design-studio/${project.id}?organizationId=${encodeURIComponent(requestedOrganizationId)}&floorId=${encodeURIComponent(floor.id)}`}>{floor.name}</Link></Button>)}
         {floors.length === 0 ? <p className="text-sm text-muted-foreground">No floors have been created for this project.</p> : null}
       </CardContent></Card>
 
-      {selectedFloor ? (
-        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas /></div>
+      {selectedFloor && initialDocument ? (
+        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} /></div>
       ) : null}
     </div>
   );
