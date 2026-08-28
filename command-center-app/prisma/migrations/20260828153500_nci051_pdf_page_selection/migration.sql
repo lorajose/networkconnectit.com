@@ -1,0 +1,2 @@
+ALTER TABLE DesignFloor
+  ADD COLUMN backgroundPdfPage INT NOT NULL DEFAULT 1;
