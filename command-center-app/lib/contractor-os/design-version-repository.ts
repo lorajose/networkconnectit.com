@@ -135,7 +135,7 @@ export async function createDesignVersionCheckpoint(
       FROM DesignVersion
       WHERE organizationId=${organizationId} AND designProjectId=${input.projectId}
     `);
-    const versionNumber = Number(versions[0]?.nextVersion ?? 1n);
+    const versionNumber = versions[0] ? Number(versions[0].nextVersion) : 1;
     const id = randomUUID();
     const reason = input.reason?.trim().slice(0, 255) || null;
     await tx.$executeRaw(Prisma.sql`
