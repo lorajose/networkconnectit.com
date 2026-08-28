@@ -7,7 +7,7 @@ import { requireRoles } from "@/lib/auth";
 import { persistFloorPlanAssetAndAttach } from "@/lib/contractor-os/design-asset-repository";
 import type { CanvasDocument } from "@/lib/contractor-os/design-canvas-state";
 import { designFloorPlanStorageKey, validateDesignFloorPlanUpload } from "@/lib/contractor-os/design-floor-plan";
-import { updateDesignFloorBackgroundSettings } from "@/lib/contractor-os/design-floor-background-repository";
+import { updateDesignFloorBackgroundSettings, updateDesignFloorPdfPage } from "@/lib/contractor-os/design-floor-background-repository";
 import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
@@ -94,6 +94,22 @@ export async function updateDesignFloorBackgroundAction(formData: FormData): Pro
     },
   );
 
+  revalidatePath(`/design-studio/${projectId}`);
+}
+
+export async function updateDesignFloorPdfPageAction(formData: FormData): Promise<void> {
+  const user = await requireRoles(routeAccess.designStudio);
+  const requestedOrganizationId = formString(formData, "organizationId");
+  const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
+  const projectId = formString(formData, "projectId");
+  const floorId = formString(formData, "floorId");
+  const page = Number(formString(formData, "pdfPage"));
+
+  if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await updateDesignFloorPdfPage(
+    { role: user.role, organizationId: user.organizationId },
+    { organizationId, projectId, floorId, page },
+  );
   revalidatePath(`/design-studio/${projectId}`);
 }
 
