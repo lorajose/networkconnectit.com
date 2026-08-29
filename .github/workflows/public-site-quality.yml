@@ -32,6 +32,35 @@ jobs:
       - name: Validate sitemap is well-formed XML
         run: python -c "import xml.etree.ElementTree as ET; ET.parse('sitemap.xml')"
 
+      - name: Require sitemap URLs to map to public files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          from urllib.parse import urlparse
+
+          root = ET.parse('sitemap.xml').getroot()
+          ns = {'sm': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          failures = []
+          for node in root.findall('sm:url/sm:loc', ns):
+              url = node.text.strip()
+              parsed = urlparse(url)
+              if parsed.scheme != 'https' or parsed.netloc != 'networkconnectit.com':
+                  failures.append(f'{url}: must use canonical https://networkconnectit.com host')
+                  continue
+              path = parsed.path
+              if path == '/':
+                  candidate = Path('index.html')
+              elif path.endswith('/'):
+                  candidate = Path(path.lstrip('/')) / 'index.html'
+              else:
+                  candidate = Path(path.lstrip('/'))
+              if not candidate.is_file():
+                  failures.append(f'{url}: missing repository file {candidate}')
+          if failures:
+              raise SystemExit('\n'.join(failures))
+          PY
+
       - name: Require canonical homepage and sitemap declaration
         run: |
           grep -Fq '<link rel="canonical" href="https://networkconnectit.com/">' index.html
@@ -42,6 +71,16 @@ jobs:
           if grep -R --include='*.html' -n '"aggregateRating"' .; then
             echo 'ERROR: LocalBusiness/Organization aggregate ratings require an explicit policy review and must not be self-serving.'
             exit 1
+          fi
+
+      - name: Inventory high-risk public trust claims
+        run: |
+          mkdir -p /tmp/nci-quality
+          grep -R --include='*.html' -Eni '24/7|guaranteed|guarantee|SLA|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects' . > /tmp/nci-quality/trust-claims.txt || true
+          echo 'High-risk trust claims found for evidence review:'
+          cat /tmp/nci-quality/trust-claims.txt || true
+          if [ -s /tmp/nci-quality/trust-claims.txt ]; then
+            echo 'NOTICE: Claims listed above require evidence or conservative wording before release. See docs/seo/NCI-039-trust-claims-audit.md.'
           fi
 
       - name: Require private Command Center surfaces to declare noindex
