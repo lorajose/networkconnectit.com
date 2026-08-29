@@ -1,0 +1,58 @@
+name: Public Site Quality
+
+on:
+  pull_request:
+    paths:
+      - '*.html'
+      - 'tools/**'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '.htaccess'
+      - '.github/workflows/public-site-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - 'tools/**'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '.htaccess'
+      - '.github/workflows/public-site-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate sitemap is well-formed XML
+        run: python -c "import xml.etree.ElementTree as ET; ET.parse('sitemap.xml')"
+
+      - name: Require canonical homepage and sitemap declaration
+        run: |
+          grep -Fq '<link rel="canonical" href="https://networkconnectit.com/">' index.html
+          grep -Fq 'Sitemap: https://networkconnectit.com/sitemap.xml' robots.txt
+
+      - name: Reject self-serving LocalBusiness aggregate ratings
+        run: |
+          if grep -R --include='*.html' -n '"aggregateRating"' .; then
+            echo 'ERROR: LocalBusiness/Organization aggregate ratings require an explicit policy review and must not be self-serving.'
+            exit 1
+          fi
+
+      - name: Require private Command Center surfaces to declare noindex
+        run: |
+          grep -Fq 'index: false' 'command-center-app/app/(protected)/layout.tsx'
+          grep -Fq 'follow: false' 'command-center-app/app/(protected)/layout.tsx'
+          grep -Fq 'index: false' 'command-center-app/app/(auth)/layout.tsx'
+          grep -Fq 'follow: false' 'command-center-app/app/(auth)/layout.tsx'
+
+      - name: Confirm baseline static security headers
+        run: |
+          grep -Fq 'X-Content-Type-Options "nosniff"' .htaccess
+          grep -Fq 'Referrer-Policy "strict-origin-when-cross-origin"' .htaccess
+          grep -Fq 'X-Frame-Options "SAMEORIGIN"' .htaccess
