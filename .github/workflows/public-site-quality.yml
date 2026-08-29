@@ -107,11 +107,16 @@ jobs:
             exit 1
           fi
 
-      - name: Inventory credential and certification language
+      - name: Reject unverified credential and certification claims
         if: ${{ always() }}
         run: |
-          echo 'Credential language requires a current evidence record before release:'
-          grep -R -E -i --include='*.html' -n 'Cisco-certified|Cisco[^<]{0,20}UniFi certified|certified experts|certified engineers|NYS Security/Fire Alarm Installer License' . || true
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n 'Cisco-certified|Cisco Certified|Cisco[^<]{0,20}UniFi certified|certified experts|certified engineers|NYS Security/Fire Alarm Installer License' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Public credential, certification, and license claims require a current approved evidence record. Use capability/experience language until evidence is attached to the release.'
+            exit 1
+          fi
 
       - name: Require private Command Center surfaces to declare noindex
         if: ${{ always() }}
