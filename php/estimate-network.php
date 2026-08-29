@@ -3,6 +3,7 @@
 use PHPMailer\PHPMailer\PHPMailer;
 
 header('Content-Type: application/json; charset=UTF-8');
+header('X-Content-Type-Options: nosniff');
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
