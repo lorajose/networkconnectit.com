@@ -2,52 +2,78 @@
 // Endpoint for Smart Budget Configurator · Network (service.html)
 use PHPMailer\PHPMailer\PHPMailer;
 
+const NCI_NETWORK_RATE_LIMIT_MAX = 5;
+const NCI_NETWORK_RATE_LIMIT_WINDOW = 600;
+
 header('Content-Type: application/json; charset=UTF-8');
 header('X-Content-Type-Options: nosniff');
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    header('Allow: POST');
-    echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+function nci_network_error($status, $message) {
+    http_response_code($status);
+    echo json_encode(['status' => 'error', 'message' => $message]);
     exit;
 }
+
+function nci_network_enforce_rate_limit() {
+    $client = (string)($_SERVER['REMOTE_ADDR'] ?? 'unknown');
+    $bucket = hash('sha256', 'estimate-network|' . $client);
+    $path = rtrim(sys_get_temp_dir(), DIRECTORY_SEPARATOR) . DIRECTORY_SEPARATOR . 'nci-rate-' . $bucket . '.json';
+    $handle = @fopen($path, 'c+');
+    if ($handle === false || !flock($handle, LOCK_EX)) {
+        if (is_resource($handle)) fclose($handle);
+        nci_network_error(503, 'Service temporarily unavailable');
+    }
+
+    $now = time();
+    $raw = stream_get_contents($handle);
+    $timestamps = json_decode($raw ?: '[]', true);
+    if (!is_array($timestamps)) $timestamps = [];
+    $timestamps = array_values(array_filter($timestamps, static function ($value) use ($now) {
+        return is_int($value) && $value > ($now - NCI_NETWORK_RATE_LIMIT_WINDOW);
+    }));
+
+    if (count($timestamps) >= NCI_NETWORK_RATE_LIMIT_MAX) {
+        $retryAfter = max(1, NCI_NETWORK_RATE_LIMIT_WINDOW - ($now - $timestamps[0]));
+        flock($handle, LOCK_UN);
+        fclose($handle);
+        header('Retry-After: ' . $retryAfter);
+        nci_network_error(429, 'Too many requests');
+    }
+
+    $timestamps[] = $now;
+    rewind($handle);
+    ftruncate($handle, 0);
+    fwrite($handle, json_encode($timestamps));
+    fflush($handle);
+    flock($handle, LOCK_UN);
+    fclose($handle);
+}
+
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+    header('Allow: POST');
+    nci_network_error(405, 'Method not allowed');
+}
+
+nci_network_enforce_rate_limit();
 
 $contentType = strtolower(trim((string)($_SERVER['CONTENT_TYPE'] ?? '')));
 if ($contentType !== '' && strpos($contentType, 'application/json') !== 0 && strpos($contentType, 'application/x-www-form-urlencoded') !== 0) {
-    http_response_code(415);
-    echo json_encode(['status' => 'error', 'message' => 'Unsupported media type']);
-    exit;
+    nci_network_error(415, 'Unsupported media type');
 }
 
 $contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
-if ($contentLength > 32768) {
-    http_response_code(413);
-    echo json_encode(['status' => 'error', 'message' => 'Request too large']);
-    exit;
-}
+if ($contentLength > 32768) nci_network_error(413, 'Request too large');
 
 $rawBody = file_get_contents('php://input', false, null, 0, 32769);
-if ($rawBody === false || strlen($rawBody) > 32768) {
-    http_response_code(413);
-    echo json_encode(['status' => 'error', 'message' => 'Request too large']);
-    exit;
-}
+if ($rawBody === false || strlen($rawBody) > 32768) nci_network_error(413, 'Request too large');
 
 $payload = json_decode($rawBody, true);
-if (!is_array($payload)) {
-    $payload = $_POST;
-}
-if (!is_array($payload)) {
-    http_response_code(400);
-    echo json_encode(['status' => 'error', 'message' => 'Invalid request payload']);
-    exit;
-}
+if (!is_array($payload)) $payload = $_POST;
+if (!is_array($payload)) nci_network_error(400, 'Invalid request payload');
 
 function first_present_value(array $source, array $keys, $default = null) {
     foreach ($keys as $key) {
-        if (array_key_exists($key, $source) && $source[$key] !== null && $source[$key] !== '') {
-            return $source[$key];
-        }
+        if (array_key_exists($key, $source) && $source[$key] !== null && $source[$key] !== '') return $source[$key];
     }
     return $default;
 }
@@ -71,30 +97,19 @@ function parse_int_value($value) {
     $digits = preg_replace('/[^0-9-]/', '', $value);
     return ($digits === '' || $digits === '-') ? null : (int)$digits;
 }
-function format_usd($amount) {
-    return '$' . number_format((int)round((float)$amount), 0, '.', ',');
-}
+function format_usd($amount) { return '$' . number_format((int)round((float)$amount), 0, '.', ','); }
 function calculate_materials($switchCount, $messLevel) {
     $mess = normalize_mess_level($messLevel);
     $portRatio = ['low' => 0.55, 'medium' => 0.70, 'critical' => 0.85];
     $avgRunFt = ['low' => 30, 'medium' => 40, 'critical' => 50];
     $activeDrops = max(24, (int)ceil($switchCount * 48 * $portRatio[$mess]));
-    return [
-        'boxes' => max(1, (int)ceil(($activeDrops * $avgRunFt[$mess]) / 1000)),
-        'rj45' => $activeDrops * 2,
-        'patch_panels' => max(1, (int)ceil($switchCount / 2)),
-        'cable_managers' => max(2, (int)ceil($switchCount / 2)),
-        'patch_cords' => $activeDrops
-    ];
+    return ['boxes' => max(1, (int)ceil(($activeDrops * $avgRunFt[$mess]) / 1000)), 'rj45' => $activeDrops * 2, 'patch_panels' => max(1, (int)ceil($switchCount / 2)), 'cable_managers' => max(2, (int)ceil($switchCount / 2)), 'patch_cords' => $activeDrops];
 }
 function calculate_totals($switchCount, $messLevel, $locationCode) {
     $messMult = ['low' => 1.0, 'medium' => 1.35, 'critical' => 1.75];
     $locMult = ['NYC' => 1.20, 'NY' => 1.10, 'NJ' => 1.00, 'CT' => 1.00];
-    $mess = normalize_mess_level($messLevel);
-    $location = normalize_location_code($locationCode);
-    $base = ($switchCount * 680) + 320;
-    $fieldServices = $base * $messMult[$mess];
-    $total = $fieldServices * $locMult[$location];
+    $mess = normalize_mess_level($messLevel); $location = normalize_location_code($locationCode);
+    $base = ($switchCount * 680) + 320; $fieldServices = $base * $messMult[$mess]; $total = $fieldServices * $locMult[$location];
     return ['labor' => (int)round($fieldServices), 'support' => (int)round($total - $fieldServices), 'total' => (int)round($total)];
 }
 
@@ -105,12 +120,7 @@ $switches = parse_int_value(first_present_value($payload, ['switches', 'switch_c
 $messLevel = normalize_mess_level(first_present_value($payload, ['mess', 'messLevel', 'cable_mess_level', 'security'], 'low'));
 $locationCode = normalize_location_code(first_present_value($payload, ['location', 'location_code', 'size'], 'NYC'));
 $locationLabel = bounded_text(first_present_value($payload, ['location_label', 'locationLabel'], ''), 160);
-
-if (!$email || $switches === null || $switches < 1 || $switches > 256) {
-    http_response_code(400);
-    echo json_encode(['status' => 'error', 'message' => 'Invalid required fields']);
-    exit;
-}
+if (!$email || $switches === null || $switches < 1 || $switches > 256) nci_network_error(400, 'Invalid required fields');
 
 $locationMap = ['NYC' => 'NYC (20% logistics/parking uplift)', 'NY' => 'NY (metro)', 'NJ' => 'NJ', 'CT' => 'CT'];
 $locationDisplay = $locationLabel !== '' ? $locationLabel : ($locationMap[$locationCode] ?? $locationCode);
@@ -132,55 +142,20 @@ $body = '<h2>Network Rack Preliminary Estimate</h2>'
     . '<p><strong>Number of Switches:</strong> ' . $switches . '</p>'
     . '<p><strong>Cable mess level:</strong> ' . htmlspecialchars(ucfirst($messLevel), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
     . '<p><strong>Location:</strong> ' . htmlspecialchars($locationDisplay, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
-    . '<h3>Materials</h3><ul>'
-    . '<li>Cat6 boxes: ' . htmlspecialchars((string)$materials['boxes']) . '</li>'
-    . '<li>RJ45 connectors: ' . htmlspecialchars((string)$materials['rj45']) . '</li>'
-    . '<li>Patch panels: ' . htmlspecialchars((string)$materials['patch_panels']) . '</li>'
-    . '<li>Cable managers: ' . htmlspecialchars((string)$materials['cable_managers']) . '</li>'
-    . '<li>Patch cords: ' . htmlspecialchars((string)$materials['patch_cords']) . '</li></ul>'
-    . '<h3>Totals (USD)</h3><ul><li>Field services subtotal: ' . format_usd($totalsCalculated['labor']) . '</li>'
-    . '<li>Location uplift: ' . format_usd($totalsCalculated['support']) . '</li><li>Total estimate: ' . format_usd($totalsCalculated['total']) . '</li></ul>'
+    . '<h3>Materials</h3><ul><li>Cat6 boxes: ' . htmlspecialchars((string)$materials['boxes']) . '</li><li>RJ45 connectors: ' . htmlspecialchars((string)$materials['rj45']) . '</li><li>Patch panels: ' . htmlspecialchars((string)$materials['patch_panels']) . '</li><li>Cable managers: ' . htmlspecialchars((string)$materials['cable_managers']) . '</li><li>Patch cords: ' . htmlspecialchars((string)$materials['patch_cords']) . '</li></ul>'
+    . '<h3>Totals (USD)</h3><ul><li>Field services subtotal: ' . format_usd($totalsCalculated['labor']) . '</li><li>Location uplift: ' . format_usd($totalsCalculated['support']) . '</li><li>Total estimate: ' . format_usd($totalsCalculated['total']) . '</li></ul>'
     . '<p><em>Preliminary only. Final proposal follows on-site survey and cabling path review.</em></p>';
 
-$sent = false;
-$errorMsg = '';
-$autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
-$smtpHost = getenv('NCI_SMTP_HOST') ?: '';
-$smtpUser = getenv('NCI_SMTP_USER') ?: '';
-$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: '';
-$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: 587);
+$sent = false; $errorMsg = ''; $autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
+$smtpHost = getenv('NCI_SMTP_HOST') ?: ''; $smtpUser = getenv('NCI_SMTP_USER') ?: ''; $smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: ''; $smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: 587);
 if ($smtpHost !== '' && $smtpUser !== '' && $smtpPassword !== '' && file_exists($autoloadPath)) {
     require_once $autoloadPath;
     try {
-        $mail = new PHPMailer(true);
-        $mail->isSMTP();
-        $mail->Host = $smtpHost;
-        $mail->SMTPAuth = true;
-        $mail->Username = $smtpUser;
-        $mail->Password = $smtpPassword;
-        $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = $smtpPort;
-        $mail->setFrom($smtpUser, 'NetworkConnectIT');
-        $mail->addAddress($to);
-        $mail->addReplyTo($email);
-        $mail->isHTML(true);
-        $mail->Subject = $subject;
-        $mail->Body = $body;
-        $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</li>'], "\n", $body));
-        $mail->send();
-        $sent = true;
-    } catch (Throwable $e) {
-        $errorMsg = 'SMTP delivery failed';
-    }
+        $mail = new PHPMailer(true); $mail->isSMTP(); $mail->Host = $smtpHost; $mail->SMTPAuth = true; $mail->Username = $smtpUser; $mail->Password = $smtpPassword; $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; $mail->Port = $smtpPort;
+        $mail->setFrom($smtpUser, 'NetworkConnectIT'); $mail->addAddress($to); $mail->addReplyTo($email); $mail->isHTML(true); $mail->Subject = $subject; $mail->Body = $body; $mail->AltBody = strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>', '</li>'], "\n", $body)); $mail->send(); $sent = true;
+    } catch (Throwable $e) { $errorMsg = 'SMTP delivery failed'; }
 }
-if (!$sent) {
-    $sent = @mail($to, $subject, $body, $headers);
-    if (!$sent && !$errorMsg) $errorMsg = 'mail() failed';
-}
+if (!$sent) { $sent = @mail($to, $subject, $body, $headers); if (!$sent && !$errorMsg) $errorMsg = 'mail() failed'; }
 error_log('NetworkConnectIT network estimate delivery=' . ($sent ? 'success' : 'failure') . ($errorMsg ? ' reason=' . $errorMsg : ''));
-if ($sent) {
-    echo json_encode(['status' => 'ok', 'materials' => $materials, 'totals' => ['labor' => format_usd($totalsCalculated['labor']), 'support' => format_usd($totalsCalculated['support']), 'total' => format_usd($totalsCalculated['total'])]]);
-} else {
-    http_response_code(500);
-    echo json_encode(['status' => 'error', 'message' => 'Mail delivery failed']);
-}
+if ($sent) echo json_encode(['status' => 'ok', 'materials' => $materials, 'totals' => ['labor' => format_usd($totalsCalculated['labor']), 'support' => format_usd($totalsCalculated['support']), 'total' => format_usd($totalsCalculated['total'])]]);
+else nci_network_error(500, 'Mail delivery failed');
