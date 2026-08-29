@@ -107,6 +107,12 @@ jobs:
             exit 1
           fi
 
+      - name: Inventory credential and certification language
+        if: ${{ always() }}
+        run: |
+          echo 'Credential language requires a current evidence record before release:'
+          grep -R -E -i --include='*.html' -n 'Cisco-certified|Cisco[^<]{0,20}UniFi certified|certified experts|certified engineers|NYS Security/Fire Alarm Installer License' . || true
+
       - name: Require private Command Center surfaces to declare noindex
         if: ${{ always() }}
         run: |
