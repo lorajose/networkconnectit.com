@@ -1,7 +1,14 @@
 User-agent: *
 Allow: /
 
-# Authenticated SaaS surfaces should not be indexed.
-Disallow: /tools/command-center/
+# Keep the public Command Center product landing crawlable for discovery.
+Allow: /tools/command-center/
+
+# Authenticated SaaS surfaces and account workflows must not be indexed.
+Disallow: /tools/command-center/login
+Disallow: /tools/command-center/dashboard
+Disallow: /tools/command-center/api/
+Disallow: /tools/command-center/auth/
+Disallow: /tools/command-center/account/
 
 Sitemap: https://networkconnectit.com/sitemap.xml
