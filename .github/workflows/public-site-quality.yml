@@ -61,6 +61,41 @@ jobs:
           grep -Fq '<link rel="canonical" href="https://networkconnectit.com/">' index.html
           grep -Fq 'Sitemap: https://networkconnectit.com/sitemap.xml' robots.txt
 
+      - name: Require commercial navigation and contact CTA integrity
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          pages = [
+              Path('index.html'), Path('about.html'), Path('service.html'),
+              Path('feature.html'), Path('pricing.html'), Path('blog.html'),
+              Path('testimonial.html'), Path('contact.html'),
+              Path('installation-partner-support.html'),
+          ]
+          errors = []
+          for page in pages:
+              if not page.is_file():
+                  errors.append(f'{page}: missing public page')
+                  continue
+              text = page.read_text(encoding='utf-8', errors='ignore')
+              if not re.search(r'href=["\'](?:/?contact\.html|/contact\.html)["\']', text, re.I):
+                  errors.append(f'{page}: missing crawlable Contact link')
+              if page.name not in {'contact.html'} and not re.search(r'href=["\'](?:/?service\.html|/service\.html)["\']', text, re.I):
+                  errors.append(f'{page}: missing crawlable Services link')
+
+          contact = Path('contact.html').read_text(encoding='utf-8', errors='ignore')
+          if not re.search(r'<form[^>]+action=["\']/php/sendmail\.php["\'][^>]+method=["\']post["\']', contact, re.I | re.S):
+              errors.append('contact.html: commercial intake form must POST to /php/sendmail.php')
+          if 'g-recaptcha' not in contact or 'data-sitekey=' not in contact:
+              errors.append('contact.html: reCAPTCHA widget/site key wiring is required')
+          if not re.search(r'name=["\']message["\'][^>]*required', contact, re.I | re.S):
+              errors.append('contact.html: project message field must remain required')
+
+          if errors:
+              raise SystemExit('Public navigation/contact integrity failures:\n' + '\n'.join(errors))
+          PY
+
       - name: Reject self-serving LocalBusiness aggregate ratings
         run: |
           if grep -R --include='*.html' -n '"aggregateRating"' .; then
