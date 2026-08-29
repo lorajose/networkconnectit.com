@@ -72,7 +72,7 @@ jobs:
         if: ${{ always() }}
         run: |
           echo 'Review these matches for evidence before release:'
-          grep -R -E -i --include='*.html' -n '24/7|SLA|guarantee(d)?|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects' . || true
+          grep -R -E -i --include='*.html' -n '24/7|(^|[^[:alnum:]_])SLA([^[:alnum:]_]|$)|guarantee(d)?|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects|zero[- ]downtime|NOC-grade' . || true
 
       - name: Require private Command Center surfaces to declare noindex
         if: ${{ always() }}
