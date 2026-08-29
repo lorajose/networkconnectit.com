@@ -2,19 +2,44 @@
 // Endpoint for Smart Budget Configurator · Network (service.html)
 use PHPMailer\PHPMailer\PHPMailer;
 
+header('Content-Type: application/json; charset=UTF-8');
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
-    exit('Method Not Allowed');
+    header('Allow: POST');
+    echo json_encode(['status' => 'error', 'message' => 'Method not allowed']);
+    exit;
 }
 
-$rawBody = file_get_contents('php://input');
+$contentType = strtolower(trim((string)($_SERVER['CONTENT_TYPE'] ?? '')));
+if ($contentType !== '' && strpos($contentType, 'application/json') !== 0 && strpos($contentType, 'application/x-www-form-urlencoded') !== 0) {
+    http_response_code(415);
+    echo json_encode(['status' => 'error', 'message' => 'Unsupported media type']);
+    exit;
+}
+
+$contentLength = (int)($_SERVER['CONTENT_LENGTH'] ?? 0);
+if ($contentLength > 32768) {
+    http_response_code(413);
+    echo json_encode(['status' => 'error', 'message' => 'Request too large']);
+    exit;
+}
+
+$rawBody = file_get_contents('php://input', false, null, 0, 32769);
+if ($rawBody === false || strlen($rawBody) > 32768) {
+    http_response_code(413);
+    echo json_encode(['status' => 'error', 'message' => 'Request too large']);
+    exit;
+}
+
 $payload = json_decode($rawBody, true);
 if (!is_array($payload)) {
     $payload = $_POST;
 }
 if (!is_array($payload)) {
     http_response_code(400);
-    exit('Invalid request payload');
+    echo json_encode(['status' => 'error', 'message' => 'Invalid request payload']);
+    exit;
 }
 
 function first_present_value(array $source, array $keys, $default = null) {
@@ -24,6 +49,11 @@ function first_present_value(array $source, array $keys, $default = null) {
         }
     }
     return $default;
+}
+function bounded_text($value, $maxLength) {
+    if (is_array($value) || is_object($value)) return '';
+    $value = trim((string)$value);
+    return strlen($value) <= $maxLength ? $value : '';
 }
 function normalize_mess_level($value) {
     $value = strtolower(trim((string)$value));
@@ -67,12 +97,20 @@ function calculate_totals($switchCount, $messLevel, $locationCode) {
     return ['labor' => (int)round($fieldServices), 'support' => (int)round($total - $fieldServices), 'total' => (int)round($total)];
 }
 
-$name = trim((string)first_present_value($payload, ['name', 'full_name'], ''));
-$email = filter_var(trim((string)first_present_value($payload, ['email', 'work_email'], '')), FILTER_VALIDATE_EMAIL);
-$switches = max(0, (int)first_present_value($payload, ['switches', 'switch_count', 'number_of_switches'], 0));
+$name = bounded_text(first_present_value($payload, ['name', 'full_name'], ''), 120);
+$emailRaw = bounded_text(first_present_value($payload, ['email', 'work_email'], ''), 254);
+$email = filter_var($emailRaw, FILTER_VALIDATE_EMAIL);
+$switches = parse_int_value(first_present_value($payload, ['switches', 'switch_count', 'number_of_switches'], 0));
 $messLevel = normalize_mess_level(first_present_value($payload, ['mess', 'messLevel', 'cable_mess_level', 'security'], 'low'));
 $locationCode = normalize_location_code(first_present_value($payload, ['location', 'location_code', 'size'], 'NYC'));
-$locationLabel = trim((string)first_present_value($payload, ['location_label', 'locationLabel'], ''));
+$locationLabel = bounded_text(first_present_value($payload, ['location_label', 'locationLabel'], ''), 160);
+
+if (!$email || $switches === null || $switches < 1 || $switches > 256) {
+    http_response_code(400);
+    echo json_encode(['status' => 'error', 'message' => 'Invalid required fields']);
+    exit;
+}
+
 $locationMap = ['NYC' => 'NYC (20% logistics/parking uplift)', 'NY' => 'NY (metro)', 'NJ' => 'NJ', 'CT' => 'CT'];
 $locationDisplay = $locationLabel !== '' ? $locationLabel : ($locationMap[$locationCode] ?? $locationCode);
 $materials = calculate_materials($switches, $messLevel);
@@ -80,23 +118,19 @@ $incomingMaterials = is_array($payload['materials'] ?? null) ? $payload['materia
 $materialKeyMap = ['boxes' => ['boxes', 'cat6_boxes', 'cat6Boxes'], 'rj45' => ['rj45', 'rj_45', 'rj45_connectors', 'rj45Connectors'], 'patch_panels' => ['patch_panels', 'patchPanels'], 'cable_managers' => ['cable_managers', 'cableManagers'], 'patch_cords' => ['patch_cords', 'patchCords']];
 foreach ($materialKeyMap as $normalizedKey => $aliases) {
     $parsed = parse_int_value(first_present_value($incomingMaterials, $aliases, null));
-    if ($parsed !== null && $parsed > 0) $materials[$normalizedKey] = $parsed;
+    if ($parsed !== null && $parsed > 0 && $parsed <= 50000) $materials[$normalizedKey] = $parsed;
 }
 $totalsCalculated = calculate_totals($switches, $messLevel, $locationCode);
-if (!$email || $switches <= 0) {
-    http_response_code(400);
-    exit('Missing required fields');
-}
 
 $to = getenv('NCI_CONTACT_TO') ?: 'networkconnectit@gmail.com';
 $subject = 'Network Rack Estimate (Smart Budget Configurator)';
 $headers = "From: noreply@networkconnectit.com\r\nReply-To: " . $email . "\r\nContent-Type: text/html; charset=UTF-8";
 $body = '<h2>Network Rack Preliminary Estimate</h2>'
-    . '<p><strong>Name:</strong> ' . htmlspecialchars($name ?: 'N/A') . '</p>'
-    . '<p><strong>Email:</strong> ' . htmlspecialchars($email) . '</p>'
+    . '<p><strong>Name:</strong> ' . htmlspecialchars($name ?: 'N/A', ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+    . '<p><strong>Email:</strong> ' . htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
     . '<p><strong>Number of Switches:</strong> ' . $switches . '</p>'
-    . '<p><strong>Cable mess level:</strong> ' . htmlspecialchars(ucfirst($messLevel)) . '</p>'
-    . '<p><strong>Location:</strong> ' . htmlspecialchars($locationDisplay) . '</p>'
+    . '<p><strong>Cable mess level:</strong> ' . htmlspecialchars(ucfirst($messLevel), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
+    . '<p><strong>Location:</strong> ' . htmlspecialchars($locationDisplay, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8') . '</p>'
     . '<h3>Materials</h3><ul>'
     . '<li>Cat6 boxes: ' . htmlspecialchars((string)$materials['boxes']) . '</li>'
     . '<li>RJ45 connectors: ' . htmlspecialchars((string)$materials['rj45']) . '</li>'
@@ -143,7 +177,6 @@ if (!$sent) {
     if (!$sent && !$errorMsg) $errorMsg = 'mail() failed';
 }
 error_log('NetworkConnectIT network estimate delivery=' . ($sent ? 'success' : 'failure') . ($errorMsg ? ' reason=' . $errorMsg : ''));
-header('Content-Type: application/json');
 if ($sent) {
     echo json_encode(['status' => 'ok', 'materials' => $materials, 'totals' => ['labor' => format_usd($totalsCalculated['labor']), 'support' => format_usd($totalsCalculated['support']), 'total' => format_usd($totalsCalculated['total'])]]);
 } else {
