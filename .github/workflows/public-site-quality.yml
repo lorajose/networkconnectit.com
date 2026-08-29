@@ -74,6 +74,17 @@ jobs:
           echo 'Review these matches for evidence before release:'
           grep -R -E -i --include='*.html' -n '24/7|(^|[^[:alnum:]_])SLA([^[:alnum:]_]|$)|guarantee(d)?|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects|zero[- ]downtime|NOC-grade' . || true
 
+      - name: Reject absolute or high-risk public promises
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n 'zero[- ]downtime|guaranteed response time|NOC-grade support|cloud backup of CCTV recordings' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Absolute uptime, SLA, NOC, or CCTV data-custody promises must be removed or supported by an approved operational/contractual evidence package before release.'
+            exit 1
+          fi
+
       - name: Require private Command Center surfaces to declare noindex
         if: ${{ always() }}
         run: |
