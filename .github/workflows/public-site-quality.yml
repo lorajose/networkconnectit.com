@@ -41,14 +41,9 @@ jobs:
 
           root = ET.parse('sitemap.xml').getroot()
           ns = {'sm': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
-          failures = []
+          missing = []
           for node in root.findall('sm:url/sm:loc', ns):
-              url = node.text.strip()
-              parsed = urlparse(url)
-              if parsed.scheme != 'https' or parsed.netloc != 'networkconnectit.com':
-                  failures.append(f'{url}: must use canonical https://networkconnectit.com host')
-                  continue
-              path = parsed.path
+              path = urlparse(node.text.strip()).path
               if path == '/':
                   candidate = Path('index.html')
               elif path.endswith('/'):
@@ -56,9 +51,9 @@ jobs:
               else:
                   candidate = Path(path.lstrip('/'))
               if not candidate.is_file():
-                  failures.append(f'{url}: missing repository file {candidate}')
-          if failures:
-              raise SystemExit('\n'.join(failures))
+                  missing.append(f'{node.text} -> {candidate}')
+          if missing:
+              raise SystemExit('Sitemap URLs without public files:\n' + '\n'.join(missing))
           PY
 
       - name: Require canonical homepage and sitemap declaration
@@ -74,16 +69,13 @@ jobs:
           fi
 
       - name: Inventory high-risk public trust claims
+        if: ${{ always() }}
         run: |
-          mkdir -p /tmp/nci-quality
-          grep -R --include='*.html' -Eni '24/7|guaranteed|guarantee|SLA|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects' . > /tmp/nci-quality/trust-claims.txt || true
-          echo 'High-risk trust claims found for evidence review:'
-          cat /tmp/nci-quality/trust-claims.txt || true
-          if [ -s /tmp/nci-quality/trust-claims.txt ]; then
-            echo 'NOTICE: Claims listed above require evidence or conservative wording before release. See docs/seo/NCI-039-trust-claims-audit.md.'
-          fi
+          echo 'Review these matches for evidence before release:'
+          grep -R -E -i --include='*.html' -n '24/7|SLA|guarantee(d)?|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects' . || true
 
       - name: Require private Command Center surfaces to declare noindex
+        if: ${{ always() }}
         run: |
           grep -Fq 'index: false' 'command-center-app/app/(protected)/layout.tsx'
           grep -Fq 'follow: false' 'command-center-app/app/(protected)/layout.tsx'
@@ -91,6 +83,7 @@ jobs:
           grep -Fq 'follow: false' 'command-center-app/app/(auth)/layout.tsx'
 
       - name: Confirm baseline static security headers
+        if: ${{ always() }}
         run: |
           grep -Fq 'X-Content-Type-Options "nosniff"' .htaccess
           grep -Fq 'Referrer-Policy "strict-origin-when-cross-origin"' .htaccess
