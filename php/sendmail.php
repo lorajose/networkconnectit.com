@@ -55,7 +55,14 @@ $verifyContext = stream_context_create([
 ]);
 $verifyRaw = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $verifyContext);
 $verify = $verifyRaw ? json_decode($verifyRaw, true) : null;
-if (!is_array($verify) || empty($verify['success'])) {
+$expectedRecaptchaHosts = ['networkconnectit.com', 'www.networkconnectit.com'];
+$verifiedHostname = is_array($verify) ? strtolower(trim((string)($verify['hostname'] ?? ''))) : '';
+if (
+    !is_array($verify)
+    || empty($verify['success'])
+    || $verifiedHostname === ''
+    || !in_array($verifiedHostname, $expectedRecaptchaHosts, true)
+) {
     http_response_code(400);
     exit('Form verification failed. Please try again.');
 }
