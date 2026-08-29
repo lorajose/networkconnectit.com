@@ -96,6 +96,17 @@ jobs:
             exit 1
           fi
 
+      - name: Reject inherited off-topic marketing copy
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n 'Why did you choose Our Email Services|email marketing|our email services' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Off-topic inherited template copy must be replaced with content relevant to NetworkConnectIT network, CCTV, low-voltage, and contractor services before release.'
+            exit 1
+          fi
+
       - name: Require private Command Center surfaces to declare noindex
         if: ${{ always() }}
         run: |
