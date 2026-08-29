@@ -85,6 +85,17 @@ jobs:
             exit 1
           fi
 
+      - name: Reject unsupported public proof counters
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n '25[^[:alnum:]]*Created Projects|20[^[:alnum:]]*Happy Clients|Created Projects|Happy Clients' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Public project/client proof counters require a documented source of truth before release. Remove or replace with non-quantitative capability language.'
+            exit 1
+          fi
+
       - name: Require private Command Center surfaces to declare noindex
         if: ${{ always() }}
         run: |
