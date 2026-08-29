@@ -1,7 +1,13 @@
-import type { DesignGeometry, DesignPoint } from "./design-studio";
+import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
 export type CanvasViewport = { x: number; y: number; zoom: number };
-export type CanvasElement = { id: string; geometry: DesignGeometry; locked?: boolean; hidden?: boolean };
+export type CanvasElement = {
+  id: string;
+  kind?: DesignElementKind;
+  geometry: DesignGeometry;
+  locked?: boolean;
+  hidden?: boolean;
+};
 export type CanvasDocument = {
   schemaVersion: 1;
   viewport: CanvasViewport;
@@ -12,6 +18,10 @@ export type CanvasHistory = { past: CanvasDocument[]; present: CanvasDocument; f
 
 const clone = <T>(value: T): T => JSON.parse(JSON.stringify(value)) as T;
 const normalizeRotation = (rotation: number) => ((rotation % 360) + 360) % 360;
+
+export function canvasElementKind(element: CanvasElement): DesignElementKind {
+  return element.kind ?? "DEVICE";
+}
 
 export function createCanvasDocument(elements: CanvasElement[] = []): CanvasDocument {
   return { schemaVersion: 1, viewport: { x: 0, y: 0, zoom: 1 }, elements: clone(elements), selectedIds: [] };

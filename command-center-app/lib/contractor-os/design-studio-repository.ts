@@ -3,8 +3,8 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import type { CanvasDocument, CanvasElement } from "./design-canvas-state";
-import { createCanvasDocument } from "./design-canvas-state";
-import { assertFiniteDesignGeometry } from "./design-studio";
+import { canvasElementKind, createCanvasDocument } from "./design-canvas-state";
+import { DESIGN_ELEMENT_KINDS, assertFiniteDesignGeometry, type DesignElementKind } from "./design-studio";
 import type { CommercialActor } from "./commercial-access";
 import { commercialReadScope, requireCommercialWriteAccess } from "./commercial-access";
 
@@ -32,6 +32,7 @@ export type DesignFloorView = {
 
 type DesignElementRow = {
   id: string;
+  kind: string;
   geometryJson: string;
   metadataJson: string | null;
 };
@@ -41,6 +42,11 @@ function cleanName(value: string, label: string) {
   if (!name) throw new Error(`${label} is required`);
   if (name.length > 191) throw new Error(`${label} is too long`);
   return name;
+}
+
+function parseDesignElementKind(value: string): DesignElementKind {
+  if (!DESIGN_ELEMENT_KINDS.includes(value as DesignElementKind)) throw new Error("Unsupported design element kind");
+  return value as DesignElementKind;
 }
 
 async function assertProjectForWrite(organizationId: string, projectId: string) {
@@ -81,7 +87,13 @@ function parseElement(row: DesignElementRow): CanvasElement {
       metadata = {};
     }
   }
-  return { id: row.id, geometry, locked: Boolean(metadata.locked), hidden: Boolean(metadata.hidden) };
+  return {
+    id: row.id,
+    kind: parseDesignElementKind(row.kind),
+    geometry,
+    locked: Boolean(metadata.locked),
+    hidden: Boolean(metadata.hidden),
+  };
 }
 
 export async function listDesignProjects(actor: CommercialActor, requestedOrganizationId?: string) {
@@ -132,7 +144,7 @@ export async function loadDesignFloorCanvas(
   `);
   if (!floorRows[0]) throw new Error("Design floor not found");
   const rows = await prisma.$queryRaw<DesignElementRow[]>(Prisma.sql`
-    SELECT id,geometryJson,metadataJson FROM DesignElement
+    SELECT id,kind,geometryJson,metadataJson FROM DesignElement
     WHERE organizationId=${scope.organizationId} AND designProjectId=${projectId} AND designFloorId=${floorId}
     ORDER BY createdAt ASC
   `);
@@ -152,7 +164,10 @@ export async function saveDesignFloorCanvas(
   const organizationId = requireCommercialWriteAccess(actor, input.organizationId.trim());
   if (!Number.isInteger(input.expectedRevision) || input.expectedRevision < 1) throw new Error("Invalid working revision");
   if (input.document.schemaVersion !== 1) throw new Error("Unsupported canvas schema version");
-  for (const element of input.document.elements) assertFiniteDesignGeometry(element.geometry);
+  for (const element of input.document.elements) {
+    assertFiniteDesignGeometry(element.geometry);
+    parseDesignElementKind(canvasElementKind(element));
+  }
 
   return prisma.$transaction(async (tx) => {
     const projectRows = await tx.$queryRaw<Array<{ workingRevision: number }>>(Prisma.sql`
@@ -180,11 +195,12 @@ export async function saveDesignFloorCanvas(
     `);
 
     for (const element of input.document.elements) {
+      const kind = canvasElementKind(element);
       const geometryJson = JSON.stringify(element.geometry);
       const metadataJson = JSON.stringify({ locked: Boolean(element.locked), hidden: Boolean(element.hidden) });
       await tx.$executeRaw(Prisma.sql`
         INSERT INTO DesignElement (id,organizationId,designProjectId,designFloorId,designLayerId,kind,geometryJson,metadataJson,schemaVersion,createdAt,updatedAt)
-        VALUES (${element.id},${organizationId},${input.projectId},${input.floorId},${layerId},'DEVICE',${geometryJson},${metadataJson},1,NOW(3),NOW(3))
+        VALUES (${element.id},${organizationId},${input.projectId},${input.floorId},${layerId},${kind},${geometryJson},${metadataJson},1,NOW(3),NOW(3))
       `);
     }
 
