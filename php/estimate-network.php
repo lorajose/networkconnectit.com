@@ -2,6 +2,8 @@
 // Endpoint for Smart Budget Configurator · Network (service.html)
 use PHPMailer\PHPMailer\PHPMailer;
 
+require_once __DIR__ . '/runtime-config.php';
+
 const NCI_NETWORK_RATE_LIMIT_MAX = 5;
 const NCI_NETWORK_RATE_LIMIT_WINDOW = 600;
 
@@ -33,10 +35,8 @@ function nci_network_enforce_rate_limit() {
     }));
 
     if (count($timestamps) >= NCI_NETWORK_RATE_LIMIT_MAX) {
-        $retryAfter = max(1, NCI_NETWORK_RATE_LIMIT_WINDOW - ($now - $timestamps[0]));
         flock($handle, LOCK_UN);
         fclose($handle);
-        header('Retry-After: ' . $retryAfter);
         nci_network_error(429, 'Too many requests');
     }
 
@@ -133,7 +133,7 @@ foreach ($materialKeyMap as $normalizedKey => $aliases) {
 }
 $totalsCalculated = calculate_totals($switches, $messLevel, $locationCode);
 
-$to = getenv('NCI_CONTACT_TO') ?: 'networkconnectit@gmail.com';
+$to = getenv('NCI_CONTACT_TO') ?: nci_private_config('NCI_CONTACT_TO', 'networkconnectit@gmail.com');
 $subject = 'Network Rack Estimate (Smart Budget Configurator)';
 $headers = "From: noreply@networkconnectit.com\r\nReply-To: " . $email . "\r\nContent-Type: text/html; charset=UTF-8";
 $body = '<h2>Network Rack Preliminary Estimate</h2>'
@@ -147,7 +147,10 @@ $body = '<h2>Network Rack Preliminary Estimate</h2>'
     . '<p><em>Preliminary only. Final proposal follows on-site survey and cabling path review.</em></p>';
 
 $sent = false; $errorMsg = ''; $autoloadPath = dirname(__DIR__) . '/vendor/autoload.php';
-$smtpHost = getenv('NCI_SMTP_HOST') ?: ''; $smtpUser = getenv('NCI_SMTP_USER') ?: ''; $smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: ''; $smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: 587);
+$smtpHost = getenv('NCI_SMTP_HOST') ?: nci_private_config('NCI_SMTP_HOST');
+$smtpUser = getenv('NCI_SMTP_USER') ?: nci_private_config('NCI_SMTP_USER');
+$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: nci_private_config('NCI_SMTP_PASSWORD');
+$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: nci_private_config('NCI_SMTP_PORT', '587'));
 if ($smtpHost !== '' && $smtpUser !== '' && $smtpPassword !== '' && file_exists($autoloadPath)) {
     require_once $autoloadPath;
     try {
