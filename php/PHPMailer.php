@@ -1,6 +1,8 @@
 <?php
 // Legacy contact endpoint retained for compatibility.
-// SMTP credentials must be supplied by the hosting environment; never commit them.
+// SMTP credentials must be supplied by the hosting environment or private runtime config; never commit them.
+
+require_once __DIR__ . '/runtime-config.php';
 
 use PHPMailer\PHPMailer\PHPMailer;
 use PHPMailer\PHPMailer\Exception;
@@ -33,11 +35,11 @@ if (!$email || preg_match('/[\r\n]/', $emailRaw) || $name === '' || $message ===
     exit('Please provide a valid name, email address, and message.');
 }
 
-$smtpHost = getenv('NCI_SMTP_HOST') ?: '';
-$smtpUser = getenv('NCI_SMTP_USER') ?: '';
-$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: '';
-$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: 587);
-$to = getenv('NCI_CONTACT_TO') ?: 'networkconnectit@gmail.com';
+$smtpHost = getenv('NCI_SMTP_HOST') ?: nci_private_config('NCI_SMTP_HOST');
+$smtpUser = getenv('NCI_SMTP_USER') ?: nci_private_config('NCI_SMTP_USER');
+$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: nci_private_config('NCI_SMTP_PASSWORD');
+$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: nci_private_config('NCI_SMTP_PORT', '587'));
+$to = getenv('NCI_CONTACT_TO') ?: nci_private_config('NCI_CONTACT_TO', 'networkconnectit@gmail.com');
 
 if ($smtpHost === '' || $smtpUser === '' || $smtpPassword === '' || !class_exists(PHPMailer::class)) {
     http_response_code(503);
