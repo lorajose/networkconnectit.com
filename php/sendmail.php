@@ -4,136 +4,18 @@
 
 require_once __DIR__ . '/runtime-config.php';
 
-if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
-    http_response_code(405);
-    header('Allow: POST');
-    exit('Method not allowed.');
-}
-
-if (!empty($_POST['website'] ?? '')) {
-    http_response_code(204);
-    exit;
-}
-
-function clean_text(string $key): string {
-    return htmlspecialchars(trim((string)($_POST[$key] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8');
-}
-
-$name = clean_text('name');
-$emailRaw = trim((string)($_POST['email'] ?? ''));
-$email = filter_var($emailRaw, FILTER_VALIDATE_EMAIL);
-$phone = clean_text('phone');
-$subject = clean_text('subject');
-$message = clean_text('message');
-$companyName = clean_text('company_name');
-$projectLocation = clean_text('project_location');
-$projectType = clean_text('project_type');
-$numberOfSites = clean_text('number_of_sites');
-$estimatedTimeline = clean_text('estimated_timeline');
-
-if (!$email || preg_match('/[\r\n]/', $emailRaw) || $name === '' || $message === '') {
-    http_response_code(400);
-    exit('Please provide a valid name, email address, and project message.');
-}
-
-$recaptchaSecret = getenv('NCI_RECAPTCHA_SECRET') ?: nci_private_config('NCI_RECAPTCHA_SECRET');
-$recaptchaResponse = trim((string)($_POST['g-recaptcha-response'] ?? ''));
-if ($recaptchaSecret === '' || $recaptchaResponse === '') {
-    http_response_code(503);
-    exit('Form verification is not configured. Please contact NetworkConnectIT directly.');
-}
-
-$verifyContext = stream_context_create([
-    'http' => [
-        'method' => 'POST',
-        'header' => "Content-Type: application/x-www-form-urlencoded\r\n",
-        'content' => http_build_query([
-            'secret' => $recaptchaSecret,
-            'response' => $recaptchaResponse,
-            'remoteip' => $_SERVER['REMOTE_ADDR'] ?? '',
-        ]),
-        'timeout' => 8,
-    ],
-]);
-$verifyRaw = @file_get_contents('https://www.google.com/recaptcha/api/siteverify', false, $verifyContext);
-$verify = $verifyRaw ? json_decode($verifyRaw, true) : null;
-$expectedRecaptchaHosts = ['networkconnectit.com', 'www.networkconnectit.com'];
-$verifiedHostname = is_array($verify) ? strtolower(trim((string)($verify['hostname'] ?? ''))) : '';
-if (
-    !is_array($verify)
-    || empty($verify['success'])
-    || $verifiedHostname === ''
-    || !in_array($verifiedHostname, $expectedRecaptchaHosts, true)
-) {
-    http_response_code(400);
-    exit('Form verification failed. Please try again.');
-}
-
-$to = getenv('NCI_CONTACT_TO') ?: nci_private_config('NCI_CONTACT_TO', 'networkconnectit@gmail.com');
-$subjectLine = 'NetworkConnectIT Project Inquiry: ' . ($subject !== '' ? $subject : 'Commercial project');
-$fields = [
-    'Company' => $companyName,
-    'Name' => $name,
-    'Email' => htmlspecialchars($email, ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'),
-    'Phone' => $phone,
-    'Project Location' => $projectLocation,
-    'Project Type' => $projectType,
-    'Number of Sites' => $numberOfSites,
-    'Estimated Timeline' => $estimatedTimeline,
-    'Message' => nl2br($message),
-];
-$bodyHtml = '<h2>Commercial Project Inquiry</h2>';
-foreach ($fields as $label => $value) {
-    if ($value !== '') {
-        $bodyHtml .= '<p><strong>' . htmlspecialchars($label, ENT_QUOTES, 'UTF-8') . ':</strong> ' . $value . '</p>';
-    }
-}
-
-$sent = false;
-$errorMsg = '';
-$autoload = dirname(__DIR__) . '/vendor/autoload.php';
-$smtpHost = getenv('NCI_SMTP_HOST') ?: nci_private_config('NCI_SMTP_HOST');
-$smtpUser = getenv('NCI_SMTP_USER') ?: nci_private_config('NCI_SMTP_USER');
-$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: nci_private_config('NCI_SMTP_PASSWORD');
-$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: nci_private_config('NCI_SMTP_PORT', '587'));
-
-if ($smtpHost !== '' && $smtpUser !== '' && $smtpPassword !== '' && file_exists($autoload)) {
-    require_once $autoload;
-    try {
-        $mail = new PHPMailer\PHPMailer\PHPMailer(true);
-        $mail->isSMTP();
-        $mail->Host = $smtpHost;
-        $mail->SMTPAuth = true;
-        $mail->Username = $smtpUser;
-        $mail->Password = $smtpPassword;
-        $mail->SMTPSecure = PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;
-        $mail->Port = $smtpPort;
-        $mail->setFrom($smtpUser, 'NetworkConnectIT');
-        $mail->addAddress($to);
-        $mail->addReplyTo($email, $name);
-        $mail->isHTML(true);
-        $mail->Subject = $subjectLine;
-        $mail->Body = $bodyHtml;
-        $mail->AltBody = trim(strip_tags(str_replace(['<br>', '<br/>', '<br />', '</p>'], "\n", $bodyHtml)));
-        $mail->send();
-        $sent = true;
-    } catch (Throwable $e) {
-        $errorMsg = 'SMTP delivery failed';
-    }
-}
-
-// Optional hosting fallback. No visitor-controlled value is used in From.
-if (!$sent) {
-    $headers = "From: noreply@networkconnectit.com\r\n";
-    $headers .= 'Reply-To: ' . $email . "\r\n";
-    $headers .= "MIME-Version: 1.0\r\n";
-    $headers .= "Content-Type: text/html; charset=UTF-8\r\n";
-    $sent = @mail($to, $subjectLine, $bodyHtml, $headers);
-    if (!$sent) {
-        $errorMsg = 'Mail delivery failed';
-    }
-}
-
-error_log('NetworkConnectIT project inquiry delivery=' . ($sent ? 'success' : 'failure') . ($errorMsg ? ' reason=' . $errorMsg : ''));
-header('Location: ' . ($sent ? '/success.html' : '/failed.html'), true, 303);
-exit;
+if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); header('Allow: POST'); exit('Method not allowed.'); }
+if (!empty($_POST['website'] ?? '')) { http_response_code(204); exit; }
+function clean_text(string $key): string { return htmlspecialchars(trim((string)($_POST[$key] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
+$name=clean_text('name'); $emailRaw=trim((string)($_POST['email']??'')); $email=filter_var($emailRaw,FILTER_VALIDATE_EMAIL); $phone=clean_text('phone'); $subject=clean_text('subject'); $message=clean_text('message'); $companyName=clean_text('company_name'); $projectLocation=clean_text('project_location'); $projectType=clean_text('project_type'); $numberOfSites=clean_text('number_of_sites'); $estimatedTimeline=clean_text('estimated_timeline');
+if(!$email||preg_match('/[\r\n]/',$emailRaw)||$name===''||$message===''){http_response_code(400);exit('Please provide a valid name, email address, and project message.');}
+$recaptchaSecret=getenv('NCI_RECAPTCHA_SECRET')?:nci_private_config('NCI_RECAPTCHA_SECRET'); $recaptchaResponse=trim((string)($_POST['g-recaptcha-response']??''));
+if($recaptchaSecret===''||$recaptchaResponse===''){http_response_code(503);exit('Form verification is not configured. Please contact NetworkConnectIT directly.');}
+$verifyContext=stream_context_create(['http'=>['method'=>'POST','header'=>"Content-Type: application/x-www-form-urlencoded\r\n",'content'=>http_build_query(['secret'=>$recaptchaSecret,'response'=>$recaptchaResponse,'remoteip'=>$_SERVER['REMOTE_ADDR']??'']),'timeout'=>8]]); $verifyRaw=@file_get_contents('https://www.google.com/recaptcha/api/siteverify',false,$verifyContext); $verify=$verifyRaw?json_decode($verifyRaw,true):null; $expectedRecaptchaHosts=['networkconnectit.com','www.networkconnectit.com']; $verifiedHostname=is_array($verify)?strtolower(trim((string)($verify['hostname']??''))):'';
+if(!is_array($verify)||empty($verify['success'])||$verifiedHostname===''||!in_array($verifiedHostname,$expectedRecaptchaHosts,true)){http_response_code(400);exit('Form verification failed. Please try again.');}
+$to=getenv('NCI_CONTACT_TO')?:nci_private_config('NCI_CONTACT_TO','networkconnectit@gmail.com'); $subjectLine='NetworkConnectIT Project Inquiry: '.($subject!==''?$subject:'Commercial project');
+$fields=['Company'=>$companyName,'Name'=>$name,'Email'=>htmlspecialchars($email,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8'),'Phone'=>$phone,'Project Location'=>$projectLocation,'Project Type'=>$projectType,'Number of Sites'=>$numberOfSites,'Estimated Timeline'=>$estimatedTimeline,'Message'=>nl2br($message)]; $bodyHtml='<h2>Commercial Project Inquiry</h2>'; foreach($fields as $label=>$value){if($value!=='')$bodyHtml.='<p><strong>'.htmlspecialchars($label,ENT_QUOTES,'UTF-8').':</strong> '.$value.'</p>';}
+$sent=false;$errorMsg='';$autoload=dirname(__DIR__).'/vendor/autoload.php'; $smtpHost=getenv('NCI_SMTP_HOST')?:nci_private_config('NCI_SMTP_HOST'); $smtpUser=getenv('NCI_SMTP_USER')?:nci_private_config('NCI_SMTP_USER'); $smtpPassword=getenv('NCI_SMTP_PASSWORD')?:nci_private_config('NCI_SMTP_PASSWORD'); $smtpPort=(int)(getenv('NCI_SMTP_PORT')?:nci_private_config('NCI_SMTP_PORT','465'));
+if($smtpHost!==''&&$smtpUser!==''&&$smtpPassword!==''&&file_exists($autoload)){require_once $autoload;try{$mail=new PHPMailer\PHPMailer\PHPMailer(true);$mail->isSMTP();$mail->Host=$smtpHost;$mail->SMTPAuth=true;$mail->Username=$smtpUser;$mail->Password=$smtpPassword;$mail->SMTPSecure=$smtpPort===465?PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_SMTPS:PHPMailer\PHPMailer\PHPMailer::ENCRYPTION_STARTTLS;$mail->Port=$smtpPort;$mail->setFrom($smtpUser,'NetworkConnectIT');$mail->addAddress($to);$mail->addReplyTo($email,$name);$mail->isHTML(true);$mail->Subject=$subjectLine;$mail->Body=$bodyHtml;$mail->AltBody=trim(strip_tags(str_replace(['<br>','<br/>','<br />','</p>'],"\n",$bodyHtml)));$mail->send();$sent=true;}catch(Throwable $e){$errorMsg='SMTP delivery failed';}}
+if(!$sent){$headers="From: noreply@networkconnectit.com\r\n".'Reply-To: '.$email."\r\nMIME-Version: 1.0\r\nContent-Type: text/html; charset=UTF-8\r\n";$sent=@mail($to,$subjectLine,$bodyHtml,$headers);if(!$sent)$errorMsg='Mail delivery failed';}
+error_log('NetworkConnectIT project inquiry delivery='.($sent?'success':'failure').($errorMsg?' reason='.$errorMsg:'')); header('Location: '.($sent?'/success.html':'/failed.html'),true,303); exit;
