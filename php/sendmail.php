@@ -2,6 +2,8 @@
 // NetworkConnectIT commercial project intake handler.
 // Secrets must be configured outside Git in the server environment.
 
+require_once __DIR__ . '/runtime-config.php';
+
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
     http_response_code(405);
     header('Allow: POST');
@@ -34,7 +36,7 @@ if (!$email || preg_match('/[\r\n]/', $emailRaw) || $name === '' || $message ===
     exit('Please provide a valid name, email address, and project message.');
 }
 
-$recaptchaSecret = getenv('NCI_RECAPTCHA_SECRET') ?: '';
+$recaptchaSecret = getenv('NCI_RECAPTCHA_SECRET') ?: nci_private_config('NCI_RECAPTCHA_SECRET');
 $recaptchaResponse = trim((string)($_POST['g-recaptcha-response'] ?? ''));
 if ($recaptchaSecret === '' || $recaptchaResponse === '') {
     http_response_code(503);
@@ -67,7 +69,7 @@ if (
     exit('Form verification failed. Please try again.');
 }
 
-$to = getenv('NCI_CONTACT_TO') ?: 'networkconnectit@gmail.com';
+$to = getenv('NCI_CONTACT_TO') ?: nci_private_config('NCI_CONTACT_TO', 'networkconnectit@gmail.com');
 $subjectLine = 'NetworkConnectIT Project Inquiry: ' . ($subject !== '' ? $subject : 'Commercial project');
 $fields = [
     'Company' => $companyName,
@@ -90,10 +92,10 @@ foreach ($fields as $label => $value) {
 $sent = false;
 $errorMsg = '';
 $autoload = dirname(__DIR__) . '/vendor/autoload.php';
-$smtpHost = getenv('NCI_SMTP_HOST') ?: '';
-$smtpUser = getenv('NCI_SMTP_USER') ?: '';
-$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: '';
-$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: 587);
+$smtpHost = getenv('NCI_SMTP_HOST') ?: nci_private_config('NCI_SMTP_HOST');
+$smtpUser = getenv('NCI_SMTP_USER') ?: nci_private_config('NCI_SMTP_USER');
+$smtpPassword = getenv('NCI_SMTP_PASSWORD') ?: nci_private_config('NCI_SMTP_PASSWORD');
+$smtpPort = (int)(getenv('NCI_SMTP_PORT') ?: nci_private_config('NCI_SMTP_PORT', '587'));
 
 if ($smtpHost !== '' && $smtpUser !== '' && $smtpPassword !== '' && file_exists($autoload)) {
     require_once $autoload;
