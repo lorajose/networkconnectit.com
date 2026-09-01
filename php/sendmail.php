@@ -5,7 +5,7 @@
 require_once __DIR__ . '/runtime-config.php';
 
 if ($_SERVER['REQUEST_METHOD'] !== 'POST') { http_response_code(405); header('Allow: POST'); exit('Method not allowed.'); }
-if (!empty($_POST['website'] ?? '')) { http_response_code(204); exit; }
+if (!empty($_POST['nci_form_guard'] ?? '')) { http_response_code(204); exit; }
 function clean_text(string $key): string { return htmlspecialchars(trim((string)($_POST[$key] ?? '')), ENT_QUOTES | ENT_SUBSTITUTE, 'UTF-8'); }
 $name=clean_text('name'); $emailRaw=trim((string)($_POST['email']??'')); $email=filter_var($emailRaw,FILTER_VALIDATE_EMAIL); $phone=clean_text('phone'); $subject=clean_text('subject'); $message=clean_text('message'); $companyName=clean_text('company_name'); $projectLocation=clean_text('project_location'); $projectType=clean_text('project_type'); $numberOfSites=clean_text('number_of_sites'); $estimatedTimeline=clean_text('estimated_timeline');
 if(!$email||preg_match('/[\r\n]/',$emailRaw)||$name===''||$message===''){http_response_code(400);exit('Please provide a valid name, email address, and project message.');}
