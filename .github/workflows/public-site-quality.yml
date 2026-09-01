@@ -1,0 +1,169 @@
+name: Public Site Quality
+
+on:
+  pull_request:
+    paths:
+      - '*.html'
+      - 'tools/**'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '.htaccess'
+      - '.github/workflows/public-site-quality.yml'
+  push:
+    branches: [main]
+    paths:
+      - '*.html'
+      - 'tools/**'
+      - 'robots.txt'
+      - 'sitemap.xml'
+      - '.htaccess'
+      - '.github/workflows/public-site-quality.yml'
+
+permissions:
+  contents: read
+
+jobs:
+  verify-public-site:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate sitemap is well-formed XML
+        run: python -c "import xml.etree.ElementTree as ET; ET.parse('sitemap.xml')"
+
+      - name: Require sitemap URLs to map to public files
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import xml.etree.ElementTree as ET
+          from urllib.parse import urlparse
+
+          root = ET.parse('sitemap.xml').getroot()
+          ns = {'sm': 'http://www.sitemaps.org/schemas/sitemap/0.9'}
+          missing = []
+          for node in root.findall('sm:url/sm:loc', ns):
+              path = urlparse(node.text.strip()).path
+              if path == '/':
+                  candidate = Path('index.html')
+              elif path.endswith('/'):
+                  candidate = Path(path.lstrip('/')) / 'index.html'
+              else:
+                  candidate = Path(path.lstrip('/'))
+              if not candidate.is_file():
+                  missing.append(f'{node.text} -> {candidate}')
+          if missing:
+              raise SystemExit('Sitemap URLs without public files:\n' + '\n'.join(missing))
+          PY
+
+      - name: Require canonical homepage and sitemap declaration
+        run: |
+          grep -Fq '<link rel="canonical" href="https://networkconnectit.com/">' index.html
+          grep -Fq 'Sitemap: https://networkconnectit.com/sitemap.xml' robots.txt
+
+      - name: Require commercial navigation and contact CTA integrity
+        run: |
+          python - <<'PY'
+          from pathlib import Path
+          import re
+
+          pages = [
+              Path('index.html'), Path('about.html'), Path('service.html'),
+              Path('feature.html'), Path('pricing.html'), Path('blog.html'),
+              Path('testimonial.html'), Path('contact.html'),
+              Path('installation-partner-support.html'),
+          ]
+          errors = []
+          for page in pages:
+              if not page.is_file():
+                  errors.append(f'{page}: missing public page')
+                  continue
+              text = page.read_text(encoding='utf-8', errors='ignore')
+              if not re.search(r'href=["\'](?:/?contact\.html|/contact\.html)["\']', text, re.I):
+                  errors.append(f'{page}: missing crawlable Contact link')
+              if page.name not in {'contact.html'} and not re.search(r'href=["\'](?:/?service\.html|/service\.html)["\']', text, re.I):
+                  errors.append(f'{page}: missing crawlable Services link')
+
+          contact = Path('contact.html').read_text(encoding='utf-8', errors='ignore')
+          if not re.search(r'<form[^>]+action=["\']/php/sendmail\.php["\'][^>]+method=["\']post["\']', contact, re.I | re.S):
+              errors.append('contact.html: commercial intake form must POST to /php/sendmail.php')
+          if 'g-recaptcha' not in contact or 'data-sitekey=' not in contact:
+              errors.append('contact.html: reCAPTCHA widget/site key wiring is required')
+          if not re.search(r'name=["\']message["\'][^>]*required', contact, re.I | re.S):
+              errors.append('contact.html: project message field must remain required')
+
+          if errors:
+              raise SystemExit('Public navigation/contact integrity failures:\n' + '\n'.join(errors))
+          PY
+
+      - name: Reject self-serving LocalBusiness aggregate ratings
+        run: |
+          if grep -R --include='*.html' -n '"aggregateRating"' .; then
+            echo 'ERROR: LocalBusiness/Organization aggregate ratings require an explicit policy review and must not be self-serving.'
+            exit 1
+          fi
+
+      - name: Inventory high-risk public trust claims
+        if: ${{ always() }}
+        run: |
+          echo 'Review these matches for evidence before release:'
+          grep -R -E -i --include='*.html' -n '24/7|(^|[^[:alnum:]_])SLA([^[:alnum:]_]|$)|guarantee(d)?|< ?4h|4h priority|cloud CCTV backup|dedicated technician|happy clients|created projects|zero[- ]downtime|NOC-grade' . || true
+
+      - name: Reject absolute or high-risk public promises
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n 'zero[- ]downtime|guaranteed response time|NOC-grade support|cloud backup of CCTV recordings' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Absolute uptime, SLA, NOC, or CCTV data-custody promises must be removed or supported by an approved operational/contractual evidence package before release.'
+            exit 1
+          fi
+
+      - name: Reject unsupported public proof counters
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n '25[^[:alnum:]]*Created Projects|20[^[:alnum:]]*Happy Clients|Created Projects|Happy Clients' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Public project/client proof counters require a documented source of truth before release. Remove or replace with non-quantitative capability language.'
+            exit 1
+          fi
+
+      - name: Reject inherited off-topic marketing copy
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n 'Why did you choose Our Email Services|email marketing|our email services' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Off-topic inherited template copy must be replaced with content relevant to NetworkConnectIT network, CCTV, low-voltage, and contractor services before release.'
+            exit 1
+          fi
+
+      - name: Reject unverified credential and certification claims
+        if: ${{ always() }}
+        run: |
+          set -o pipefail
+          matches="$(grep -R -E -i --include='*.html' -n 'Cisco-certified|Cisco Certified|Cisco[^<]{0,20}UniFi certified|certified experts|certified engineers|NYS Security/Fire Alarm Installer License' . || true)"
+          if [ -n "$matches" ]; then
+            printf '%s\n' "$matches"
+            echo 'ERROR: Public credential, certification, and license claims require a current approved evidence record. Use capability/experience language until evidence is attached to the release.'
+            exit 1
+          fi
+
+      - name: Require private Command Center surfaces to declare noindex
+        if: ${{ always() }}
+        run: |
+          grep -Fq 'index: false' 'command-center-app/app/(protected)/layout.tsx'
+          grep -Fq 'follow: false' 'command-center-app/app/(protected)/layout.tsx'
+          grep -Fq 'index: false' 'command-center-app/app/(auth)/layout.tsx'
+          grep -Fq 'follow: false' 'command-center-app/app/(auth)/layout.tsx'
+
+      - name: Confirm baseline static security headers
+        if: ${{ always() }}
+        run: |
+          grep -Fq 'X-Content-Type-Options "nosniff"' .htaccess
+          grep -Fq 'Referrer-Policy "strict-origin-when-cross-origin"' .htaccess
+          grep -Fq 'X-Frame-Options "SAMEORIGIN"' .htaccess

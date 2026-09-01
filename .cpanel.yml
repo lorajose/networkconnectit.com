@@ -7,7 +7,7 @@ deployment:
     # Deploy only explicitly public website files. Application source and repository
     # configuration remain outside the public document root.
     - /usr/bin/find "$DEPLOYPATH" -mindepth 1 -maxdepth 1 -type f \( -name '*.html' -o -name '*.txt' -o -name '*.xml' -o -name '*.ico' -o -name '.htaccess' \) -delete
-    - /bin/rm -rf "$DEPLOYPATH/css" "$DEPLOYPATH/img" "$DEPLOYPATH/js" "$DEPLOYPATH/lib" "$DEPLOYPATH/tools" "$DEPLOYPATH/mail"
+    - /bin/rm -rf "$DEPLOYPATH/css" "$DEPLOYPATH/img" "$DEPLOYPATH/js" "$DEPLOYPATH/lib" "$DEPLOYPATH/tools" "$DEPLOYPATH/mail" "$DEPLOYPATH/php"
     - /bin/cp -f "$REPOPATH"/*.html "$DEPLOYPATH/"
     - /bin/cp -f "$REPOPATH"/ads.txt "$DEPLOYPATH/" 2>/dev/null || true
     - /bin/cp -f "$REPOPATH"/robots.txt "$DEPLOYPATH/" 2>/dev/null || true
@@ -20,3 +20,6 @@ deployment:
     - /bin/cp -a "$REPOPATH/lib" "$DEPLOYPATH/" 2>/dev/null || true
     - /bin/cp -a "$REPOPATH/tools" "$DEPLOYPATH/" 2>/dev/null || true
     - /bin/cp -a "$REPOPATH/mail" "$DEPLOYPATH/" 2>/dev/null || true
+    # Public contact endpoint. Secrets are supplied by server environment/config,
+    # never stored in the repository.
+    - /bin/cp -a "$REPOPATH/php" "$DEPLOYPATH/" 2>/dev/null || true

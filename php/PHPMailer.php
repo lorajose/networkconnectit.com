@@ -1,57 +1,13 @@
 <?php
-require 'vendor/phpmailer/phpmailer/src/PHPMailer.php';
-require 'vendor/phpmailer/phpmailer/src/SMTP.php';
-require 'vendor/phpmailer/phpmailer/src/Exception.php';
-
+// Legacy contact endpoint retained for compatibility.
+// SMTP credentials must be supplied by the hosting environment or private runtime config; never commit them.
+require_once __DIR__ . '/runtime-config.php';
 use PHPMailer\PHPMailer\PHPMailer;
-use PHPMailer\PHPMailer\Exception;
-
-
-require 'vendor/autoload.php';
-
-if ($_SERVER["REQUEST_METHOD"] == "POST") {
-    $name = htmlspecialchars($_POST['name']);
-    $email = htmlspecialchars($_POST['email']);
-    $phone = htmlspecialchars($_POST['phone']);
-    $project = htmlspecialchars($_POST['project']);
-    $subject = htmlspecialchars($_POST['subject']);
-    $message = htmlspecialchars($_POST['message']);
-
-    if (!empty($email) && !empty($message)) {
-        $mail = new PHPMailer(true);
-
-        try {
-            // Configuración del servidor SMTP
-            $mail->isSMTP();
-            $mail->Host = 'mail.networkconnectit.com';
-            $mail->SMTPAuth = true;
-            $mail->Username = 'networkconnectit@gmail.com';  // Tu correo SMTP
-            $mail->Password = 'CarlosJose2024';  // Tu contraseña SMTP
-            $mail->SMTPSecure = PHPMailer::ENCRYPTION_STARTTLS; // o PHPMailer::ENCRYPTION_SMTPS para SSL
-            $mail->Port = 587; // o 465 para SSL
-
-            // Remitente y destinatario
-            $mail->setFrom($email, $name);
-            $mail->addAddress('networkconnectit@gmail.com');  // Tu correo de recepción
-
-            // Contenido del correo
-            $mail->isHTML(true);
-            $mail->Subject = 'New Contact Form Submission: ' . $subject;
-            $mail->Body = "<h2>Contact Form Details</h2>
-                          <p><strong>Name:</strong> $name</p>
-                          <p><strong>Email:</strong> $email</p>
-                          <p><strong>Phone:</strong> $phone</p>
-                          <p><strong>Project:</strong> $project</p>
-                          <p><strong>Subject:</strong> $subject</p>
-                          <p><strong>Message:</strong> $message</p>";
-
-            $mail->send();
-            echo "Message Sent Successfully!";
-        } catch (Exception $e) {
-            echo "Message could not be sent. Mailer Error: {$mail->ErrorInfo}";
-        }
-    } else {
-        echo "Please fill all required fields.";
-    }
-}
-?>
+$autoloadPath=dirname(__DIR__).'/vendor/autoload.php'; if(file_exists($autoloadPath))require_once $autoloadPath;
+if($_SERVER['REQUEST_METHOD']!=='POST'){http_response_code(405);header('Allow: POST');exit('Method not allowed.');}
+function nci_clean_legacy_field(string $key):string{return htmlspecialchars(trim((string)($_POST[$key]??'')),ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8');}
+$name=nci_clean_legacy_field('name');$emailRaw=trim((string)($_POST['email']??''));$email=filter_var($emailRaw,FILTER_VALIDATE_EMAIL);$phone=nci_clean_legacy_field('phone');$project=nci_clean_legacy_field('project');$subject=nci_clean_legacy_field('subject');$message=nci_clean_legacy_field('message');
+if(!$email||preg_match('/[\r\n]/',$emailRaw)||$name===''||$message===''){http_response_code(400);exit('Please provide a valid name, email address, and message.');}
+$smtpHost=getenv('NCI_SMTP_HOST')?:nci_private_config('NCI_SMTP_HOST');$smtpUser=getenv('NCI_SMTP_USER')?:nci_private_config('NCI_SMTP_USER');$smtpPassword=getenv('NCI_SMTP_PASSWORD')?:nci_private_config('NCI_SMTP_PASSWORD');$smtpPort=(int)(getenv('NCI_SMTP_PORT')?:nci_private_config('NCI_SMTP_PORT','465'));$to=getenv('NCI_CONTACT_TO')?:nci_private_config('NCI_CONTACT_TO','networkconnectit@gmail.com');
+if($smtpHost===''||$smtpUser===''||$smtpPassword===''||!class_exists(PHPMailer::class)){http_response_code(503);exit('Mail service is not configured.');}
+try{$mail=new PHPMailer(true);$mail->isSMTP();$mail->Host=$smtpHost;$mail->SMTPAuth=true;$mail->Username=$smtpUser;$mail->Password=$smtpPassword;$mail->SMTPSecure=$smtpPort===465?PHPMailer::ENCRYPTION_SMTPS:PHPMailer::ENCRYPTION_STARTTLS;$mail->Port=$smtpPort;$mail->setFrom($smtpUser,'NetworkConnectIT');$mail->addAddress($to);$mail->addReplyTo($email,$name);$mail->isHTML(true);$mail->Subject='NetworkConnectIT Inquiry: '.($subject!==''?$subject:'Website contact');$mail->Body='<h2>Website Inquiry</h2><p><strong>Name:</strong> '.$name.'</p><p><strong>Email:</strong> '.htmlspecialchars($email,ENT_QUOTES|ENT_SUBSTITUTE,'UTF-8').'</p>'.($phone!==''?'<p><strong>Phone:</strong> '.$phone.'</p>':'').($project!==''?'<p><strong>Project:</strong> '.$project.'</p>':'').'<p><strong>Message:</strong> '.nl2br($message).'</p>';$mail->AltBody=trim(strip_tags(str_replace(['<br>','<br/>','<br />','</p>'],"\n",$mail->Body)));$mail->send();header('Location: /success.html',true,303);exit;}catch(Throwable $e){error_log('NetworkConnectIT legacy mail delivery failed');header('Location: /failed.html',true,303);exit;}

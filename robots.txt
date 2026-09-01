@@ -1,7 +1,9 @@
 User-agent: *
 Allow: /
 
-# Authenticated SaaS surfaces should not be indexed.
-Disallow: /tools/command-center/
+# Public marketing and product surfaces remain crawlable.
+# Authenticated Command Center routes enforce access in the application and
+# emit noindex directives. Do not block them here: crawlers must be able to
+# see noindex when a response is publicly reachable.
 
 Sitemap: https://networkconnectit.com/sitemap.xml
