@@ -22,14 +22,14 @@ export function SuperAdminDashboard({
   extraActions
 }: SuperAdminDashboardProps) {
   return (
-    <div className="space-y-6">
+    <div className="min-w-0 space-y-6">
       <PageHeader
         eyebrow="Global Command View"
         title={snapshot.title}
         description={snapshot.subtitle}
         breadcrumbs={snapshot.breadcrumbs}
         actions={
-          <div className="flex flex-wrap items-center gap-3">
+          <div className="flex min-w-0 flex-wrap items-center gap-3">
             {extraActions}
             <Badge variant="outline">Prisma-backed overview</Badge>
             <Badge>{roleLabels[userRole]}</Badge>
@@ -37,13 +37,13 @@ export function SuperAdminDashboard({
         }
       />
 
-      <section className="grid gap-4 md:grid-cols-2 2xl:grid-cols-3">
+      <section className="grid min-w-0 gap-4 md:grid-cols-2 2xl:grid-cols-3">
         {snapshot.metrics.map((metric) => (
           <MetricCard key={metric.id} metric={metric} />
         ))}
       </section>
 
-      <section className="space-y-3">
+      <section className="min-w-0 space-y-3">
         <div className="space-y-1">
           <h2 className="text-lg font-semibold text-foreground">Status Overview</h2>
           <p className="text-sm text-muted-foreground">
@@ -53,14 +53,18 @@ export function SuperAdminDashboard({
         <StatusOverviewWidgets items={snapshot.statusOverview} />
       </section>
 
-      <section className="grid gap-6 xl:grid-cols-[1.55fr_1fr]">
-        <SiteMap map={snapshot.map} filters={snapshot.filters} />
-        <DeviceDistribution
-          title={snapshot.deviceDistribution.title}
-          description={snapshot.deviceDistribution.description}
-          items={snapshot.deviceDistribution.items}
-          filters={snapshot.filters}
-        />
+      <section className="grid min-w-0 gap-6 2xl:grid-cols-[minmax(0,1.55fr)_minmax(360px,1fr)]">
+        <div className="min-w-0">
+          <SiteMap map={snapshot.map} filters={snapshot.filters} />
+        </div>
+        <div className="min-w-0">
+          <DeviceDistribution
+            title={snapshot.deviceDistribution.title}
+            description={snapshot.deviceDistribution.description}
+            items={snapshot.deviceDistribution.items}
+            filters={snapshot.filters}
+          />
+        </div>
       </section>
 
       <RecentAlertsTable
