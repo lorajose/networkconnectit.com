@@ -9,6 +9,7 @@ const enginePath = path.join(process.cwd(), ".next", "standalone", "prisma-engin
 const schemaEnginePath = path.join(process.cwd(), "node_modules", "@prisma", "engines", schemaEngineName);
 const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
+const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
 
 function configureDatabaseUrlFromDiscreteSecrets() {
   const rawDatabaseUrl = process.env.DATABASE_URL?.trim() ?? "";
@@ -71,6 +72,26 @@ if (!fs.existsSync(prismaCliPath)) {
 
 configureDatabaseUrlFromDiscreteSecrets();
 process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
+process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+
+if (process.env.NCI_RECOVER_NCI049 === "1") {
+  if (!fs.existsSync(nci049RecoveryPath)) {
+    console.error(`NCI-049 recovery script not found: ${nci049RecoveryPath}`);
+    process.exit(1);
+  }
+
+  console.log("NCI_RECOVER_NCI049=1: running guarded NCI-049 migration recovery before migrate deploy...");
+  const recoveryResult = spawnSync(process.execPath, [nci049RecoveryPath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+
+  if (recoveryResult.status !== 0) {
+    console.error(`NCI-049 recovery failed with status ${recoveryResult.status ?? "unknown"}.`);
+    process.exit(recoveryResult.status ?? 1);
+  }
+}
 
 console.log(`Using Prisma schema engine: ${schemaEnginePath}`);
 console.log("Applying pending Prisma migrations...");
@@ -91,7 +112,6 @@ if (migrationResult.status !== 0) {
 
 console.log("Prisma migrations are up to date.");
 
-process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
 process.env.HOSTNAME = "0.0.0.0";
 
 console.log(`Using Prisma query engine: ${enginePath}`);
