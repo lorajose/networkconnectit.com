@@ -3,6 +3,7 @@ import test from "node:test";
 
 import {
   catalogReadOrganizationId,
+  normalizeDeviceCatalogVisibility,
   normalizeDeviceRevisionInput,
   requireCatalogWriteScope,
 } from "../../lib/contractor-os/device-catalog";
@@ -33,6 +34,12 @@ test("client admin private writes are tenant scoped", () => {
   const actor = { role: "CLIENT_ADMIN" as const, organizationId: "org-a" };
   assert.equal(requireCatalogWriteScope(actor, "ORGANIZATION_PRIVATE", "org-a"), "org-a");
   assert.throws(() => requireCatalogWriteScope(actor, "ORGANIZATION_PRIVATE", "org-b"), /Cross-tenant catalog write denied/);
+});
+
+test("catalog visibility is normalized and rejects unknown values", () => {
+  assert.equal(normalizeDeviceCatalogVisibility(" organization_private "), "ORGANIZATION_PRIVATE");
+  assert.equal(normalizeDeviceCatalogVisibility("enterprise_shared"), "ENTERPRISE_SHARED");
+  assert.throws(() => normalizeDeviceCatalogVisibility("PUBLIC"), /visibility is invalid/);
 });
 
 test("device revision validation preserves camera and PoE attributes", () => {
