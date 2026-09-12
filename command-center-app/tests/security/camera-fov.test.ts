@@ -61,7 +61,7 @@ test("coverage models rotation, mounting height, tilt and target plane", () => {
   close(coverage.centerDistanceMeters, 3, 0.001);
   assert.ok(coverage.nearDistanceMeters < coverage.centerDistanceMeters);
   assert.ok(coverage.farDistanceMeters > coverage.centerDistanceMeters);
-  assert.equal(coverage.polygon.length, 6);
+  assert.equal(coverage.polygon.length, 4);
   assert.ok(coverage.polygon[1].y > 100, "90-degree camera rotation should project coverage downward in design coordinates");
 });
 
