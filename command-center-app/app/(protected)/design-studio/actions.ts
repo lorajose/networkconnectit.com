@@ -8,6 +8,7 @@ import { persistFloorPlanAssetAndAttach } from "@/lib/contractor-os/design-asset
 import type { CanvasDocument } from "@/lib/contractor-os/design-canvas-state";
 import { designFloorPlanStorageKey, validateDesignFloorPlanUpload } from "@/lib/contractor-os/design-floor-plan";
 import { updateDesignFloorBackgroundSettings, updateDesignFloorPdfPage } from "@/lib/contractor-os/design-floor-background-repository";
+import { updateDesignFloorScale } from "@/lib/contractor-os/design-scale-repository";
 import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
@@ -109,6 +110,29 @@ export async function updateDesignFloorPdfPageAction(formData: FormData): Promis
   await updateDesignFloorPdfPage(
     { role: user.role, organizationId: user.organizationId },
     { organizationId, projectId, floorId, page },
+  );
+  revalidatePath(`/design-studio/${projectId}`);
+}
+
+export async function updateDesignFloorScaleAction(formData: FormData): Promise<void> {
+  const user = await requireRoles(routeAccess.designStudio);
+  const requestedOrganizationId = formString(formData, "organizationId");
+  const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
+  const projectId = formString(formData, "projectId");
+  const floorId = formString(formData, "floorId");
+
+  if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await updateDesignFloorScale(
+    { role: user.role, organizationId: user.organizationId },
+    {
+      organizationId,
+      projectId,
+      floorId,
+      referenceDesignUnits: Number(formString(formData, "referenceDesignUnits")),
+      referenceRealUnits: Number(formString(formData, "referenceRealUnits")),
+      scaleUnit: formString(formData, "scaleUnit"),
+      confirmScaleChange: formData.get("confirmScaleChange") === "on",
+    },
   );
   revalidatePath(`/design-studio/${projectId}`);
 }
