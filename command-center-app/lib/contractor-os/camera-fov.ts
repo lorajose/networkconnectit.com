@@ -130,7 +130,7 @@ export function calculateCameraCoverage(
     centerDistanceMeters,
     nearDistanceMeters,
     farDistanceMeters,
-    polygon: [origin, leftFar, rightFar, origin, leftNear, rightNear],
+    polygon: [leftNear, leftFar, rightFar, rightNear],
     fov,
   };
 }
