@@ -1,3 +1,4 @@
+import type { CameraDoriSettings } from "../../components/design-studio/camera-dori-editor";
 import type { CameraFovParameters } from "./camera-fov";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
@@ -7,6 +8,7 @@ export type CanvasElement = {
   kind?: DesignElementKind;
   geometry: DesignGeometry;
   cameraFov?: CameraFovParameters;
+  cameraDori?: CameraDoriSettings;
   locked?: boolean;
   hidden?: boolean;
 };
@@ -90,18 +92,17 @@ export function panCanvas(document: CanvasDocument, delta: DesignPoint): CanvasD
   return { ...document, viewport: { ...document.viewport, x: document.viewport.x + delta.x, y: document.viewport.y + delta.y } };
 }
 
-export function zoomCanvas(document: CanvasDocument, factor: number, min = 0.1, max = 8): CanvasDocument {
-  if (!Number.isFinite(factor) || factor <= 0) throw new Error("Zoom factor must be positive and finite");
-  const zoom = Math.min(max, Math.max(min, document.viewport.zoom * factor));
+export function zoomCanvas(document: CanvasDocument, factor: number): CanvasDocument {
+  const zoom = Math.min(4, Math.max(0.25, document.viewport.zoom * factor));
   return { ...document, viewport: { ...document.viewport, zoom } };
 }
 
 export function serializeCanvas(document: CanvasDocument): string {
-  const normalized: CanvasDocument = {
-    schemaVersion: 1,
-    viewport: { ...document.viewport },
-    elements: [...document.elements].sort((a, b) => a.id.localeCompare(b.id)).map((element) => clone(element)),
-    selectedIds: [...document.selectedIds].sort(),
-  };
-  return JSON.stringify(normalized);
+  return JSON.stringify(document);
+}
+
+export function deserializeCanvas(value: string): CanvasDocument {
+  const parsed = JSON.parse(value) as CanvasDocument;
+  if (parsed.schemaVersion !== 1 || !Array.isArray(parsed.elements) || !Array.isArray(parsed.selectedIds)) throw new Error("Unsupported canvas document");
+  return clone(parsed);
 }
