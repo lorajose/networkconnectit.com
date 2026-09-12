@@ -8,6 +8,7 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRoles } from "@/lib/auth";
 import { getDesignFloorBackground } from "@/lib/contractor-os/design-floor-background-repository";
+import { assertDesignLengthUnit, designUnitsPerMeter } from "@/lib/contractor-os/design-scale";
 import { getDesignProject, listDesignFloors, loadDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { listDesignVersions } from "@/lib/contractor-os/design-version-repository";
 import { routeAccess } from "@/lib/rbac";
@@ -53,6 +54,12 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
   const pdfPreviewUrl = backgroundUrl && background?.mimeType === "application/pdf"
     ? `${backgroundUrl}#page=${background.backgroundPdfPage}&toolbar=0&navpanes=0`
     : null;
+  let calibratedDesignUnitsPerMeter = 0;
+  if (selectedFloor?.realUnitsPerDesignUnit) {
+    const unit = selectedFloor.scaleUnit;
+    assertDesignLengthUnit(unit);
+    calibratedDesignUnitsPerMeter = designUnitsPerMeter(Number(selectedFloor.realUnitsPerDesignUnit), unit);
+  }
 
   return (
     <div className="space-y-6">
@@ -158,7 +165,7 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
       ) : null}
 
       {selectedFloor && initialDocument ? (
-        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} background={background && backgroundUrl ? { url: backgroundUrl, mimeType: background.mimeType, opacity: Number(background.backgroundOpacity), visible: background.backgroundVisible, locked: background.backgroundLocked, width: Number(selectedFloor.canvasWidth), height: Number(selectedFloor.canvasHeight), pdfPage: background.backgroundPdfPage } : null} /></div>
+        <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} designUnitsPerMeter={calibratedDesignUnitsPerMeter} background={background && backgroundUrl ? { url: backgroundUrl, mimeType: background.mimeType, opacity: Number(background.backgroundOpacity), visible: background.backgroundVisible, locked: background.backgroundLocked, width: Number(selectedFloor.canvasWidth), height: Number(selectedFloor.canvasHeight), pdfPage: background.backgroundPdfPage } : null} /></div>
       ) : null}
 
       <Card>
