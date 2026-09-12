@@ -1,6 +1,7 @@
 import type { LucideIcon } from "lucide-react";
 import {
   Bell,
+  BookOpenCheck,
   BriefcaseBusiness,
   Building2,
   Calculator,
@@ -36,6 +37,7 @@ export const appNavigation: AppNavigationItem[] = [
   { group: "workspace", title: "Projects", href: "/projects", description: "Installed projects, rollouts, and managed handoffs.", icon: BriefcaseBusiness, allowedRoles: routeAccess.projects },
   { group: "workspace", title: "Bids", href: "/bids", description: "Organize bid packages, revisions, due dates, and source documents.", icon: ClipboardList, allowedRoles: routeAccess.bids },
   { group: "workspace", title: "Design Studio", href: "/design-studio", description: "Lay out CCTV, access, network and cable paths on an interactive plan.", icon: Ruler, allowedRoles: routeAccess.designStudio },
+  { group: "workspace", title: "Device Catalog", href: "/device-catalog", description: "Reusable security and network device library with tenant-safe revisions.", icon: BookOpenCheck, allowedRoles: routeAccess.deviceCatalog },
   { group: "workspace", title: "Takeoffs", href: "/takeoffs", description: "Count drawing scope and turn approved quantities into an editable BOM.", icon: PencilRuler, allowedRoles: routeAccess.takeoffs },
   { group: "workspace", title: "Estimates", href: "/estimates", description: "Price low-voltage jobs, protect margin, and prepare proposals.", icon: Calculator, allowedRoles: routeAccess.estimates },
   { group: "workspace", title: "Proposals", href: "/proposals", description: "Turn approved pricing into polished client-facing proposals.", icon: FileText, allowedRoles: routeAccess.proposals },
