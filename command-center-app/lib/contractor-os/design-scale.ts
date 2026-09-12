@@ -10,6 +10,14 @@ export type DesignScaleCalibration = {
   realUnitsPerDesignUnit: number;
 };
 
+const METERS_PER_UNIT: Record<DesignLengthUnit, number> = {
+  FT: 0.3048,
+  IN: 0.0254,
+  M: 1,
+  CM: 0.01,
+  MM: 0.001,
+};
+
 export function assertDesignLengthUnit(value: string): asserts value is DesignLengthUnit {
   if (!DESIGN_LENGTH_UNITS.includes(value as DesignLengthUnit)) {
     throw new Error("Unsupported design length unit");
@@ -50,6 +58,29 @@ export function measureCalibratedDesignLength(input: {
     throw new Error("Calibration ratio must be a positive finite number");
   }
   return input.designDistance * input.calibration.realUnitsPerDesignUnit;
+}
+
+export function metersPerDesignUnit(realUnitsPerDesignUnit: number, unit: DesignLengthUnit) {
+  assertDesignLengthUnit(unit);
+  if (!Number.isFinite(realUnitsPerDesignUnit) || realUnitsPerDesignUnit <= 0) {
+    throw new Error("Calibration ratio must be a positive finite number");
+  }
+  return realUnitsPerDesignUnit * METERS_PER_UNIT[unit];
+}
+
+export function designUnitsPerMeter(realUnitsPerDesignUnit: number, unit: DesignLengthUnit) {
+  return 1 / metersPerDesignUnit(realUnitsPerDesignUnit, unit);
+}
+
+export function measureCalibratedDesignLengthMeters(input: {
+  designDistance: number;
+  realUnitsPerDesignUnit: number;
+  unit: DesignLengthUnit;
+}) {
+  if (!Number.isFinite(input.designDistance) || input.designDistance < 0) {
+    throw new Error("Design distance must be a non-negative finite number");
+  }
+  return input.designDistance * metersPerDesignUnit(input.realUnitsPerDesignUnit, input.unit);
 }
 
 export function scaleChangeAffectsCalculatedLengths(
