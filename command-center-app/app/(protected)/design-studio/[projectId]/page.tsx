@@ -1,7 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
-import { updateDesignFloorBackgroundAction, updateDesignFloorPdfPageAction, uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
+import { updateDesignFloorBackgroundAction, updateDesignFloorPdfPageAction, updateDesignFloorScaleAction, uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
 import { DesignCanvas } from "@/components/design-studio/design-canvas";
 import { DesignVersionHistory } from "@/components/design-studio/design-version-history";
 import { Button } from "@/components/ui/button";
@@ -119,6 +119,40 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
               </div>
             ) : null}
             <p className="text-xs text-muted-foreground">Maximum 50 MB by default. MIME, file signature and extension must agree before the file is accepted.</p>
+          </CardContent>
+        </Card>
+      ) : null}
+
+      {selectedFloor ? (
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-lg">Scale calibration</CardTitle>
+            <CardDescription>Calibrate this floor from a known dimension. Measurements remain based on design coordinates, so zoom and pan do not change the calculated scale.</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="rounded-xl border bg-muted/20 p-3 text-sm">
+              <p className="font-medium">Current scale</p>
+              <p className="mt-1 text-xs text-muted-foreground">{selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit} per design unit` : "Not calibrated yet"}</p>
+            </div>
+            <form action={updateDesignFloorScaleAction} className="grid gap-3 rounded-xl border p-3 md:grid-cols-[1fr_1fr_160px_auto] md:items-end">
+              <input type="hidden" name="organizationId" value={requestedOrganizationId} />
+              <input type="hidden" name="projectId" value={project.id} />
+              <input type="hidden" name="floorId" value={selectedFloor.id} />
+              <label className="text-sm font-medium">Reference length on canvas
+                <input className="mt-2 block w-full rounded-lg border bg-background px-3 py-2" type="number" name="referenceDesignUnits" min="0.000001" step="any" placeholder="e.g. 125" required />
+              </label>
+              <label className="text-sm font-medium">Known real-world length
+                <input className="mt-2 block w-full rounded-lg border bg-background px-3 py-2" type="number" name="referenceRealUnits" min="0.000001" step="any" placeholder="e.g. 25" required />
+              </label>
+              <label className="text-sm font-medium">Units
+                <select className="mt-2 block w-full rounded-lg border bg-background px-3 py-2" name="scaleUnit" defaultValue={selectedFloor.scaleUnit === "M" ? "M" : "FT"}>
+                  <option value="FT">Feet / inches</option>
+                  <option value="M">Metric (meters)</option>
+                </select>
+              </label>
+              <Button type="submit">Calibrate scale</Button>
+              {selectedFloor.realUnitsPerDesignUnit ? <label className="md:col-span-4 flex items-center gap-2 text-sm"><input type="checkbox" name="confirmScaleChange" />I understand this replaces the existing scale and can change calculated cable lengths and quantities.</label> : null}
+            </form>
           </CardContent>
         </Card>
       ) : null}
