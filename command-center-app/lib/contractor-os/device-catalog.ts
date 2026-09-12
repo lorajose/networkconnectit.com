@@ -13,8 +13,10 @@ export const DEVICE_CATALOG_CATEGORIES = [
   "OTHER",
 ] as const;
 
+export const DEVICE_CATALOG_VISIBILITIES = ["ORGANIZATION_PRIVATE", "ENTERPRISE_SHARED"] as const;
+
 export type DeviceCatalogCategory = (typeof DEVICE_CATALOG_CATEGORIES)[number];
-export type DeviceCatalogVisibility = "ORGANIZATION_PRIVATE" | "ENTERPRISE_SHARED";
+export type DeviceCatalogVisibility = (typeof DEVICE_CATALOG_VISIBILITIES)[number];
 export type DeviceCatalogActor = { role: AppRole; organizationId?: string | null; userId?: string | null };
 
 export type DeviceRevisionInput = {
@@ -77,6 +79,14 @@ function bounded(value: number | null | undefined, field: string, max: number) {
   const normalized = nonNegative(value, field);
   if (normalized != null && normalized > max) throw new Error(`${field} is outside the supported range`);
   return normalized;
+}
+
+export function normalizeDeviceCatalogVisibility(value: string): DeviceCatalogVisibility {
+  const normalized = value.trim().toUpperCase();
+  if (!DEVICE_CATALOG_VISIBILITIES.includes(normalized as DeviceCatalogVisibility)) {
+    throw new Error("Device catalog visibility is invalid");
+  }
+  return normalized as DeviceCatalogVisibility;
 }
 
 export function normalizeDeviceRevisionInput(input: DeviceRevisionInput): DeviceRevisionInput {
