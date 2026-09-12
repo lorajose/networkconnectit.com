@@ -9,6 +9,12 @@ export type DoriThreshold = {
   standardReference?: string | null;
 };
 
+export type CameraDoriSettings = {
+  horizontalPixels: number;
+  inspectionDistanceMeters: number;
+  thresholds: DoriThreshold[];
+};
+
 export type CameraPixelDensityInput = {
   horizontalPixels: number;
   horizontalFovDegrees: number;
@@ -54,9 +60,7 @@ export function pixelsPerFootAtDistance(input: CameraPixelDensityInput, distance
 }
 
 export function pixelDensityAtDistance(input: CameraPixelDensityInput, distanceMeters: number, unit: PixelDensityUnit) {
-  return unit === "PPM"
-    ? pixelsPerMeterAtDistance(input, distanceMeters)
-    : pixelsPerFootAtDistance(input, distanceMeters);
+  return unit === "PPM" ? pixelsPerMeterAtDistance(input, distanceMeters) : pixelsPerFootAtDistance(input, distanceMeters);
 }
 
 export function distanceForPixelsPerMeter(input: CameraPixelDensityInput, targetPpm: number) {
@@ -68,26 +72,14 @@ export function distanceForPixelsPerMeter(input: CameraPixelDensityInput, target
 
 export function calculateDoriZones(input: CameraPixelDensityInput, thresholds: DoriThreshold[] = DEFAULT_DORI_THRESHOLDS) {
   if (!Array.isArray(thresholds) || thresholds.length === 0) throw new Error("At least one DORI threshold is required");
-  return thresholds
-    .map((threshold) => {
-      const minimumPpm = positive(threshold.minimumPpm, `${threshold.label || threshold.key} threshold`);
-      const distanceMeters = distanceForPixelsPerMeter(input, minimumPpm);
-      return {
-        ...threshold,
-        minimumPpm,
-        distanceMeters,
-        distanceFeet: distanceMeters * FEET_PER_METER,
-      } satisfies DoriZoneDistance;
-    })
-    .sort((a, b) => a.minimumPpm - b.minimumPpm);
+  return thresholds.map((threshold) => {
+    const minimumPpm = positive(threshold.minimumPpm, `${threshold.label || threshold.key} threshold`);
+    const distanceMeters = distanceForPixelsPerMeter(input, minimumPpm);
+    return { ...threshold, minimumPpm, distanceMeters, distanceFeet: distanceMeters * FEET_PER_METER } satisfies DoriZoneDistance;
+  }).sort((a, b) => a.minimumPpm - b.minimumPpm);
 }
 
 export function describePixelDensity(input: CameraPixelDensityInput, distanceMeters: number) {
   const ppm = pixelsPerMeterAtDistance(input, distanceMeters);
-  return {
-    distanceMeters,
-    distanceFeet: distanceMeters * FEET_PER_METER,
-    ppm,
-    ppf: ppm / FEET_PER_METER,
-  };
+  return { distanceMeters, distanceFeet: distanceMeters * FEET_PER_METER, ppm, ppf: ppm / FEET_PER_METER };
 }
