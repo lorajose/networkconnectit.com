@@ -4,7 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { Plus, RotateCcw, RotateCw, Save, Trash2, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 
 import { saveDesignCanvasAction } from "@/app/(protected)/design-studio/actions";
+import { CameraFovEditor } from "@/components/design-studio/camera-fov-editor";
+import { CameraFovOverlay } from "@/components/design-studio/camera-fov-overlay";
 import { Button } from "@/components/ui/button";
+import type { CameraFovParameters } from "@/lib/contractor-os/camera-fov";
 import {
   commitCanvas,
   createCanvasDocument,
@@ -24,20 +27,8 @@ import { DEFAULT_DESIGN_GRID, snapDesignPoint, type DesignGridSettings } from "@
 import { createPolyline, movePolylineVertex, type PolylineKind } from "@/lib/contractor-os/design-polyline";
 
 type DragState =
-  | {
-      pointerId: number;
-      lastX: number;
-      lastY: number;
-      mode: "move" | "pan";
-      startDocument: CanvasDocument;
-    }
-  | {
-      pointerId: number;
-      mode: "vertex";
-      elementId: string;
-      vertexIndex: number;
-      startDocument: CanvasDocument;
-    }
+  | { pointerId: number; lastX: number; lastY: number; mode: "move" | "pan"; startDocument: CanvasDocument }
+  | { pointerId: number; mode: "vertex"; elementId: string; vertexIndex: number; startDocument: CanvasDocument }
   | null;
 
 type CanvasBackground = {
@@ -58,6 +49,20 @@ type DesignCanvasProps = {
   floorId?: string;
   initialRevision?: number;
   background?: CanvasBackground | null;
+  designUnitsPerMeter?: number;
+};
+
+const DEFAULT_CAMERA_FOV: CameraFovParameters = {
+  source: "OPTICAL",
+  sensorWidthMm: 4.8,
+  sensorHeightMm: 3.6,
+  focalLengthMm: 4,
+  lensMinMm: 2.8,
+  lensMaxMm: 12,
+  mountingHeightMeters: 3,
+  targetPlaneHeightMeters: 0,
+  tiltDownDegrees: 45,
+  maxRangeMeters: 20,
 };
 
 function persistedElementsSignature(document: CanvasDocument) {
@@ -68,7 +73,7 @@ function pointsAttribute(points: Array<{ x: number; y: number }>) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
-export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background }: DesignCanvasProps) {
+export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background, designUnitsPerMeter = 20 }: DesignCanvasProps) {
   const initial = initialDocument ?? createCanvasDocument();
   const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(initial));
   const [revision, setRevision] = useState(initialRevision ?? 1);
@@ -86,6 +91,10 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   const document = history.present;
   const canPersist = Boolean(organizationId && projectId && floorId);
   const selected = useMemo(() => new Set(document.selectedIds), [document.selectedIds]);
+  const selectedCamera = useMemo(
+    () => document.elements.find((element) => element.kind === "DEVICE" && selected.has(element.id)) ?? null,
+    [document.elements, selected],
+  );
 
   function apply(next: CanvasDocument) {
     setHistory((current) => commitCanvas(current, next));
@@ -96,8 +105,24 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `device-${Date.now()}`;
     apply({
       ...document,
-      elements: [...document.elements, { id, kind: "DEVICE", geometry: { schemaVersion: 1 as const, points: [{ x: 240, y: 180 }], rotation: 0, width: 54, height: 34 } }],
+      elements: [
+        ...document.elements,
+        {
+          id,
+          kind: "DEVICE",
+          geometry: { schemaVersion: 1 as const, points: [{ x: 240, y: 180 }], rotation: 0, width: 54, height: 34 },
+          cameraFov: { ...DEFAULT_CAMERA_FOV },
+        },
+      ],
       selectedIds: [id],
+    });
+  }
+
+  function updateSelectedCameraFov(next: CameraFovParameters) {
+    if (!selectedCamera) return;
+    apply({
+      ...document,
+      elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraFov: next } : element),
     });
   }
 
@@ -156,7 +181,10 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   function toDesignPoint(clientX: number, clientY: number) {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return { x: clientX, y: clientY };
-    const point = { x: (clientX - rect.left - document.viewport.x) / document.viewport.zoom, y: (clientY - rect.top - document.viewport.y) / document.viewport.zoom };
+    const point = {
+      x: (clientX - rect.left - document.viewport.x) / document.viewport.zoom,
+      y: (clientY - rect.top - document.viewport.y) / document.viewport.zoom,
+    };
     return snapDesignPoint(point, grid);
   }
 
@@ -247,117 +275,107 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   const pdfUrl = pdfBackground ? `${pdfBackground.url}#page=${pdfBackground.pdfPage ?? 1}&toolbar=0&navpanes=0&scrollbar=0&zoom=page-fit` : null;
 
   return (
-    <div tabIndex={0} onKeyDown={handleKeyDown} className="overflow-hidden rounded-2xl border bg-background outline-none focus:ring-2 focus:ring-primary/40">
-      <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 p-3">
-        <Button type="button" size="sm" onClick={addDevice}><Plus className="mr-2 h-4 w-4" />Add device</Button>
-        <Button type="button" size="sm" variant={drawingMode === "WALL" ? "default" : "outline"} onClick={() => beginDrawing("WALL")}>Wall</Button>
-        <Button type="button" size="sm" variant={drawingMode === "OBSTACLE" ? "default" : "outline"} onClick={() => beginDrawing("OBSTACLE")}>Obstacle</Button>
-        {drawingMode ? <Button type="button" size="sm" variant="outline" onClick={finishPolyline} disabled={draftPoints.length < 2}>Finish {drawingMode.toLowerCase()}</Button> : null}
-        <Button type="button" size="sm" variant={grid.enabled ? "secondary" : "outline"} onClick={() => setGrid((current) => ({ ...current, enabled: !current.enabled }))}>Grid</Button>
-        <Button type="button" size="sm" variant={grid.snapEnabled ? "secondary" : "outline"} onClick={() => setGrid((current) => ({ ...current, snapEnabled: !current.snapEnabled }))}>Snap</Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => setHistory(undoCanvas)} disabled={!history.past.length}><Undo2 className="mr-2 h-4 w-4" />Undo</Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => setHistory(redoCanvas)} disabled={!history.future.length}><Redo2 className="mr-2 h-4 w-4" />Redo</Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => apply(rotateSelected(document, -15))} disabled={!document.selectedIds.length}><RotateCcw className="h-4 w-4" /></Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => apply(rotateSelected(document, 15))} disabled={!document.selectedIds.length}><RotateCw className="h-4 w-4" /></Button>
-        <Button type="button" size="sm" variant="outline" onClick={() => apply(deleteSelected(document))} disabled={!document.selectedIds.length}><Trash2 className="h-4 w-4" /></Button>
-        {canPersist ? <Button type="button" size="sm" variant="outline" onClick={saveCanvas} disabled={isSaving}><Save className="mr-2 h-4 w-4" />{isSaving ? "Saving..." : "Save"}</Button> : null}
-        {saveMessage ? <span className="text-xs text-muted-foreground">{saveMessage}</span> : null}
-        <span className="text-xs text-muted-foreground">Revision {revision}</span>
-        <div className="ml-auto flex items-center gap-2">
-          <Button type="button" size="sm" variant="outline" onClick={() => setHistory((current) => ({ ...current, present: zoomCanvas(current.present, 0.8) }))}><ZoomOut className="h-4 w-4" /></Button>
-          <span className="min-w-14 text-center text-xs text-muted-foreground">{Math.round(document.viewport.zoom * 100)}%</span>
-          <Button type="button" size="sm" variant="outline" onClick={() => setHistory((current) => ({ ...current, present: zoomCanvas(current.present, 1.25) }))}><ZoomIn className="h-4 w-4" /></Button>
+    <div className="space-y-3">
+      <div tabIndex={0} onKeyDown={handleKeyDown} className="overflow-hidden rounded-2xl border bg-background outline-none focus:ring-2 focus:ring-primary/40">
+        <div className="flex flex-wrap items-center gap-2 border-b bg-muted/30 p-3">
+          <Button type="button" size="sm" onClick={addDevice}><Plus className="mr-2 h-4 w-4" />Add camera</Button>
+          <Button type="button" size="sm" variant={drawingMode === "WALL" ? "default" : "outline"} onClick={() => beginDrawing("WALL")}>Wall</Button>
+          <Button type="button" size="sm" variant={drawingMode === "OBSTACLE" ? "default" : "outline"} onClick={() => beginDrawing("OBSTACLE")}>Obstacle</Button>
+          {drawingMode ? <Button type="button" size="sm" variant="outline" onClick={finishPolyline} disabled={draftPoints.length < 2}>Finish {drawingMode.toLowerCase()}</Button> : null}
+          <Button type="button" size="sm" variant={grid.enabled ? "secondary" : "outline"} onClick={() => setGrid((current) => ({ ...current, enabled: !current.enabled }))}>Grid</Button>
+          <Button type="button" size="sm" variant={grid.snapEnabled ? "secondary" : "outline"} onClick={() => setGrid((current) => ({ ...current, snapEnabled: !current.snapEnabled }))}>Snap</Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setHistory(undoCanvas)} disabled={!history.past.length}><Undo2 className="mr-2 h-4 w-4" />Undo</Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => setHistory(redoCanvas)} disabled={!history.future.length}><Redo2 className="mr-2 h-4 w-4" />Redo</Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => apply(rotateSelected(document, -15))} disabled={!document.selectedIds.length}><RotateCcw className="h-4 w-4" /></Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => apply(rotateSelected(document, 15))} disabled={!document.selectedIds.length}><RotateCw className="h-4 w-4" /></Button>
+          <Button type="button" size="sm" variant="outline" onClick={() => apply(deleteSelected(document))} disabled={!document.selectedIds.length}><Trash2 className="h-4 w-4" /></Button>
+          {canPersist ? <Button type="button" size="sm" variant="outline" onClick={saveCanvas} disabled={isSaving}><Save className="mr-2 h-4 w-4" />{isSaving ? "Saving..." : "Save"}</Button> : null}
+          {saveMessage ? <span className="text-xs text-muted-foreground">{saveMessage}</span> : null}
+          <span className="text-xs text-muted-foreground">Revision {revision}</span>
+          <div className="ml-auto flex items-center gap-2">
+            <Button type="button" size="sm" variant="outline" onClick={() => setHistory((current) => ({ ...current, present: zoomCanvas(current.present, 0.8) }))}><ZoomOut className="h-4 w-4" /></Button>
+            <span className="min-w-14 text-center text-xs text-muted-foreground">{Math.round(document.viewport.zoom * 100)}%</span>
+            <Button type="button" size="sm" variant="outline" onClick={() => setHistory((current) => ({ ...current, present: zoomCanvas(current.present, 1.25) }))}><ZoomIn className="h-4 w-4" /></Button>
+          </div>
+        </div>
+
+        <div className="relative h-[620px] overflow-hidden bg-slate-950">
+          {pdfBackground && pdfUrl ? (
+            <iframe
+              title={`PDF floor plan page ${pdfBackground.pdfPage ?? 1}`}
+              src={pdfUrl}
+              className="pointer-events-none absolute left-0 top-0 border-0 bg-white"
+              style={{ width: `${pdfBackground.width}px`, height: `${pdfBackground.height}px`, opacity: pdfBackground.opacity, transform: `translate(${document.viewport.x}px, ${document.viewport.y}px) scale(${document.viewport.zoom})`, transformOrigin: "top left" }}
+            />
+          ) : null}
+          <svg ref={svgRef} className="absolute inset-0 h-full w-full touch-none select-none bg-transparent" onPointerDown={beginPan} onPointerMove={movePointer} onPointerUp={endPointer} onPointerCancel={endPointer}>
+            <defs>
+              <pattern id="design-grid" width={grid.spacing} height={grid.spacing} patternUnits="userSpaceOnUse">
+                <path d={`M ${grid.spacing} 0 L 0 0 0 ${grid.spacing}`} fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" />
+              </pattern>
+            </defs>
+            <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
+              {grid.enabled ? <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" /> : null}
+              {imageBackground ? (
+                <image href={imageBackground.url} x="0" y="0" width={imageBackground.width} height={imageBackground.height} preserveAspectRatio="xMidYMid meet" opacity={imageBackground.opacity} pointerEvents="none" />
+              ) : !pdfBackground ? (
+                <>
+                  <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
+                  <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
+                </>
+              ) : null}
+
+              {document.elements.filter((item) => !item.hidden).map((element) => {
+                const active = selected.has(element.id);
+                if (element.kind === "WALL" || element.kind === "OBSTACLE") {
+                  return (
+                    <g key={element.id} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
+                      <polyline points={pointsAttribute(element.geometry.points)} fill="none" stroke={element.kind === "WALL" ? (active ? "#38bdf8" : "#e2e8f0") : (active ? "#fb923c" : "#f59e0b")} strokeWidth={element.kind === "WALL" ? 8 : 5} strokeLinejoin="round" strokeLinecap="round" />
+                      {active ? element.geometry.points.map((point, vertexIndex) => (
+                        <circle key={`${element.id}-${vertexIndex}`} cx={point.x} cy={point.y} r={7} fill="#0ea5e9" stroke="#e0f2fe" strokeWidth={2} className="cursor-crosshair" onPointerDown={(event) => beginVertexDrag(event, element.id, vertexIndex)} />
+                      )) : null}
+                    </g>
+                  );
+                }
+
+                const point = element.geometry.points[0];
+                const width = element.geometry.width ?? 48;
+                const height = element.geometry.height ?? 32;
+                return (
+                  <g key={element.id}>
+                    {element.cameraFov ? (
+                      <CameraFovOverlay origin={point} rotationDegrees={element.geometry.rotation ?? 0} parameters={element.cameraFov} designUnitsPerMeter={designUnitsPerMeter} selected={active} />
+                    ) : null}
+                    <g transform={`translate(${point.x} ${point.y}) rotate(${element.geometry.rotation ?? 0})`} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
+                      <rect x={-width / 2} y={-height / 2} width={width} height={height} rx="8" fill={active ? "#0ea5e9" : element.locked ? "#64748b" : "#1e293b"} stroke={active ? "#bae6fd" : "#94a3b8"} strokeWidth={active ? 3 : 2} />
+                      <circle cx={width / 2 - 7} cy="0" r="5" fill="#e2e8f0" />
+                      <text x="0" y={height / 2 + 18} textAnchor="middle" fontSize="12" fill="#cbd5e1" transform={`rotate(${-(element.geometry.rotation ?? 0)})`}>{element.id}{element.locked ? " · locked" : ""}</text>
+                      {active ? <circle cx="0" cy={-height / 2 - 18} r="6" fill="#38bdf8" stroke="#e0f2fe" strokeWidth="2" /> : null}
+                    </g>
+                  </g>
+                );
+              })}
+
+              {drawingMode && draftPoints.length ? (
+                <>
+                  <polyline points={pointsAttribute(draftPoints)} fill="none" stroke={drawingMode === "WALL" ? "#38bdf8" : "#fb923c"} strokeWidth={drawingMode === "WALL" ? 8 : 5} strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
+                  {draftPoints.map((point, index) => <circle key={`draft-${index}`} cx={point.x} cy={point.y} r={5} fill="#f8fafc" stroke="#0ea5e9" strokeWidth={2} pointerEvents="none" />)}
+                </>
+              ) : null}
+            </g>
+          </svg>
+        </div>
+        <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
+          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV live</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+          {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
         </div>
       </div>
 
-      <div className="relative h-[620px] overflow-hidden bg-slate-950">
-        {pdfBackground && pdfUrl ? (
-          <iframe
-            title={`PDF floor plan page ${pdfBackground.pdfPage ?? 1}`}
-            src={pdfUrl}
-            className="pointer-events-none absolute left-0 top-0 border-0 bg-white"
-            style={{
-              width: `${pdfBackground.width}px`,
-              height: `${pdfBackground.height}px`,
-              opacity: pdfBackground.opacity,
-              transform: `translate(${document.viewport.x}px, ${document.viewport.y}px) scale(${document.viewport.zoom})`,
-              transformOrigin: "top left",
-            }}
-          />
-        ) : null}
-        <svg ref={svgRef} className="absolute inset-0 h-full w-full touch-none select-none bg-transparent" onPointerDown={beginPan} onPointerMove={movePointer} onPointerUp={endPointer} onPointerCancel={endPointer}>
-          <defs>
-            <pattern id="design-grid" width={grid.spacing} height={grid.spacing} patternUnits="userSpaceOnUse">
-              <path d={`M ${grid.spacing} 0 L 0 0 0 ${grid.spacing}`} fill="none" stroke="currentColor" strokeOpacity="0.12" strokeWidth="1" />
-            </pattern>
-          </defs>
-          <g transform={`translate(${document.viewport.x} ${document.viewport.y}) scale(${document.viewport.zoom})`}>
-            {grid.enabled ? <rect x="-5000" y="-5000" width="10000" height="10000" fill="url(#design-grid)" className="text-slate-200" pointerEvents="none" /> : null}
-            {imageBackground ? (
-              <image href={imageBackground.url} x="0" y="0" width={imageBackground.width} height={imageBackground.height} preserveAspectRatio="xMidYMid meet" opacity={imageBackground.opacity} pointerEvents="none" />
-            ) : !pdfBackground ? (
-              <>
-                <rect x="70" y="70" width="700" height="420" rx="12" fill="#0f172a" stroke="#334155" strokeWidth="2" pointerEvents="none" />
-                <path d="M70 300 H770 M280 70 V300 M500 300 V490" stroke="#475569" strokeWidth="5" fill="none" pointerEvents="none" />
-              </>
-            ) : null}
-
-            {document.elements.filter((item) => !item.hidden).map((element) => {
-              const active = selected.has(element.id);
-              if (element.kind === "WALL" || element.kind === "OBSTACLE") {
-                return (
-                  <g key={element.id} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
-                    <polyline
-                      points={pointsAttribute(element.geometry.points)}
-                      fill="none"
-                      stroke={element.kind === "WALL" ? (active ? "#38bdf8" : "#e2e8f0") : (active ? "#fb923c" : "#f59e0b")}
-                      strokeWidth={element.kind === "WALL" ? 8 : 5}
-                      strokeLinejoin="round"
-                      strokeLinecap="round"
-                    />
-                    {active ? element.geometry.points.map((point, vertexIndex) => (
-                      <circle
-                        key={`${element.id}-${vertexIndex}`}
-                        cx={point.x}
-                        cy={point.y}
-                        r={7}
-                        fill="#0ea5e9"
-                        stroke="#e0f2fe"
-                        strokeWidth={2}
-                        className="cursor-crosshair"
-                        onPointerDown={(event) => beginVertexDrag(event, element.id, vertexIndex)}
-                      />
-                    )) : null}
-                  </g>
-                );
-              }
-
-              const point = element.geometry.points[0];
-              const width = element.geometry.width ?? 48;
-              const height = element.geometry.height ?? 32;
-              return (
-                <g key={element.id} transform={`translate(${point.x} ${point.y}) rotate(${element.geometry.rotation ?? 0})`} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
-                  <rect x={-width / 2} y={-height / 2} width={width} height={height} rx="8" fill={active ? "#0ea5e9" : element.locked ? "#64748b" : "#1e293b"} stroke={active ? "#bae6fd" : "#94a3b8"} strokeWidth={active ? 3 : 2} />
-                  <circle cx={width / 2 - 7} cy="0" r="5" fill="#e2e8f0" />
-                  <text x="0" y={height / 2 + 18} textAnchor="middle" fontSize="12" fill="#cbd5e1" transform={`rotate(${-(element.geometry.rotation ?? 0)})`}>{element.id}{element.locked ? " · locked" : ""}</text>
-                  {active ? <circle cx="0" cy={-height / 2 - 18} r="6" fill="#38bdf8" stroke="#e0f2fe" strokeWidth="2" /> : null}
-                </g>
-              );
-            })}
-
-            {drawingMode && draftPoints.length ? (
-              <>
-                <polyline points={pointsAttribute(draftPoints)} fill="none" stroke={drawingMode === "WALL" ? "#38bdf8" : "#fb923c"} strokeWidth={drawingMode === "WALL" ? 8 : 5} strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
-                {draftPoints.map((point, index) => <circle key={`draft-${index}`} cx={point.x} cy={point.y} r={5} fill="#f8fafc" stroke="#0ea5e9" strokeWidth={2} pointerEvents="none" />)}
-              </>
-            ) : null}
-          </g>
-        </svg>
-      </div>
-      <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-        <span>Autosaves after 1.5s idle</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Shift/Ctrl/Cmd + click for multi-select</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
-        {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
-      </div>
+      {selectedCamera ? (
+        <CameraFovEditor value={selectedCamera.cameraFov ?? DEFAULT_CAMERA_FOV} onChange={updateSelectedCameraFov} />
+      ) : (
+        <p className="text-xs text-muted-foreground">Select a camera to edit optical or manual field-of-view parameters.</p>
+      )}
     </div>
   );
 }
