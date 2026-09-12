@@ -4,10 +4,13 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { Plus, RotateCcw, RotateCw, Save, Trash2, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 
 import { saveDesignCanvasAction } from "@/app/(protected)/design-studio/actions";
+import { CameraDoriEditor } from "@/components/design-studio/camera-dori-editor";
+import { CameraDoriOverlay } from "@/components/design-studio/camera-dori-overlay";
 import { CameraFovEditor } from "@/components/design-studio/camera-fov-editor";
 import { CameraFovOverlay } from "@/components/design-studio/camera-fov-overlay";
 import { Button } from "@/components/ui/button";
-import type { CameraFovParameters } from "@/lib/contractor-os/camera-fov";
+import { DEFAULT_DORI_THRESHOLDS, type CameraDoriSettings } from "@/lib/contractor-os/camera-dori";
+import { resolveCameraFov, type CameraFovParameters } from "@/lib/contractor-os/camera-fov";
 import {
   commitCanvas,
   createCanvasDocument,
@@ -65,12 +68,27 @@ const DEFAULT_CAMERA_FOV: CameraFovParameters = {
   maxRangeMeters: 20,
 };
 
+const DEFAULT_CAMERA_DORI: CameraDoriSettings = {
+  horizontalPixels: 3840,
+  inspectionDistanceMeters: 10,
+  thresholds: DEFAULT_DORI_THRESHOLDS.map((threshold) => ({ ...threshold })),
+};
+
 function persistedElementsSignature(document: CanvasDocument) {
   return JSON.stringify(document.elements);
 }
 
 function pointsAttribute(points: Array<{ x: number; y: number }>) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
+}
+
+function horizontalFov(parameters: CameraFovParameters | undefined) {
+  if (!parameters) return null;
+  try {
+    return resolveCameraFov(parameters).horizontalDegrees;
+  } catch {
+    return null;
+  }
 }
 
 export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background, designUnitsPerMeter = 20 }: DesignCanvasProps) {
@@ -95,6 +113,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     () => document.elements.find((element) => element.kind === "DEVICE" && selected.has(element.id)) ?? null,
     [document.elements, selected],
   );
+  const selectedHorizontalFov = horizontalFov(selectedCamera?.cameraFov ?? DEFAULT_CAMERA_FOV);
 
   function apply(next: CanvasDocument) {
     setHistory((current) => commitCanvas(current, next));
@@ -112,6 +131,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           kind: "DEVICE",
           geometry: { schemaVersion: 1 as const, points: [{ x: 240, y: 180 }], rotation: 0, width: 54, height: 34 },
           cameraFov: { ...DEFAULT_CAMERA_FOV },
+          cameraDori: { ...DEFAULT_CAMERA_DORI, thresholds: DEFAULT_CAMERA_DORI.thresholds.map((threshold) => ({ ...threshold })) },
         },
       ],
       selectedIds: [id],
@@ -123,6 +143,14 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     apply({
       ...document,
       elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraFov: next } : element),
+    });
+  }
+
+  function updateSelectedCameraDori(next: CameraDoriSettings) {
+    if (!selectedCamera) return;
+    apply({
+      ...document,
+      elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraDori: next } : element),
     });
   }
 
@@ -341,10 +369,22 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
                 const point = element.geometry.points[0];
                 const width = element.geometry.width ?? 48;
                 const height = element.geometry.height ?? 32;
+                const resolvedHorizontalFov = horizontalFov(element.cameraFov);
                 return (
                   <g key={element.id}>
                     {element.cameraFov ? (
                       <CameraFovOverlay origin={point} rotationDegrees={element.geometry.rotation ?? 0} parameters={element.cameraFov} designUnitsPerMeter={designUnitsPerMeter} selected={active} />
+                    ) : null}
+                    {element.cameraDori && resolvedHorizontalFov ? (
+                      <CameraDoriOverlay
+                        origin={point}
+                        rotationDegrees={element.geometry.rotation ?? 0}
+                        horizontalPixels={element.cameraDori.horizontalPixels}
+                        horizontalFovDegrees={resolvedHorizontalFov}
+                        designUnitsPerMeter={designUnitsPerMeter}
+                        thresholds={element.cameraDori.thresholds}
+                        selected={active}
+                      />
                     ) : null}
                     <g transform={`translate(${point.x} ${point.y}) rotate(${element.geometry.rotation ?? 0})`} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
                       <rect x={-width / 2} y={-height / 2} width={width} height={height} rx="8" fill={active ? "#0ea5e9" : element.locked ? "#64748b" : "#1e293b"} stroke={active ? "#bae6fd" : "#94a3b8"} strokeWidth={active ? 3 : 2} />
@@ -366,15 +406,24 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           </svg>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV live</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV and DORI live</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
           {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
         </div>
       </div>
 
       {selectedCamera ? (
-        <CameraFovEditor value={selectedCamera.cameraFov ?? DEFAULT_CAMERA_FOV} onChange={updateSelectedCameraFov} />
+        <div className="space-y-3">
+          <CameraFovEditor value={selectedCamera.cameraFov ?? DEFAULT_CAMERA_FOV} onChange={updateSelectedCameraFov} />
+          {selectedHorizontalFov ? (
+            <CameraDoriEditor
+              horizontalFovDegrees={selectedHorizontalFov}
+              value={selectedCamera.cameraDori ?? DEFAULT_CAMERA_DORI}
+              onChange={updateSelectedCameraDori}
+            />
+          ) : null}
+        </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Select a camera to edit optical or manual field-of-view parameters.</p>
+        <p className="text-xs text-muted-foreground">Select a camera to edit optical, DORI and pixel-density parameters.</p>
       )}
     </div>
   );
