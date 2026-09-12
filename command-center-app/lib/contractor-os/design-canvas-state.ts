@@ -1,3 +1,4 @@
+import type { CameraFovParameters } from "./camera-fov";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
 export type CanvasViewport = { x: number; y: number; zoom: number };
@@ -5,6 +6,7 @@ export type CanvasElement = {
   id: string;
   kind?: DesignElementKind;
   geometry: DesignGeometry;
+  cameraFov?: CameraFovParameters;
   locked?: boolean;
   hidden?: boolean;
 };
