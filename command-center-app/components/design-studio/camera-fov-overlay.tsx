@@ -1,9 +1,8 @@
 "use client";
 
-import { useMemo } from "react";
+import { useEffect, useMemo } from "react";
 
-import { calculateCameraCoverage } from "@/lib/contractor-os/camera-fov";
-import type { CameraFovParameters } from "@/lib/contractor-os/camera-fov";
+import { calculateCameraCoverage, type CameraCoverage, type CameraFovParameters } from "@/lib/contractor-os/camera-fov";
 
 type CameraFovOverlayProps = {
   origin: { x: number; y: number };
@@ -11,13 +10,14 @@ type CameraFovOverlayProps = {
   parameters: CameraFovParameters;
   designUnitsPerMeter: number;
   selected?: boolean;
+  onCoverageChange?: (coverage: CameraCoverage | null, error: string | null) => void;
 };
 
 function polygonPoints(points: Array<{ x: number; y: number }>) {
   return points.map((point) => `${point.x},${point.y}`).join(" ");
 }
 
-export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUnitsPerMeter, selected = false }: CameraFovOverlayProps) {
+export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUnitsPerMeter, selected = false, onCoverageChange }: CameraFovOverlayProps) {
   const result = useMemo(() => {
     try {
       return { coverage: calculateCameraCoverage(origin, rotationDegrees, parameters, designUnitsPerMeter), error: null };
@@ -25,6 +25,10 @@ export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUn
       return { coverage: null, error: error instanceof Error ? error.message : "Invalid camera FOV configuration" };
     }
   }, [designUnitsPerMeter, origin.x, origin.y, parameters, rotationDegrees]);
+
+  useEffect(() => {
+    onCoverageChange?.(result.coverage, result.error);
+  }, [onCoverageChange, result.coverage, result.error]);
 
   if (!result.coverage) {
     return selected ? (
