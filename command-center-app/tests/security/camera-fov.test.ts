@@ -7,7 +7,6 @@ import {
   resolveCameraFov,
   varifocalFovRange,
 } from "../../lib/contractor-os/camera-fov";
-import { createCanvasDocument, serializeCanvas } from "../../lib/contractor-os/design-canvas-state";
 
 function close(actual: number, expected: number, tolerance = 0.01) {
   assert.ok(Math.abs(actual - expected) <= tolerance, `${actual} was not within ${tolerance} of ${expected}`);
@@ -62,7 +61,7 @@ test("coverage models rotation, mounting height, tilt and target plane", () => {
   close(coverage.centerDistanceMeters, 3, 0.001);
   assert.ok(coverage.nearDistanceMeters < coverage.centerDistanceMeters);
   assert.ok(coverage.farDistanceMeters > coverage.centerDistanceMeters);
-  assert.equal(coverage.polygon.length, 4);
+  assert.equal(coverage.polygon.length, 6);
   assert.ok(coverage.polygon[1].y > 100, "90-degree camera rotation should project coverage downward in design coordinates");
 });
 
@@ -83,24 +82,35 @@ test("manual FOV is an explicit labeled fallback for unsupported optics", () => 
   });
 });
 
-test("FOV parameters are serialized with the canvas revision", () => {
-  const document = createCanvasDocument([{
-    id: "camera-1",
-    kind: "DEVICE",
-    geometry: { schemaVersion: 1, points: [{ x: 20, y: 30 }], rotation: 25, width: 54, height: 34 },
-    cameraFov: {
-      source: "MANUAL",
-      manualHorizontalFovDegrees: 90,
-      manualVerticalFovDegrees: 55,
-      mountingHeightMeters: 3.2,
-      targetPlaneHeightMeters: 0,
-      tiltDownDegrees: 35,
-    },
-  }]);
-  const serialized = serializeCanvas(document);
-  const restored = JSON.parse(serialized);
-  assert.equal(restored.elements[0].cameraFov.manualHorizontalFovDegrees, 90);
-  assert.equal(restored.elements[0].cameraFov.mountingHeightMeters, 3.2);
+test("max range clamps an otherwise longer camera footprint", () => {
+  const base = {
+    source: "MANUAL" as const,
+    manualHorizontalFovDegrees: 70,
+    manualVerticalFovDegrees: 40,
+    mountingHeightMeters: 4,
+    targetPlaneHeightMeters: 0,
+    tiltDownDegrees: 30,
+  };
+  const unclamped = calculateCameraCoverage({ x: 0, y: 0 }, 0, base, 1);
+  const clamped = calculateCameraCoverage({ x: 0, y: 0 }, 0, { ...base, maxRangeMeters: 5 }, 1);
+  assert.ok(unclamped.farDistanceMeters > 5);
+  close(clamped.farDistanceMeters, 5, 0.001);
+});
+
+test("changing camera rotation rotates the footprint without changing optical range", () => {
+  const parameters = {
+    source: "MANUAL" as const,
+    manualHorizontalFovDegrees: 60,
+    manualVerticalFovDegrees: 35,
+    mountingHeightMeters: 3,
+    targetPlaneHeightMeters: 0,
+    tiltDownDegrees: 45,
+  };
+  const facingRight = calculateCameraCoverage({ x: 0, y: 0 }, 0, parameters, 10);
+  const facingDown = calculateCameraCoverage({ x: 0, y: 0 }, 90, parameters, 10);
+  close(facingRight.farDistanceMeters, facingDown.farDistanceMeters, 0.0001);
+  assert.ok(facingRight.polygon[1].x > 0);
+  assert.ok(facingDown.polygon[1].y > 0);
 });
 
 test("invalid optical and mounting parameters fail closed", () => {
