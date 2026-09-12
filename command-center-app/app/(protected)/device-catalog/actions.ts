@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 
 import { requireRoles } from "@/lib/auth";
 import { createDeviceCatalogItem, createDeviceCatalogRevision } from "@/lib/contractor-os/device-catalog-repository";
-import type { DeviceCatalogCategory, DeviceCatalogVisibility } from "@/lib/contractor-os/device-catalog";
+import { normalizeDeviceCatalogVisibility, type DeviceCatalogCategory } from "@/lib/contractor-os/device-catalog";
 import { routeAccess } from "@/lib/rbac";
 
 function formString(formData: FormData, key: string) {
@@ -67,7 +67,7 @@ function revisionInput(formData: FormData) {
 export async function createDeviceCatalogItemAction(formData: FormData) {
   const user = await requireRoles(routeAccess.deviceCatalog);
   const requestedOrganizationId = formString(formData, "organizationId") || null;
-  const visibility = formString(formData, "visibility") as DeviceCatalogVisibility;
+  const visibility = normalizeDeviceCatalogVisibility(formString(formData, "visibility"));
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? null : requestedOrganizationId;
 
   await createDeviceCatalogItem(actorFromUser(user), {
