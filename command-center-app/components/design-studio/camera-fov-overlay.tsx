@@ -39,13 +39,12 @@ export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUn
   }
 
   const { coverage } = result;
-  const [camera, leftFar, rightFar, , leftNear, rightNear] = coverage.polygon;
-  const footprint = [leftNear, leftFar, rightFar, rightNear];
+  const [leftNear, leftFar, rightFar, rightNear] = coverage.polygon;
 
   return (
     <g pointerEvents="none" aria-label={`${coverage.fov.label}, ${coverage.fov.horizontalDegrees.toFixed(1)} degree horizontal field of view`}>
       <polygon
-        points={polygonPoints([camera, leftFar, rightFar])}
+        points={polygonPoints([origin, leftFar, rightFar])}
         fill="#38bdf8"
         fillOpacity={selected ? 0.18 : 0.1}
         stroke="#38bdf8"
@@ -53,7 +52,7 @@ export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUn
         strokeWidth={selected ? 2 : 1.5}
       />
       <polygon
-        points={polygonPoints(footprint)}
+        points={polygonPoints([leftNear, leftFar, rightFar, rightNear])}
         fill="#22c55e"
         fillOpacity={selected ? 0.12 : 0.06}
         stroke="#22c55e"
@@ -62,7 +61,7 @@ export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUn
         strokeDasharray="6 4"
       />
       {selected ? (
-        <text x={camera.x + 12} y={camera.y - 16} fontSize="11" fill="#bae6fd">
+        <text x={origin.x + 12} y={origin.y - 16} fontSize="11" fill="#bae6fd">
           {coverage.fov.horizontalDegrees.toFixed(1)}° FOV · {coverage.farDistanceMeters.toFixed(1)}m
         </text>
       ) : null}
