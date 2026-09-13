@@ -4,6 +4,10 @@ import { useCallback, useEffect, useMemo, useRef, useState, useTransition } from
 import { Plus, RotateCcw, RotateCw, Save, Trash2, Undo2, Redo2, ZoomIn, ZoomOut } from "lucide-react";
 
 import { saveDesignCanvasAction } from "@/app/(protected)/design-studio/actions";
+import { CableRouteBomHandoff } from "@/components/design-studio/cable-route-bom-handoff";
+import { CableRouteEditor } from "@/components/design-studio/cable-route-editor";
+import { CableRouteOverlay } from "@/components/design-studio/cable-route-overlay";
+import { CableRouteTotals } from "@/components/design-studio/cable-route-totals";
 import { CameraDoriEditor } from "@/components/design-studio/camera-dori-editor";
 import { CameraDoriOverlay } from "@/components/design-studio/camera-dori-overlay";
 import { CameraFovEditor } from "@/components/design-studio/camera-fov-editor";
@@ -11,6 +15,13 @@ import { CameraFovOverlay } from "@/components/design-studio/camera-fov-overlay"
 import { CameraSpecializedEditor } from "@/components/design-studio/camera-specialized-editor";
 import { CameraSpecializedOverlay } from "@/components/design-studio/camera-specialized-overlay";
 import { Button } from "@/components/ui/button";
+import {
+  DEFAULT_CABLE_ROUTE_SETTINGS,
+  measureCableRoute,
+  routeFromGeometry,
+  type CableRouteBomCandidate,
+  type CableRouteSettings,
+} from "@/lib/contractor-os/cable-route";
 import { DEFAULT_DORI_THRESHOLDS, type CameraDoriSettings } from "@/lib/contractor-os/camera-dori";
 import { resolveCameraFov, type CameraFovParameters } from "@/lib/contractor-os/camera-fov";
 import type { SpecializedCameraSettings } from "@/lib/contractor-os/camera-specialized";
@@ -101,6 +112,10 @@ function horizontalFov(parameters: CameraFovParameters | undefined) {
   }
 }
 
+function cloneRouteSettings(settings: CableRouteSettings): CableRouteSettings {
+  return { ...settings, factors: { ...settings.factors } };
+}
+
 export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background, designUnitsPerMeter = 0 }: DesignCanvasProps) {
   const initial = initialDocument ?? createCanvasDocument();
   const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(initial));
@@ -112,6 +127,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   const [grid, setGrid] = useState<DesignGridSettings>({ ...DEFAULT_DESIGN_GRID, spacing: 20, snapEnabled: true });
   const [drawingMode, setDrawingMode] = useState<PolylineKind | null>(null);
   const [draftPoints, setDraftPoints] = useState<Array<{ x: number; y: number }>>([]);
+  const [preparedBomCandidate, setPreparedBomCandidate] = useState<CableRouteBomCandidate | null>(null);
   const svgRef = useRef<SVGSVGElement | null>(null);
   const revisionRef = useRef(initialRevision ?? 1);
   const savingRef = useRef(false);
@@ -123,11 +139,37 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     () => document.elements.find((element) => element.kind === "DEVICE" && selected.has(element.id)) ?? null,
     [document.elements, selected],
   );
+  const selectedCableRoute = useMemo(
+    () => document.elements.find((element) => element.kind === "CABLE_PATH" && selected.has(element.id)) ?? null,
+    [document.elements, selected],
+  );
+  const cableRoutes = useMemo(
+    () => document.elements
+      .filter((element) => element.kind === "CABLE_PATH")
+      .map((element) => ({
+        id: element.id,
+        points: element.geometry.points,
+        settings: cloneRouteSettings(element.cableRoute ?? DEFAULT_CABLE_ROUTE_SETTINGS),
+      })),
+    [document.elements],
+  );
   const selectedHorizontalFov = horizontalFov(selectedCamera?.cameraFov ?? DEFAULT_CAMERA_FOV);
+  const selectedCableMeasurement = useMemo(() => {
+    if (!selectedCableRoute || !Number.isFinite(designUnitsPerMeter) || designUnitsPerMeter <= 0) return null;
+    return measureCableRoute(
+      routeFromGeometry(
+        selectedCableRoute.id,
+        selectedCableRoute.geometry.points,
+        selectedCableRoute.cableRoute ?? DEFAULT_CABLE_ROUTE_SETTINGS,
+      ),
+      1 / designUnitsPerMeter,
+    );
+  }, [designUnitsPerMeter, selectedCableRoute]);
 
   function apply(next: CanvasDocument) {
     setHistory((current) => commitCanvas(current, next));
     setSaveMessage(null);
+    setPreparedBomCandidate(null);
   }
 
   function addDevice() {
@@ -168,6 +210,14 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     apply({ ...document, elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraSimulation: next } : element) });
   }
 
+  function updateSelectedCableRoute(next: CableRouteSettings) {
+    if (!selectedCableRoute) return;
+    apply({
+      ...document,
+      elements: document.elements.map((element) => element.id === selectedCableRoute.id ? { ...element, cableRoute: cloneRouteSettings(next) } : element),
+    });
+  }
+
   function beginDrawing(kind: PolylineKind) {
     setDrawingMode((current) => current === kind ? null : kind);
     setDraftPoints([]);
@@ -177,7 +227,19 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     if (!drawingMode || draftPoints.length < 2) return;
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${drawingMode.toLowerCase()}-${Date.now()}`;
     const polyline = createPolyline({ id, kind: drawingMode, points: draftPoints });
-    apply({ ...document, elements: [...document.elements, { id: polyline.id, kind: polyline.kind, geometry: polyline.geometry }], selectedIds: [polyline.id] });
+    apply({
+      ...document,
+      elements: [
+        ...document.elements,
+        {
+          id: polyline.id,
+          kind: polyline.kind,
+          geometry: polyline.geometry,
+          ...(drawingMode === "CABLE_PATH" ? { cableRoute: cloneRouteSettings(DEFAULT_CABLE_ROUTE_SETTINGS) } : {}),
+        },
+      ],
+      selectedIds: [polyline.id],
+    });
     setDraftPoints([]);
     setDrawingMode(null);
   }
@@ -239,8 +301,9 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   function beginVertexDrag(event: React.PointerEvent<SVGCircleElement>, elementId: string, vertexIndex: number) {
     event.stopPropagation();
     event.currentTarget.setPointerCapture(event.pointerId);
-    setHistory((current) => ({ ...current, present: setCanvasSelection(current.present, [elementId]) }));
-    setDrag({ pointerId: event.pointerId, mode: "vertex", elementId, vertexIndex, startDocument: document });
+    const selectedDocument = setCanvasSelection(document, [elementId]);
+    setHistory((current) => ({ ...current, present: selectedDocument }));
+    setDrag({ pointerId: event.pointerId, mode: "vertex", elementId, vertexIndex, startDocument: selectedDocument });
   }
 
   function beginPan(event: React.PointerEvent<SVGSVGElement>) {
@@ -271,7 +334,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         present: {
           ...current.present,
           elements: current.present.elements.map((element) => {
-            if (element.id !== drag.elementId || (element.kind !== "WALL" && element.kind !== "OBSTACLE")) return element;
+            if (element.id !== drag.elementId || (element.kind !== "WALL" && element.kind !== "OBSTACLE" && element.kind !== "CABLE_PATH")) return element;
             const moved = movePolylineVertex({ id: element.id, kind: element.kind, geometry: element.geometry }, drag.vertexIndex, point);
             return { ...element, geometry: moved.geometry };
           }),
@@ -317,7 +380,8 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           <Button type="button" size="sm" onClick={addDevice}><Plus className="mr-2 h-4 w-4" />Add camera</Button>
           <Button type="button" size="sm" variant={drawingMode === "WALL" ? "default" : "outline"} onClick={() => beginDrawing("WALL")}>Wall</Button>
           <Button type="button" size="sm" variant={drawingMode === "OBSTACLE" ? "default" : "outline"} onClick={() => beginDrawing("OBSTACLE")}>Obstacle</Button>
-          {drawingMode ? <Button type="button" size="sm" variant="outline" onClick={finishPolyline} disabled={draftPoints.length < 2}>Finish {drawingMode.toLowerCase()}</Button> : null}
+          <Button type="button" size="sm" variant={drawingMode === "CABLE_PATH" ? "default" : "outline"} onClick={() => beginDrawing("CABLE_PATH")}>Cable Route</Button>
+          {drawingMode ? <Button type="button" size="sm" variant="outline" onClick={finishPolyline} disabled={draftPoints.length < 2}>Finish {drawingMode === "CABLE_PATH" ? "cable route" : drawingMode.toLowerCase()}</Button> : null}
           <Button type="button" size="sm" variant={grid.enabled ? "secondary" : "outline"} onClick={() => setGrid((current) => ({ ...current, enabled: !current.enabled }))}>Grid</Button>
           <Button type="button" size="sm" variant={grid.snapEnabled ? "secondary" : "outline"} onClick={() => setGrid((current) => ({ ...current, snapEnabled: !current.snapEnabled }))}>Snap</Button>
           <Button type="button" size="sm" variant="outline" onClick={() => setHistory(undoCanvas)} disabled={!history.past.length}><Undo2 className="mr-2 h-4 w-4" />Undo</Button>
@@ -363,6 +427,20 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
 
               {document.elements.filter((item) => !item.hidden).map((element) => {
                 const active = selected.has(element.id);
+                if (element.kind === "CABLE_PATH") {
+                  return (
+                    <CableRouteOverlay
+                      key={element.id}
+                      id={element.id}
+                      points={element.geometry.points}
+                      settings={element.cableRoute ?? DEFAULT_CABLE_ROUTE_SETTINGS}
+                      designUnitsPerMeter={designUnitsPerMeter}
+                      selected={active}
+                      onPointerDown={(event) => beginElementDrag(event, element.id)}
+                      onVertexPointerDown={(event, vertexIndex) => beginVertexDrag(event, element.id, vertexIndex)}
+                    />
+                  );
+                }
                 if (element.kind === "WALL" || element.kind === "OBSTACLE") {
                   return (
                     <g key={element.id} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
@@ -407,15 +485,24 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
 
               {drawingMode && draftPoints.length ? (
                 <>
-                  <polyline points={pointsAttribute(draftPoints)} fill="none" stroke={drawingMode === "WALL" ? "#38bdf8" : "#fb923c"} strokeWidth={drawingMode === "WALL" ? 8 : 5} strokeDasharray="10 6" strokeLinecap="round" strokeLinejoin="round" pointerEvents="none" />
-                  {draftPoints.map((point, index) => <circle key={`draft-${index}`} cx={point.x} cy={point.y} r={5} fill="#f8fafc" stroke="#0ea5e9" strokeWidth={2} pointerEvents="none" />)}
+                  <polyline
+                    points={pointsAttribute(draftPoints)}
+                    fill="none"
+                    stroke={drawingMode === "WALL" ? "#38bdf8" : drawingMode === "CABLE_PATH" ? "#06b6d4" : "#fb923c"}
+                    strokeWidth={drawingMode === "WALL" ? 8 : drawingMode === "CABLE_PATH" ? 4 : 5}
+                    strokeDasharray={drawingMode === "CABLE_PATH" ? "10 5" : "10 6"}
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    pointerEvents="none"
+                  />
+                  {draftPoints.map((point, index) => <circle key={`draft-${index}`} cx={point.x} cy={point.y} r={5} fill="#f8fafc" stroke={drawingMode === "CABLE_PATH" ? "#06b6d4" : "#0ea5e9"} strokeWidth={2} pointerEvents="none" />)}
                 </>
               ) : null}
             </g>
           </svg>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle/Cable Route: click waypoints, Enter or Finish to save</span><span>Selected polyline vertices are draggable</span><span>Cable lengths require calibrated scale</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
           {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
         </div>
       </div>
@@ -428,9 +515,31 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           ) : null}
           <CameraSpecializedEditor value={selectedCamera.cameraSimulation ?? DEFAULT_CAMERA_SIMULATION} onChange={updateSelectedCameraSimulation} />
         </div>
+      ) : selectedCableRoute ? (
+        <div className="space-y-3">
+          <CableRouteEditor
+            value={selectedCableRoute.cableRoute ?? DEFAULT_CABLE_ROUTE_SETTINGS}
+            onChange={updateSelectedCableRoute}
+            measurement={selectedCableMeasurement}
+          />
+          <CableRouteBomHandoff
+            id={selectedCableRoute.id}
+            points={selectedCableRoute.geometry.points}
+            settings={selectedCableRoute.cableRoute ?? DEFAULT_CABLE_ROUTE_SETTINGS}
+            designUnitsPerMeter={designUnitsPerMeter}
+            onPrepare={setPreparedBomCandidate}
+          />
+          {preparedBomCandidate ? (
+            <div className="rounded-xl border border-cyan-500/30 bg-cyan-500/5 p-3 text-xs">
+              BOM proposal ready for human approval: <strong>{preparedBomCandidate.cableType}</strong> · {preparedBomCandidate.quantityFeet.toFixed(1)} ft ({preparedBomCandidate.quantityMeters.toFixed(2)} m). No BOM quantity has been committed.
+            </div>
+          ) : null}
+        </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Select a camera to edit optical, DORI, pixel-density, IR, PTZ and specialized camera parameters.</p>
+        <p className="text-xs text-muted-foreground">Select a camera or cable route to edit its design parameters.</p>
       )}
+
+      <CableRouteTotals routes={cableRoutes} designUnitsPerMeter={designUnitsPerMeter} />
     </div>
   );
 }
