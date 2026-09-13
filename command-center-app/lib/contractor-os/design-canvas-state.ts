@@ -1,3 +1,4 @@
+import type { CameraDoriSettings } from "./camera-dori";
 import type { CameraFovParameters } from "./camera-fov";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
@@ -7,6 +8,7 @@ export type CanvasElement = {
   kind?: DesignElementKind;
   geometry: DesignGeometry;
   cameraFov?: CameraFovParameters;
+  cameraDori?: CameraDoriSettings;
   locked?: boolean;
   hidden?: boolean;
 };
@@ -104,4 +106,17 @@ export function serializeCanvas(document: CanvasDocument): string {
     selectedIds: [...document.selectedIds].sort(),
   };
   return JSON.stringify(normalized);
+}
+
+export function deserializeCanvas(value: string): CanvasDocument {
+  const parsed = JSON.parse(value) as Partial<CanvasDocument>;
+  if (
+    parsed.schemaVersion !== 1 ||
+    !parsed.viewport ||
+    !Array.isArray(parsed.elements) ||
+    !Array.isArray(parsed.selectedIds)
+  ) {
+    throw new Error("Unsupported canvas document");
+  }
+  return clone(parsed as CanvasDocument);
 }
