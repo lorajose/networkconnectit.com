@@ -9,12 +9,20 @@ export type CableRouteFactors = {
   wastePercent: number;
 };
 
-export type CableRoute = {
-  id: string;
+export type CableRouteSettings = {
   cableType: CableRouteType;
   customCableType?: string;
-  points: DesignPoint[];
   factors: CableRouteFactors;
+};
+
+export type CableRoute = CableRouteSettings & {
+  id: string;
+  points: DesignPoint[];
+};
+
+export const DEFAULT_CABLE_ROUTE_SETTINGS: CableRouteSettings = {
+  cableType: "CAT6",
+  factors: { verticalRiseMeters: 3, serviceLoopMeters: 1, wastePercent: 10 },
 };
 
 export type CableRouteMeasurement = {
@@ -45,6 +53,16 @@ export function polylineLengthDesignUnits(points: DesignPoint[]): number {
     const previous = points[index];
     return total + Math.hypot(point.x - previous.x, point.y - previous.y);
   }, 0);
+}
+
+export function routeFromGeometry(id: string, points: DesignPoint[], settings: CableRouteSettings): CableRoute {
+  return {
+    id,
+    points: points.map((point) => ({ ...point })),
+    cableType: settings.cableType,
+    customCableType: settings.customCableType,
+    factors: { ...settings.factors },
+  };
 }
 
 export function measureCableRoute(route: CableRoute, metersPerDesignUnit: number): CableRouteMeasurement {
