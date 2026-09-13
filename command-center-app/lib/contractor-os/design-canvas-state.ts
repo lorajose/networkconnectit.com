@@ -107,3 +107,16 @@ export function serializeCanvas(document: CanvasDocument): string {
   };
   return JSON.stringify(normalized);
 }
+
+export function deserializeCanvas(value: string): CanvasDocument {
+  const parsed = JSON.parse(value) as Partial<CanvasDocument>;
+  if (
+    parsed.schemaVersion !== 1 ||
+    !parsed.viewport ||
+    !Array.isArray(parsed.elements) ||
+    !Array.isArray(parsed.selectedIds)
+  ) {
+    throw new Error("Unsupported canvas document");
+  }
+  return clone(parsed as CanvasDocument);
+}
