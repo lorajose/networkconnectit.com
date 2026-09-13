@@ -70,3 +70,28 @@ test("camera DORI configuration survives serialization and revision restore", ()
   const restored = deserializeCanvas(serializeCanvas(document));
   assert.deepEqual(restored.elements[0].cameraDori, document.elements[0].cameraDori);
 });
+
+test("specialized camera simulation survives serialization and revision restore", () => {
+  const document = createCanvasDocument([
+    {
+      ...device("camera-ptz", 20, 25),
+      kind: "DEVICE" as const,
+      cameraSimulation: {
+        signalType: "IP" as const,
+        projection: "PTZ" as const,
+        ir: { enabled: true, rangeMeters: 45, beamAngleDegrees: 80 },
+        ptz: {
+          panStartDegrees: 300,
+          panEndDegrees: 60,
+          presets: [
+            { id: "home", label: "Home", panDegrees: 0, tiltDegrees: -10, zoom: 1, home: true },
+            { id: "gate", label: "Gate", panDegrees: 45, tiltDegrees: -5, zoom: 3 },
+          ],
+        },
+      },
+    },
+  ]);
+
+  const restored = deserializeCanvas(serializeCanvas(document));
+  assert.deepEqual(restored.elements[0].cameraSimulation, document.elements[0].cameraSimulation);
+});
