@@ -6,6 +6,7 @@ import {
   createCanvasDocument,
   createCanvasHistory,
   deleteSelected,
+  deserializeCanvas,
   redoCanvas,
   rotateSelected,
   serializeCanvas,
@@ -49,4 +50,23 @@ test("serialization is stable and zoom is bounded", () => {
   assert.equal(serializeCanvas(a), serializeCanvas(b));
   assert.equal(zoomCanvas(a, 100).viewport.zoom, 8);
   assert.equal(zoomCanvas(a, 0.001).viewport.zoom, 0.1);
+});
+
+test("camera DORI configuration survives serialization and revision restore", () => {
+  const document = createCanvasDocument([
+    {
+      ...device("camera-dori", 12, 18),
+      kind: "DEVICE" as const,
+      cameraDori: {
+        horizontalPixels: 3840,
+        inspectionDistanceMeters: 12.5,
+        thresholds: [
+          { key: "CUSTOM", label: "Customer identify", minimumPpm: 220, standardReference: "Owner design criteria rev 3" },
+        ],
+      },
+    },
+  ]);
+
+  const restored = deserializeCanvas(serializeCanvas(document));
+  assert.deepEqual(restored.elements[0].cameraDori, document.elements[0].cameraDori);
 });
