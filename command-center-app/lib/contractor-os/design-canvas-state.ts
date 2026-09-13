@@ -2,6 +2,7 @@ import type { CableRouteSettings } from "./cable-route";
 import type { CameraDoriSettings } from "./camera-dori";
 import type { CameraFovParameters } from "./camera-fov";
 import type { SpecializedCameraSettings } from "./camera-specialized";
+import type { DeviceNetworkAddressing } from "./network-addressing";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
 export type CanvasViewport = { x: number; y: number; zoom: number };
@@ -13,6 +14,7 @@ export type CanvasElement = {
   cameraDori?: CameraDoriSettings;
   cameraSimulation?: SpecializedCameraSettings;
   cableRoute?: CableRouteSettings;
+  networkAddressing?: DeviceNetworkAddressing;
   locked?: boolean;
   hidden?: boolean;
 };
