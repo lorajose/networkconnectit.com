@@ -1,6 +1,6 @@
 import type { DesignGeometry, DesignPoint } from "./design-studio";
 
-export type PolylineKind = "WALL" | "OBSTACLE";
+export type PolylineKind = "WALL" | "OBSTACLE" | "CABLE_PATH";
 
 export type EditablePolyline = {
   id: string;
