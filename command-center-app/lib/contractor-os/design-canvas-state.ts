@@ -1,3 +1,4 @@
+import type { CableRouteSettings } from "./cable-route";
 import type { CameraDoriSettings } from "./camera-dori";
 import type { CameraFovParameters } from "./camera-fov";
 import type { SpecializedCameraSettings } from "./camera-specialized";
@@ -11,6 +12,7 @@ export type CanvasElement = {
   cameraFov?: CameraFovParameters;
   cameraDori?: CameraDoriSettings;
   cameraSimulation?: SpecializedCameraSettings;
+  cableRoute?: CableRouteSettings;
   locked?: boolean;
   hidden?: boolean;
 };
