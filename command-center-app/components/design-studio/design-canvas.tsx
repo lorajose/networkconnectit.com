@@ -8,9 +8,12 @@ import { CameraDoriEditor } from "@/components/design-studio/camera-dori-editor"
 import { CameraDoriOverlay } from "@/components/design-studio/camera-dori-overlay";
 import { CameraFovEditor } from "@/components/design-studio/camera-fov-editor";
 import { CameraFovOverlay } from "@/components/design-studio/camera-fov-overlay";
+import { CameraSpecializedEditor } from "@/components/design-studio/camera-specialized-editor";
+import { CameraSpecializedOverlay } from "@/components/design-studio/camera-specialized-overlay";
 import { Button } from "@/components/ui/button";
 import { DEFAULT_DORI_THRESHOLDS, type CameraDoriSettings } from "@/lib/contractor-os/camera-dori";
 import { resolveCameraFov, type CameraFovParameters } from "@/lib/contractor-os/camera-fov";
+import type { SpecializedCameraSettings } from "@/lib/contractor-os/camera-specialized";
 import {
   commitCanvas,
   createCanvasDocument,
@@ -74,6 +77,13 @@ const DEFAULT_CAMERA_DORI: CameraDoriSettings = {
   thresholds: DEFAULT_DORI_THRESHOLDS.map((threshold) => ({ ...threshold })),
 };
 
+const DEFAULT_CAMERA_SIMULATION: SpecializedCameraSettings = {
+  signalType: "IP",
+  projection: "RECTILINEAR",
+  ir: { enabled: false, rangeMeters: 30, beamAngleDegrees: 90 },
+  ptz: { panStartDegrees: 0, panEndDegrees: 360, presets: [] },
+};
+
 function persistedElementsSignature(document: CanvasDocument) {
   return JSON.stringify(document.elements);
 }
@@ -91,7 +101,7 @@ function horizontalFov(parameters: CameraFovParameters | undefined) {
   }
 }
 
-export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background, designUnitsPerMeter = 20 }: DesignCanvasProps) {
+export function DesignCanvas({ initialDocument, organizationId, projectId, floorId, initialRevision, background, designUnitsPerMeter = 0 }: DesignCanvasProps) {
   const initial = initialDocument ?? createCanvasDocument();
   const [history, setHistory] = useState<CanvasHistory>(() => createCanvasHistory(initial));
   const [revision, setRevision] = useState(initialRevision ?? 1);
@@ -132,6 +142,11 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           geometry: { schemaVersion: 1 as const, points: [{ x: 240, y: 180 }], rotation: 0, width: 54, height: 34 },
           cameraFov: { ...DEFAULT_CAMERA_FOV },
           cameraDori: { ...DEFAULT_CAMERA_DORI, thresholds: DEFAULT_CAMERA_DORI.thresholds.map((threshold) => ({ ...threshold })) },
+          cameraSimulation: {
+            ...DEFAULT_CAMERA_SIMULATION,
+            ir: DEFAULT_CAMERA_SIMULATION.ir ? { ...DEFAULT_CAMERA_SIMULATION.ir } : null,
+            ptz: DEFAULT_CAMERA_SIMULATION.ptz ? { ...DEFAULT_CAMERA_SIMULATION.ptz, presets: [] } : null,
+          },
         },
       ],
       selectedIds: [id],
@@ -140,18 +155,17 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
 
   function updateSelectedCameraFov(next: CameraFovParameters) {
     if (!selectedCamera) return;
-    apply({
-      ...document,
-      elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraFov: next } : element),
-    });
+    apply({ ...document, elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraFov: next } : element) });
   }
 
   function updateSelectedCameraDori(next: CameraDoriSettings) {
     if (!selectedCamera) return;
-    apply({
-      ...document,
-      elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraDori: next } : element),
-    });
+    apply({ ...document, elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraDori: next } : element) });
+  }
+
+  function updateSelectedCameraSimulation(next: SpecializedCameraSettings) {
+    if (!selectedCamera) return;
+    apply({ ...document, elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraSimulation: next } : element) });
   }
 
   function beginDrawing(kind: PolylineKind) {
@@ -163,11 +177,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     if (!drawingMode || draftPoints.length < 2) return;
     const id = typeof crypto !== "undefined" && "randomUUID" in crypto ? crypto.randomUUID() : `${drawingMode.toLowerCase()}-${Date.now()}`;
     const polyline = createPolyline({ id, kind: drawingMode, points: draftPoints });
-    apply({
-      ...document,
-      elements: [...document.elements, { id: polyline.id, kind: polyline.kind, geometry: polyline.geometry }],
-      selectedIds: [polyline.id],
-    });
+    apply({ ...document, elements: [...document.elements, { id: polyline.id, kind: polyline.kind, geometry: polyline.geometry }], selectedIds: [polyline.id] });
     setDraftPoints([]);
     setDrawingMode(null);
   }
@@ -209,11 +219,10 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   function toDesignPoint(clientX: number, clientY: number) {
     const rect = svgRef.current?.getBoundingClientRect();
     if (!rect) return { x: clientX, y: clientY };
-    const point = {
+    return snapDesignPoint({
       x: (clientX - rect.left - document.viewport.x) / document.viewport.zoom,
       y: (clientY - rect.top - document.viewport.y) / document.viewport.zoom,
-    };
-    return snapDesignPoint(point, grid);
+    }, grid);
   }
 
   function beginElementDrag(event: React.PointerEvent<SVGGElement>, id: string) {
@@ -237,8 +246,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   function beginPan(event: React.PointerEvent<SVGSVGElement>) {
     if (event.target !== event.currentTarget) return;
     if (drawingMode) {
-      const point = toDesignPoint(event.clientX, event.clientY);
-      setDraftPoints((points) => [...points, point]);
+      setDraftPoints((points) => [...points, toDesignPoint(event.clientX, event.clientY)]);
       return;
     }
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -370,22 +378,23 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
                 const width = element.geometry.width ?? 48;
                 const height = element.geometry.height ?? 32;
                 const resolvedHorizontalFov = horizontalFov(element.cameraFov);
+                const simulation = element.cameraSimulation ?? DEFAULT_CAMERA_SIMULATION;
                 return (
                   <g key={element.id}>
                     {element.cameraFov ? (
                       <CameraFovOverlay origin={point} rotationDegrees={element.geometry.rotation ?? 0} parameters={element.cameraFov} designUnitsPerMeter={designUnitsPerMeter} selected={active} />
                     ) : null}
                     {element.cameraDori && resolvedHorizontalFov ? (
-                      <CameraDoriOverlay
-                        origin={point}
-                        rotationDegrees={element.geometry.rotation ?? 0}
-                        horizontalPixels={element.cameraDori.horizontalPixels}
-                        horizontalFovDegrees={resolvedHorizontalFov}
-                        designUnitsPerMeter={designUnitsPerMeter}
-                        thresholds={element.cameraDori.thresholds}
-                        selected={active}
-                      />
+                      <CameraDoriOverlay origin={point} rotationDegrees={element.geometry.rotation ?? 0} horizontalPixels={element.cameraDori.horizontalPixels} horizontalFovDegrees={resolvedHorizontalFov} designUnitsPerMeter={designUnitsPerMeter} thresholds={element.cameraDori.thresholds} selected={active} />
                     ) : null}
+                    <CameraSpecializedOverlay
+                      origin={point}
+                      rotationDegrees={element.geometry.rotation ?? 0}
+                      settings={simulation}
+                      designUnitsPerMeter={designUnitsPerMeter}
+                      rangeMeters={element.cameraFov?.maxRangeMeters ?? DEFAULT_CAMERA_FOV.maxRangeMeters ?? 20}
+                      selected={active}
+                    />
                     <g transform={`translate(${point.x} ${point.y}) rotate(${element.geometry.rotation ?? 0})`} onPointerDown={(event) => beginElementDrag(event, element.id)} className="cursor-move">
                       <rect x={-width / 2} y={-height / 2} width={width} height={height} rx="8" fill={active ? "#0ea5e9" : element.locked ? "#64748b" : "#1e293b"} stroke={active ? "#bae6fd" : "#94a3b8"} strokeWidth={active ? 3 : 2} />
                       <circle cx={width / 2 - 7} cy="0" r="5" fill="#e2e8f0" />
@@ -406,7 +415,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           </svg>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV and DORI live</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle: click points, Enter or Finish to save</span><span>Selected wall vertices are draggable</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
           {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
         </div>
       </div>
@@ -415,15 +424,12 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
         <div className="space-y-3">
           <CameraFovEditor value={selectedCamera.cameraFov ?? DEFAULT_CAMERA_FOV} onChange={updateSelectedCameraFov} />
           {selectedHorizontalFov ? (
-            <CameraDoriEditor
-              horizontalFovDegrees={selectedHorizontalFov}
-              value={selectedCamera.cameraDori ?? DEFAULT_CAMERA_DORI}
-              onChange={updateSelectedCameraDori}
-            />
+            <CameraDoriEditor horizontalFovDegrees={selectedHorizontalFov} value={selectedCamera.cameraDori ?? DEFAULT_CAMERA_DORI} onChange={updateSelectedCameraDori} />
           ) : null}
+          <CameraSpecializedEditor value={selectedCamera.cameraSimulation ?? DEFAULT_CAMERA_SIMULATION} onChange={updateSelectedCameraSimulation} />
         </div>
       ) : (
-        <p className="text-xs text-muted-foreground">Select a camera to edit optical, DORI and pixel-density parameters.</p>
+        <p className="text-xs text-muted-foreground">Select a camera to edit optical, DORI, pixel-density, IR, PTZ and specialized camera parameters.</p>
       )}
     </div>
   );
