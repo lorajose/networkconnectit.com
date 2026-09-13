@@ -18,19 +18,24 @@ function polygonPoints(points: Array<{ x: number; y: number }>) {
 }
 
 export function CameraFovOverlay({ origin, rotationDegrees, parameters, designUnitsPerMeter, selected = false, onCoverageChange }: CameraFovOverlayProps) {
+  const hasPhysicalScale = Number.isFinite(designUnitsPerMeter) && designUnitsPerMeter > 0;
   const result = useMemo(() => {
+    if (!hasPhysicalScale) {
+      return { coverage: null, error: "Calibrate the floor scale to render physical FOV coverage" };
+    }
     try {
       return { coverage: calculateCameraCoverage(origin, rotationDegrees, parameters, designUnitsPerMeter), error: null };
     } catch (error) {
       return { coverage: null, error: error instanceof Error ? error.message : "Invalid camera FOV configuration" };
     }
-  }, [designUnitsPerMeter, origin.x, origin.y, parameters, rotationDegrees]);
+  }, [designUnitsPerMeter, hasPhysicalScale, origin.x, origin.y, parameters, rotationDegrees]);
 
   useEffect(() => {
     onCoverageChange?.(result.coverage, result.error);
   }, [onCoverageChange, result.coverage, result.error]);
 
   if (!result.coverage) {
+    if (!hasPhysicalScale) return null;
     return selected ? (
       <g pointerEvents="none" aria-label={result.error ?? "Invalid camera FOV configuration"}>
         <circle cx={origin.x} cy={origin.y} r="28" fill="none" stroke="#ef4444" strokeWidth="2" strokeDasharray="5 4" />
