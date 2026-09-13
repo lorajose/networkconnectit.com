@@ -16,11 +16,7 @@ import {
   zoomCanvas,
 } from "../../lib/contractor-os/design-canvas-state";
 
-const device = (id: string, x: number, y: number, locked = false) => ({
-  id,
-  locked,
-  geometry: { schemaVersion: 1 as const, points: [{ x, y }], rotation: 0 },
-});
+const device = (id: string, x: number, y: number, locked = false) => ({ id, locked, geometry: { schemaVersion: 1 as const, points: [{ x, y }], rotation: 0 } });
 
 test("supports deterministic multi-select, drag, rotate, delete and undo redo", () => {
   let document = createCanvasDocument([device("camera-b", 20, 20), device("camera-a", 10, 10)]);
@@ -29,7 +25,6 @@ test("supports deterministic multi-select, drag, rotate, delete and undo redo", 
   const moved = translateSelected(document, { x: 5, y: -2 });
   const rotated = rotateSelected(moved, 90);
   const committed = commitCanvas(initial, rotated);
-
   assert.deepEqual(committed.present.elements.find((item) => item.id === "camera-a")?.geometry.points[0], { x: 15, y: 8 });
   assert.equal(committed.present.elements.find((item) => item.id === "camera-b")?.geometry.rotation, 90);
   assert.deepEqual(undoCanvas(committed).present, document);
@@ -72,7 +67,7 @@ test("cable route waypoints and measurement settings survive serialization and r
 });
 
 test("network addressing survives serialization and revision restore", () => {
-  const document = createCanvasDocument([{ ...device("camera-loading", 30, 40), kind: "DEVICE" as const, networkAddressing: { ipAddress: "10.40.20.31", vlanId: 40, subnetCidr: "10.40.20.0/24", gateway: "10.40.20.1", switchPort: "IDF-2/Gi1/0/18", segment: "CCTV", poe: { required: true, standard: "802.3at" as const, watts: 18 } } }]);
+  const document = createCanvasDocument([{ ...device("camera-loading", 30, 40), kind: "DEVICE" as const, networkAddressing: { ipAddress: "10.40.20.31", vlan: 40, subnetCidr: "10.40.20.0/24", gateway: "10.40.20.1", switchPort: "IDF-2/Gi1/0/18", segment: "CCTV", poeWatts: 18 } }]);
   const restored = deserializeCanvas(serializeCanvas(document));
   assert.deepEqual(restored.elements[0].networkAddressing, document.elements[0].networkAddressing);
 });
