@@ -95,3 +95,28 @@ test("specialized camera simulation survives serialization and revision restore"
   const restored = deserializeCanvas(serializeCanvas(document));
   assert.deepEqual(restored.elements[0].cameraSimulation, document.elements[0].cameraSimulation);
 });
+
+test("cable route waypoints and measurement settings survive serialization and revision restore", () => {
+  const document = createCanvasDocument([
+    {
+      id: "route-main-idf",
+      kind: "CABLE_PATH" as const,
+      geometry: {
+        schemaVersion: 1 as const,
+        points: [
+          { x: 40, y: 60 },
+          { x: 140, y: 60 },
+          { x: 140, y: 180 },
+        ],
+      },
+      cableRoute: {
+        cableType: "CAT6A" as const,
+        factors: { verticalRiseMeters: 4.5, serviceLoopMeters: 1.5, wastePercent: 12 },
+      },
+    },
+  ]);
+
+  const restored = deserializeCanvas(serializeCanvas(document));
+  assert.deepEqual(restored.elements[0].geometry.points, document.elements[0].geometry.points);
+  assert.deepEqual(restored.elements[0].cableRoute, document.elements[0].cableRoute);
+});
