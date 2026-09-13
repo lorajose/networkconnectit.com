@@ -1,5 +1,6 @@
 import type { CameraDoriSettings } from "./camera-dori";
 import type { CameraFovParameters } from "./camera-fov";
+import type { SpecializedCameraSimulation } from "./camera-specialized";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
 export type CanvasViewport = { x: number; y: number; zoom: number };
@@ -9,6 +10,7 @@ export type CanvasElement = {
   geometry: DesignGeometry;
   cameraFov?: CameraFovParameters;
   cameraDori?: CameraDoriSettings;
+  cameraSimulation?: SpecializedCameraSimulation;
   locked?: boolean;
   hidden?: boolean;
 };
