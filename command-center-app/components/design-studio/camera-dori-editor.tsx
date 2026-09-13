@@ -4,13 +4,12 @@ import { useMemo } from "react";
 
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { calculateDoriZones, describePixelDensity, type DoriThreshold } from "@/lib/contractor-os/camera-dori";
-
-export type CameraDoriSettings = {
-  horizontalPixels: number;
-  inspectionDistanceMeters: number;
-  thresholds: DoriThreshold[];
-};
+import {
+  calculateDoriZones,
+  describePixelDensity,
+  type CameraDoriSettings,
+  type DoriThreshold,
+} from "@/lib/contractor-os/camera-dori";
 
 type CameraDoriEditorProps = {
   horizontalFovDegrees: number;
