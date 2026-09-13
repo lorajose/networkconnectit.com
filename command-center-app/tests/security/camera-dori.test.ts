@@ -45,6 +45,23 @@ test("DORI zones support configurable user thresholds and references", () => {
   assert.ok(zones[0].distanceMeters > zones[1].distanceMeters);
 });
 
+test("DORI calculations remain lightweight across many visible cameras", () => {
+  const thresholds = [
+    { key: "DETECT", label: "Detect", minimumPpm: 25 },
+    { key: "OBSERVE", label: "Observe", minimumPpm: 62.5 },
+    { key: "RECOGNIZE", label: "Recognize", minimumPpm: 125 },
+    { key: "IDENTIFY", label: "Identify", minimumPpm: 250 },
+  ];
+  const started = performance.now();
+  let totalZones = 0;
+  for (let index = 0; index < 1000; index += 1) {
+    totalZones += calculateDoriZones({ horizontalPixels: index % 2 ? 1920 : 3840, horizontalFovDegrees: 70 + (index % 20) }, thresholds).length;
+  }
+  const elapsedMs = performance.now() - started;
+  assert.equal(totalZones, 4000);
+  assert.ok(elapsedMs < 1000, `1000 camera calculations took ${elapsedMs.toFixed(1)}ms`);
+});
+
 test("invalid camera and threshold inputs fail closed", () => {
   assert.throws(() => sceneWidthMetersAtDistance(10, 180), /Horizontal FOV/);
   assert.throws(() => pixelDensityAtDistance({ horizontalPixels: 0, horizontalFovDegrees: 90 }, 10, "PPM"), /Horizontal pixels/);
