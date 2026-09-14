@@ -14,6 +14,8 @@ import { CameraFovEditor } from "@/components/design-studio/camera-fov-editor";
 import { CameraFovOverlay } from "@/components/design-studio/camera-fov-overlay";
 import { CameraSpecializedEditor } from "@/components/design-studio/camera-specialized-editor";
 import { CameraSpecializedOverlay } from "@/components/design-studio/camera-specialized-overlay";
+import { NetworkAddressingEditor } from "@/components/design-studio/network-addressing-editor";
+import { NetworkSegmentPanel } from "@/components/design-studio/network-segment-panel";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_CABLE_ROUTE_SETTINGS,
@@ -42,6 +44,7 @@ import {
 } from "@/lib/contractor-os/design-canvas-state";
 import { DEFAULT_DESIGN_GRID, snapDesignPoint, type DesignGridSettings } from "@/lib/contractor-os/design-grid";
 import { createPolyline, movePolylineVertex, type PolylineKind } from "@/lib/contractor-os/design-polyline";
+import { detectIpConflicts, type AddressedDevice, type NetworkAddressing } from "@/lib/contractor-os/network-addressing";
 
 type DragState =
   | { pointerId: number; lastX: number; lastY: number; mode: "move" | "pan"; startDocument: CanvasDocument }
@@ -153,6 +156,17 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
       })),
     [document.elements],
   );
+  const addressedDevices = useMemo<AddressedDevice[]>(
+    () => document.elements
+      .filter((element) => element.kind === "DEVICE")
+      .map((element) => ({ id: element.id, label: element.id, addressing: element.networkAddressing ?? {} })),
+    [document.elements],
+  );
+  const ipConflicts = useMemo(() => detectIpConflicts(addressedDevices), [addressedDevices]);
+  const selectedIpConflict = useMemo(
+    () => Boolean(selectedCamera && ipConflicts.some((conflict) => conflict.deviceIds.includes(selectedCamera.id))),
+    [ipConflicts, selectedCamera],
+  );
   const selectedHorizontalFov = horizontalFov(selectedCamera?.cameraFov ?? DEFAULT_CAMERA_FOV);
   const selectedCableMeasurement = useMemo(() => {
     if (!selectedCableRoute || !Number.isFinite(designUnitsPerMeter) || designUnitsPerMeter <= 0) return null;
@@ -189,6 +203,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
             ir: DEFAULT_CAMERA_SIMULATION.ir ? { ...DEFAULT_CAMERA_SIMULATION.ir } : null,
             ptz: DEFAULT_CAMERA_SIMULATION.ptz ? { ...DEFAULT_CAMERA_SIMULATION.ptz, presets: [] } : null,
           },
+          networkAddressing: {},
         },
       ],
       selectedIds: [id],
@@ -208,6 +223,11 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
   function updateSelectedCameraSimulation(next: SpecializedCameraSettings) {
     if (!selectedCamera) return;
     apply({ ...document, elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, cameraSimulation: next } : element) });
+  }
+
+  function updateSelectedNetworkAddressing(next: NetworkAddressing) {
+    if (!selectedCamera) return;
+    apply({ ...document, elements: document.elements.map((element) => element.id === selectedCamera.id ? { ...element, networkAddressing: next } : element) });
   }
 
   function updateSelectedCableRoute(next: CableRouteSettings) {
@@ -502,7 +522,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           </svg>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle/Cable Route: click waypoints, Enter or Finish to save</span><span>Selected polyline vertices are draggable</span><span>Cable lengths require calibrated scale</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle/Cable Route: click waypoints, Enter or Finish to save</span><span>Selected polyline vertices are draggable</span><span>Cable lengths require calibrated scale</span><span>Network addressing autosaves with the design revision</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
           {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
         </div>
       </div>
@@ -514,6 +534,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
             <CameraDoriEditor horizontalFovDegrees={selectedHorizontalFov} value={selectedCamera.cameraDori ?? DEFAULT_CAMERA_DORI} onChange={updateSelectedCameraDori} />
           ) : null}
           <CameraSpecializedEditor value={selectedCamera.cameraSimulation ?? DEFAULT_CAMERA_SIMULATION} onChange={updateSelectedCameraSimulation} />
+          <NetworkAddressingEditor value={selectedCamera.networkAddressing ?? {}} onChange={updateSelectedNetworkAddressing} conflict={selectedIpConflict} />
         </div>
       ) : selectedCableRoute ? (
         <div className="space-y-3">
@@ -540,6 +561,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
       )}
 
       <CableRouteTotals routes={cableRoutes} designUnitsPerMeter={designUnitsPerMeter} />
+      <NetworkSegmentPanel devices={addressedDevices} />
     </div>
   );
 }
