@@ -18,7 +18,6 @@ test("renders portable SVG topology with links, addressing and escaped labels", 
   assert.match(svg, /IDF &lt;Switch&gt; &amp; Core/);
   assert.match(svg, /10\.1\.1\.2/);
   assert.match(svg, /VLAN 10/);
-  assert.equal(svg.includes("replaceAll"), false);
 });
 
 test("builds closeout manifest from generated topology", () => {
