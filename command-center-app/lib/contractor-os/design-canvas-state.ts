@@ -6,6 +6,7 @@ import type { NetworkAddressing } from "./network-addressing";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
 export type CanvasViewport = { x: number; y: number; zoom: number };
+export type TopologyConnection = { sourceDeviceId: string; targetDeviceId: string };
 export type CanvasElement = {
   id: string;
   kind?: DesignElementKind;
@@ -15,6 +16,7 @@ export type CanvasElement = {
   cameraSimulation?: SpecializedCameraSettings;
   cableRoute?: CableRouteSettings;
   networkAddressing?: NetworkAddressing;
+  topologyConnection?: TopologyConnection;
   locked?: boolean;
   hidden?: boolean;
 };
