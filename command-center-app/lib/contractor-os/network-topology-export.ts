@@ -1,7 +1,7 @@
 import type { TopologyDocument } from "./network-topology";
 
 function escapeXml(value: string) {
-  return value.replaceAll("&", "&amp;").replaceAll("<", "&lt;").replaceAll(">", "&gt;").replaceAll('"', "&quot;");
+  return value.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\"/g, "&quot;");
 }
 
 export function topologyToSvg(document: TopologyDocument, title = "Network Topology"): string {
