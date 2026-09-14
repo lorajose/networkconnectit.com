@@ -2,6 +2,7 @@ import type { CableRouteSettings } from "./cable-route";
 import type { CameraDoriSettings } from "./camera-dori";
 import type { CameraFovParameters } from "./camera-fov";
 import type { SpecializedCameraSettings } from "./camera-specialized";
+import type { NetworkAddressing } from "./network-addressing";
 import type { DesignElementKind, DesignGeometry, DesignPoint } from "./design-studio";
 
 export type CanvasViewport = { x: number; y: number; zoom: number };
@@ -13,6 +14,7 @@ export type CanvasElement = {
   cameraDori?: CameraDoriSettings;
   cameraSimulation?: SpecializedCameraSettings;
   cableRoute?: CableRouteSettings;
+  networkAddressing?: NetworkAddressing;
   locked?: boolean;
   hidden?: boolean;
 };
@@ -65,26 +67,12 @@ export function setCanvasSelection(document: CanvasDocument, ids: string[], addi
 
 export function translateSelected(document: CanvasDocument, delta: DesignPoint): CanvasDocument {
   const selected = new Set(document.selectedIds);
-  return {
-    ...document,
-    elements: document.elements.map((element) =>
-      selected.has(element.id) && !element.locked
-        ? { ...element, geometry: { ...element.geometry, points: element.geometry.points.map((point) => ({ x: point.x + delta.x, y: point.y + delta.y })) } }
-        : element,
-    ),
-  };
+  return { ...document, elements: document.elements.map((element) => selected.has(element.id) && !element.locked ? { ...element, geometry: { ...element.geometry, points: element.geometry.points.map((point) => ({ x: point.x + delta.x, y: point.y + delta.y })) } } : element) };
 }
 
 export function rotateSelected(document: CanvasDocument, deltaDegrees: number): CanvasDocument {
   const selected = new Set(document.selectedIds);
-  return {
-    ...document,
-    elements: document.elements.map((element) =>
-      selected.has(element.id) && !element.locked
-        ? { ...element, geometry: { ...element.geometry, rotation: normalizeRotation((element.geometry.rotation ?? 0) + deltaDegrees) } }
-        : element,
-    ),
-  };
+  return { ...document, elements: document.elements.map((element) => selected.has(element.id) && !element.locked ? { ...element, geometry: { ...element.geometry, rotation: normalizeRotation((element.geometry.rotation ?? 0) + deltaDegrees) } } : element) };
 }
 
 export function deleteSelected(document: CanvasDocument): CanvasDocument {
@@ -103,24 +91,12 @@ export function zoomCanvas(document: CanvasDocument, factor: number, min = 0.1, 
 }
 
 export function serializeCanvas(document: CanvasDocument): string {
-  const normalized: CanvasDocument = {
-    schemaVersion: 1,
-    viewport: { ...document.viewport },
-    elements: [...document.elements].sort((a, b) => a.id.localeCompare(b.id)).map((element) => clone(element)),
-    selectedIds: [...document.selectedIds].sort(),
-  };
+  const normalized: CanvasDocument = { schemaVersion: 1, viewport: { ...document.viewport }, elements: [...document.elements].sort((a, b) => a.id.localeCompare(b.id)).map((element) => clone(element)), selectedIds: [...document.selectedIds].sort() };
   return JSON.stringify(normalized);
 }
 
 export function deserializeCanvas(value: string): CanvasDocument {
   const parsed = JSON.parse(value) as Partial<CanvasDocument>;
-  if (
-    parsed.schemaVersion !== 1 ||
-    !parsed.viewport ||
-    !Array.isArray(parsed.elements) ||
-    !Array.isArray(parsed.selectedIds)
-  ) {
-    throw new Error("Unsupported canvas document");
-  }
+  if (parsed.schemaVersion !== 1 || !parsed.viewport || !Array.isArray(parsed.elements) || !Array.isArray(parsed.selectedIds)) throw new Error("Unsupported canvas document");
   return clone(parsed as CanvasDocument);
 }
