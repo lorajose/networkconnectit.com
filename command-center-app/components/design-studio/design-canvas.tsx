@@ -16,6 +16,8 @@ import { CameraSpecializedEditor } from "@/components/design-studio/camera-speci
 import { CameraSpecializedOverlay } from "@/components/design-studio/camera-specialized-overlay";
 import { NetworkAddressingEditor } from "@/components/design-studio/network-addressing-editor";
 import { NetworkSegmentPanel } from "@/components/design-studio/network-segment-panel";
+import { NetworkTopologyPanel } from "@/components/design-studio/network-topology-panel";
+import { TopologyConnectionEditor } from "@/components/design-studio/topology-connection-editor";
 import { Button } from "@/components/ui/button";
 import {
   DEFAULT_CABLE_ROUTE_SETTINGS,
@@ -41,6 +43,7 @@ import {
   zoomCanvas,
   type CanvasDocument,
   type CanvasHistory,
+  type TopologyConnection,
 } from "@/lib/contractor-os/design-canvas-state";
 import { DEFAULT_DESIGN_GRID, snapDesignPoint, type DesignGridSettings } from "@/lib/contractor-os/design-grid";
 import { createPolyline, movePolylineVertex, type PolylineKind } from "@/lib/contractor-os/design-polyline";
@@ -162,6 +165,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
       .map((element) => ({ id: element.id, label: element.id, addressing: element.networkAddressing ?? {} })),
     [document.elements],
   );
+  const topologyDeviceOptions = useMemo(() => addressedDevices.map((device) => ({ id: device.id, label: device.label })), [addressedDevices]);
   const ipConflicts = useMemo(() => detectIpConflicts(addressedDevices), [addressedDevices]);
   const selectedIpConflict = useMemo(
     () => Boolean(selectedCamera && ipConflicts.some((conflict) => conflict.deviceIds.includes(selectedCamera.id))),
@@ -235,6 +239,14 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
     apply({
       ...document,
       elements: document.elements.map((element) => element.id === selectedCableRoute.id ? { ...element, cableRoute: cloneRouteSettings(next) } : element),
+    });
+  }
+
+  function updateSelectedTopologyConnection(next?: TopologyConnection) {
+    if (!selectedCableRoute) return;
+    apply({
+      ...document,
+      elements: document.elements.map((element) => element.id === selectedCableRoute.id ? { ...element, topologyConnection: next } : element),
     });
   }
 
@@ -522,7 +534,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
           </svg>
         </div>
         <div className="flex flex-wrap gap-x-5 gap-y-1 border-t bg-muted/20 px-4 py-2 text-xs text-muted-foreground">
-          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle/Cable Route: click waypoints, Enter or Finish to save</span><span>Selected polyline vertices are draggable</span><span>Cable lengths require calibrated scale</span><span>Network addressing autosaves with the design revision</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
+          <span>Autosaves after 1.5s idle</span><span>Move or rotate a camera to update FOV, DORI, IR and PTZ live</span><span>Specialized ranges are design estimates</span><span>Wall/Obstacle/Cable Route: click waypoints, Enter or Finish to save</span><span>Selected polyline vertices are draggable</span><span>Cable lengths require calibrated scale</span><span>Network addressing autosaves with the design revision</span><span>Topology connections autosave with cable routes</span><span>Grid and Snap can be toggled</span><span>Ctrl/Cmd+Z undo</span><span>Ctrl/Cmd+S save</span><span>Drag empty canvas to pan</span>
           {pdfBackground ? <span>PDF page {pdfBackground.pdfPage ?? 1} is aligned beneath the interactive design layer.</span> : null}
         </div>
       </div>
@@ -543,6 +555,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
             onChange={updateSelectedCableRoute}
             measurement={selectedCableMeasurement}
           />
+          <TopologyConnectionEditor value={selectedCableRoute.topologyConnection} devices={topologyDeviceOptions} onChange={updateSelectedTopologyConnection} />
           <CableRouteBomHandoff
             id={selectedCableRoute.id}
             points={selectedCableRoute.geometry.points}
@@ -562,6 +575,7 @@ export function DesignCanvas({ initialDocument, organizationId, projectId, floor
 
       <CableRouteTotals routes={cableRoutes} designUnitsPerMeter={designUnitsPerMeter} />
       <NetworkSegmentPanel devices={addressedDevices} />
+      <NetworkTopologyPanel elements={document.elements} />
     </div>
   );
 }
