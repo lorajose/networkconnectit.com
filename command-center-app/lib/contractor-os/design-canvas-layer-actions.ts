@@ -1,9 +1,13 @@
 import type { CanvasDocument, CanvasElement } from "./design-canvas-state";
-import { movePolylineVertex } from "./design-polyline";
+import { movePolylineVertex, type PolylineKind } from "./design-polyline";
 import { designCanvasLayers } from "./design-canvas-layer-integration";
 
 function elementById(document: CanvasDocument, elementId: string): CanvasElement | undefined {
   return document.elements.find((element) => element.id === elementId);
+}
+
+function isPolylineKind(kind: CanvasElement["kind"]): kind is PolylineKind {
+  return kind === "WALL" || kind === "OBSTACLE" || kind === "CABLE_PATH";
 }
 
 /** Returns false when a hidden/locked layer must not start a direct edit gesture. */
@@ -16,7 +20,7 @@ export function canBeginLayerSafeEdit(document: CanvasDocument, elementId: strin
 
 /**
  * Vertex mutation used by the Canvas pointer handler. It intentionally refuses
- * edits on locked/hidden layers instead of relying only on UI controls.
+ * edits on locked/hidden layers and ignores non-polyline canvas elements.
  */
 export function moveLayerSafePolylineVertex(
   document: CanvasDocument,
@@ -25,12 +29,14 @@ export function moveLayerSafePolylineVertex(
   point: { x: number; y: number },
 ): CanvasDocument {
   if (!canBeginLayerSafeEdit(document, elementId)) return document;
+  const editable = elementById(document, elementId);
+  if (!editable || !isPolylineKind(editable.kind)) return document;
+
   return {
     ...document,
     elements: document.elements.map((element) => {
-      if (element.id !== elementId) return element;
-      const polyline = { id: element.id, kind: element.kind ?? "CABLE_PATH", geometry: element.geometry };
-      const moved = movePolylineVertex(polyline, vertexIndex, point);
+      if (element.id !== elementId || !isPolylineKind(element.kind)) return element;
+      const moved = movePolylineVertex({ id: element.id, kind: element.kind, geometry: element.geometry }, vertexIndex, point);
       return { ...element, geometry: moved.geometry };
     }),
   };
