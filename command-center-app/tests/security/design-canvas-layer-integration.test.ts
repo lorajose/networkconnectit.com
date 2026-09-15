@@ -27,17 +27,18 @@ test("new cable routes automatically enter the Pathways layer", () => {
   assert.equal(route.layerId, "pathways");
 });
 
-test("central Canvas integration hides elements and prevents geometry edits on locked layers", () => {
+test("central Canvas integration hides elements, clears hidden selections and prevents locked geometry edits", () => {
   let document = createCanvasDocument();
   const camera = createCctvCameraElement(document, { id: "camera-1", kind: "DEVICE", geometry });
-  document = { ...document, elements: [camera] };
+  document = { ...document, elements: [camera], selectedIds: [camera.id] };
   assert.deepEqual(designCanvasLayers.renderableElements(document).map((element) => element.id), ["camera-1"]);
 
-  document = { ...document, layers: setLayerVisibility(document.layers, "cctv", false) };
+  document = designCanvasLayers.applyLayerState(document, setLayerVisibility(document.layers, "cctv", false));
   assert.deepEqual(designCanvasLayers.renderableElements(document), []);
+  assert.deepEqual(document.selectedIds, []);
 
-  document = { ...document, layers: setLayerVisibility(document.layers, "cctv", true) };
-  document = { ...document, layers: setLayerLocked(document.layers, "cctv", true) };
+  document = designCanvasLayers.applyLayerState(document, setLayerVisibility(document.layers, "cctv", true));
+  document = designCanvasLayers.applyLayerState(document, setLayerLocked(document.layers, "cctv", true));
   assert.equal(designCanvasLayers.canEditGeometry(camera, document.layers), false);
 });
 
@@ -45,4 +46,15 @@ test("layer-only changes alter the central Canvas autosave signature", () => {
   const document = createCanvasDocument();
   const changed = { ...document, layers: setLayerVisibility(document.layers, "access-control", false) };
   assert.notEqual(designCanvasLayers.signature(document), designCanvasLayers.signature(changed));
+});
+
+test("reassigning a canvas element keeps discipline/category metadata independent of display layer", () => {
+  let document = createCanvasDocument();
+  const camera = createCctvCameraElement(document, { id: "camera-1", kind: "DEVICE", geometry });
+  document = { ...document, elements: [camera] };
+  const reassigned = designCanvasLayers.assignElement(document, camera.id, "network");
+  const result = reassigned.elements[0];
+  assert.equal(result.layerId, "network");
+  assert.equal(result.discipline, "CCTV");
+  assert.equal(result.category, "CAMERA");
 });
