@@ -13,8 +13,8 @@ test("layer manager exposes accessible visibility, lock and ordering controls", 
   const manager = source("components/design-studio/design-layer-manager.tsx");
   assert.match(manager, /aria-label=.*Hide/);
   assert.match(manager, /aria-label=.*Unlock/);
-  assert.match(manager, /Move.*up/);
-  assert.match(manager, /Move.*down/);
+  assert.match(manager, /Move \$\{layer\.name\} up/);
+  assert.match(manager, /Move \$\{layer\.name\} down/);
   assert.match(manager, /orderedLayers/);
 });
 
