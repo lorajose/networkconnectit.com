@@ -40,12 +40,12 @@ export function canvasElementKind(element: CanvasElement): DesignElementKind {
   return element.kind ?? "DEVICE";
 }
 
-function isLayerVisible(document: CanvasDocument, element: CanvasElement): boolean {
+export function isCanvasElementLayerVisible(document: CanvasDocument, element: CanvasElement): boolean {
   if (!element.layerId) return true;
   return document.layers.layers.find((layer) => layer.id === element.layerId)?.visible ?? true;
 }
 
-function isElementLocked(document: CanvasDocument, element: CanvasElement): boolean {
+export function isCanvasElementLocked(document: CanvasDocument, element: CanvasElement): boolean {
   if (element.locked) return true;
   if (!element.layerId) return false;
   return document.layers.layers.find((layer) => layer.id === element.layerId)?.locked ?? false;
@@ -77,7 +77,7 @@ export function redoCanvas(history: CanvasHistory): CanvasHistory {
 }
 
 export function setCanvasSelection(document: CanvasDocument, ids: string[], additive = false): CanvasDocument {
-  const available = new Set(document.elements.filter((item) => !item.hidden && isLayerVisible(document, item)).map((item) => item.id));
+  const available = new Set(document.elements.filter((item) => !item.hidden && isCanvasElementLayerVisible(document, item)).map((item) => item.id));
   const selected = ids.filter((id) => available.has(id));
   const selectedIds = additive ? Array.from(new Set([...document.selectedIds, ...selected])) : Array.from(new Set(selected));
   return { ...document, selectedIds };
@@ -85,17 +85,17 @@ export function setCanvasSelection(document: CanvasDocument, ids: string[], addi
 
 export function translateSelected(document: CanvasDocument, delta: DesignPoint): CanvasDocument {
   const selected = new Set(document.selectedIds);
-  return { ...document, elements: document.elements.map((element) => selected.has(element.id) && !isElementLocked(document, element) ? { ...element, geometry: { ...element.geometry, points: element.geometry.points.map((point) => ({ x: point.x + delta.x, y: point.y + delta.y })) } } : element) };
+  return { ...document, elements: document.elements.map((element) => selected.has(element.id) && !isCanvasElementLocked(document, element) ? { ...element, geometry: { ...element.geometry, points: element.geometry.points.map((point) => ({ x: point.x + delta.x, y: point.y + delta.y })) } } : element) };
 }
 
 export function rotateSelected(document: CanvasDocument, deltaDegrees: number): CanvasDocument {
   const selected = new Set(document.selectedIds);
-  return { ...document, elements: document.elements.map((element) => selected.has(element.id) && !isElementLocked(document, element) ? { ...element, geometry: { ...element.geometry, rotation: normalizeRotation((element.geometry.rotation ?? 0) + deltaDegrees) } } : element) };
+  return { ...document, elements: document.elements.map((element) => selected.has(element.id) && !isCanvasElementLocked(document, element) ? { ...element, geometry: { ...element.geometry, rotation: normalizeRotation((element.geometry.rotation ?? 0) + deltaDegrees) } } : element) };
 }
 
 export function deleteSelected(document: CanvasDocument): CanvasDocument {
   const selected = new Set(document.selectedIds);
-  return { ...document, elements: document.elements.filter((element) => !selected.has(element.id) || isElementLocked(document, element)), selectedIds: [] };
+  return { ...document, elements: document.elements.filter((element) => !selected.has(element.id) || isCanvasElementLocked(document, element)), selectedIds: [] };
 }
 
 export function panCanvas(document: CanvasDocument, delta: DesignPoint): CanvasDocument {
