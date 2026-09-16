@@ -43,7 +43,7 @@ function buildDashboardFilters(user: DashboardUser, organizationName?: string | 
 function statusPriority(row: SiteHealthRow){switch(row.health){case"critical":return 0;case"warning":return 1;case"unknown":return 2;case"healthy":return 3;case"info":return 4;}}
 function sortSiteHealthRows(rows:SiteHealthRow[]){return[...rows].sort((l,r)=>{const d=statusPriority(l)-statusPriority(r);return d!==0?d:l.site.localeCompare(r.site);});}
 function summarizeSiteHealth(rows: SiteHealthRow[]) {
-  return rows.reduce((summary,row)=>{if(row.health==="healthy")summary.healthySites++;else if(row.health==="warning")summary.warningSites++;else if(row.health==="critical")summary.criticalSites++;summary.unknownDevices+=row.unknownCount;return summary;},{healthySites:0,warningSites:0,criticalSites:0,unknownDevices:0});
+  return rows.reduce((summary,row)=>{if(row.health==="healthy")summary.healthySites++;else if(row.health==="warning")summary.warningSites++;else if(row.health==="critical")summary.criticalSites++;summary.unknownDevices+=row.unknownCount ?? 0;return summary;},{healthySites:0,warningSites:0,criticalSites:0,unknownDevices:0});
 }
 function buildMapCenter(coordinates:Array<[number,number]>,fallback:[number,number]):[number,number]{if(!coordinates.length)return fallback;const sums=coordinates.reduce((a,c)=>[a[0]+c[0],a[1]+c[1]],[0,0]);return[sums[0]/coordinates.length,sums[1]/coordinates.length];}
 function getScopedDashboardSiteWhere(user:DashboardUser):Prisma.SiteWhereInput{return{...getScopedRecordWhere(user),...(user.projectInstallationId?{projectSites:{some:{projectInstallationId:user.projectInstallationId}}}:{})};}
