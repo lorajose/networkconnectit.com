@@ -1,23 +1,45 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { DEFAULT_CABLE_ROUTE_SETTINGS } from "../lib/contractor-os/cable-route";
 import { createCanvasDocument } from "../lib/contractor-os/design-canvas-state";
 import { composeDesignReport, issueDesignReport } from "../lib/contractor-os/design-report-composer";
 
+const deviceGeometry = (x: number, y: number) => ({
+  schemaVersion: 1 as const,
+  points: [{ x, y }],
+  width: 20,
+  height: 20,
+  rotation: 0,
+});
+
+function reportDocument() {
+  const document = createCanvasDocument();
+  document.elements = [
+    { id: "cam-1", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", geometry: deviceGeometry(10, 10) },
+    { id: "cam-2", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", geometry: deviceGeometry(20, 20) },
+    {
+      id: "cable-1",
+      kind: "CABLE_PATH",
+      discipline: "PATHWAY",
+      category: "CABLE_ROUTE",
+      geometry: { schemaVersion: 1 as const, points: [{ x: 0, y: 0 }, { x: 100, y: 0 }], rotation: 0 },
+      cableRoute: DEFAULT_CABLE_ROUTE_SETTINGS,
+    },
+  ];
+  return document;
+}
+
 test("NCI-065 composes BOM and cable schedule from the same design source", () => {
-  const document = createCanvasDocument([
-    { id: "cam-1", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", geometry: { x: 10, y: 10, rotation: 0 } },
-    { id: "cam-2", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", geometry: { x: 20, y: 20, rotation: 0 } },
-    { id: "cable-1", kind: "CABLE_PATH", geometry: { points: [{ x: 0, y: 0 }, { x: 100, y: 0 }] }, cableRoute: { cableType: "CAT6", serviceLoopFeet: 0, verticalRiseFeet: 0, slackPercent: 0 } },
-  ]);
-  const report = composeDesignReport({ floors: [{ id: "f1", name: "Level 1", document }] });
+  const report = composeDesignReport({ floors: [{ id: "f1", name: "Level 1", document: reportDocument() }] });
   assert.equal(report.bom.find((item) => item.key === "CCTV:CAMERA")?.quantity, 2);
   assert.equal(report.cableSchedule.length, 1);
   assert.equal(report.pricingSummary, undefined);
 });
 
 test("NCI-065 keeps pricing out of client-safe composition", () => {
-  const document = createCanvasDocument([{ id: "cam-1", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", geometry: { x: 10, y: 10, rotation: 0 } }]);
+  const document = createCanvasDocument();
+  document.elements = [{ id: "cam-1", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", geometry: deviceGeometry(10, 10) }];
   const pricing = { materialUnitCostByKey: { "CCTV:CAMERA": 250 } };
   const clientReport = composeDesignReport({ floors: [{ id: "f1", name: "Level 1", document }], profile: { clientSafe: true, includePricing: true, sections: ["BOM", "PRICING_SUMMARY"] }, pricing });
   assert.equal(clientReport.pricingSummary, undefined);
