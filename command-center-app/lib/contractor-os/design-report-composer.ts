@@ -7,17 +7,8 @@ import {
   type DesignReportProfile,
 } from "./design-report-profile";
 
-export type DesignReportFloor = {
-  id: string;
-  name: string;
-  document: CanvasDocument;
-};
-
-export type DesignReportSourceLink = {
-  estimateId?: string;
-  proposalId?: string;
-};
-
+export type DesignReportFloor = { id: string; name: string; document: CanvasDocument };
+export type DesignReportSourceLink = { estimateId?: string; proposalId?: string };
 export type DesignReportComposition = {
   profile: DesignReportProfile;
   floors: Array<{ id: string; name: string; document: CanvasDocument }>;
@@ -26,6 +17,14 @@ export type DesignReportComposition = {
   pricingSummary?: { sellSubtotal: number; total: number };
   source: DesignReportSourceLink;
 };
+
+function deepFreeze<T>(value: T): Readonly<T> {
+  if (value && typeof value === "object" && !Object.isFrozen(value)) {
+    Object.freeze(value);
+    for (const child of Object.values(value as Record<string, unknown>)) deepFreeze(child);
+  }
+  return value as Readonly<T>;
+}
 
 export function composeDesignReport(input: {
   floors: readonly DesignReportFloor[];
@@ -40,7 +39,7 @@ export function composeDesignReport(input: {
     ...floor,
     document: {
       ...floor.document,
-      elements: filterReportElementsByLayer(floor.document.elements, profile),
+      elements: filterReportElementsByLayer(floor.document.elements.filter((element) => !element.hidden), profile),
     },
   }));
 
@@ -54,13 +53,10 @@ export function composeDesignReport(input: {
     }
   }
 
-  const bom = reportIncludesSection(profile, "BOM")
-    ? [...grouped.values()].sort((a, b) => a.key.localeCompare(b.key))
-    : [];
+  const bom = reportIncludesSection(profile, "BOM") ? [...grouped.values()].sort((a, b) => a.key.localeCompare(b.key)) : [];
   const cableSchedule = reportIncludesSection(profile, "CABLE_SCHEDULE")
     ? bom.filter((item) => item.unit === "FT").map((item) => ({ key: item.key, description: item.description, feet: item.quantity }))
     : [];
-
   const sellSubtotal = takeoffs.reduce((sum, takeoff) => sum + takeoff.totals.sellSubtotal, 0);
   const total = takeoffs.reduce((sum, takeoff) => sum + takeoff.totals.total, 0);
 
@@ -95,19 +91,17 @@ export function issueDesignReport(input: {
   if (!input.projectId.trim()) throw new Error("Design project is required");
   if (!Number.isInteger(input.revision) || input.revision < 1) throw new Error("Valid design revision is required");
   if (!input.issuedByUserId.trim()) throw new Error("Authenticated issuer is required");
-  if (!input.composition.source.estimateId && !input.composition.source.proposalId) {
-    throw new Error("Issued design report must link to an Estimate or Proposal");
-  }
+  if (!input.composition.source.estimateId && !input.composition.source.proposalId) throw new Error("Issued design report must link to an Estimate or Proposal");
 
   const issuedAt = input.issuedAt ?? new Date().toISOString();
-  return Object.freeze({
+  return deepFreeze({
     id: `design-report:${input.projectId}:r${input.revision}:${issuedAt}`,
     status: "ISSUED" as const,
     projectId: input.projectId,
     revision: input.revision,
     issuedAt,
     issuedByUserId: input.issuedByUserId,
-    source: Object.freeze({ ...input.composition.source }),
-    composition: Object.freeze(input.composition),
+    source: { ...input.composition.source },
+    composition: input.composition,
   });
 }
