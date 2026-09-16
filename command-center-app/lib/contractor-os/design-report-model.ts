@@ -10,15 +10,21 @@ export type DesignReportModel = {
   bom: DesignTakeoffItem[];
   cableSchedule: DesignReportCableRow[];
   pricingVisible: boolean;
+  warnings: string[];
 };
 
 function documentForProfile(document: CanvasDocument, profile: DesignReportProfile): CanvasDocument {
   return { ...document, elements: filterReportElementsByLayer(document.elements.filter((element) => !element.hidden), profile) };
 }
 
-export function buildDesignReportModel(floors: readonly DesignReportFloorSource[], profile: DesignReportProfile, metersPerDesignUnit = 0.01): DesignReportModel {
+export function buildDesignReportModel(floors: readonly DesignReportFloorSource[], profile: DesignReportProfile, metersPerDesignUnit?: number): DesignReportModel {
   const filteredFloors = floors.map((floor) => ({ ...floor, document: documentForProfile(floor.document, profile) }));
-  const takeoff = filteredFloors.flatMap((floor) => buildDesignTakeoffItems(floor.document, metersPerDesignUnit));
+  const hasCableRoutes = filteredFloors.some((floor) => floor.document.elements.some((element) => element.kind === "CABLE_PATH"));
+  const calibrated = Number.isFinite(metersPerDesignUnit) && Number(metersPerDesignUnit) > 0;
+  const takeoff = filteredFloors.flatMap((floor) => {
+    const document = calibrated ? floor.document : { ...floor.document, elements: floor.document.elements.filter((element) => element.kind !== "CABLE_PATH") };
+    return buildDesignTakeoffItems(document, calibrated ? Number(metersPerDesignUnit) : 0.01);
+  });
   const combined = new Map<string, DesignTakeoffItem>();
   for (const item of takeoff) {
     const existing = combined.get(item.key);
@@ -35,5 +41,6 @@ export function buildDesignReportModel(floors: readonly DesignReportFloorSource[
     bom: reportIncludesSection(profile, "BOM") ? bom : [],
     cableSchedule: reportIncludesSection(profile, "CABLE_SCHEDULE") ? cableSchedule : [],
     pricingVisible: reportIncludesSection(profile, "PRICING_SUMMARY"),
+    warnings: hasCableRoutes && !calibrated ? ["Cable schedule omitted because the floor plan scale is not calibrated."] : [],
   };
 }
