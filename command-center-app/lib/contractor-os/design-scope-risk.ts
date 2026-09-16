@@ -1,5 +1,8 @@
 import type { DesignTakeoffItem } from "./design-takeoff";
-import type { TakeoffItem } from "./takeoff";
+import type { TakeoffItemInput } from "./takeoff";
+import { effectiveTakeoffQuantity } from "./takeoff";
+
+export type TakeoffEvidenceItem = TakeoffItemInput & { id?: string };
 
 export type EstimateEvidenceLine = {
   itemCode?: string | null;
@@ -28,7 +31,7 @@ function round(value: number) {
  */
 export function compareDesignTakeoffEstimateEvidence(
   design: DesignTakeoffItem[],
-  takeoff: TakeoffItem[],
+  takeoff: TakeoffEvidenceItem[],
   estimate: EstimateEvidenceLine[],
 ): ScopeRiskEvidence[] {
   const takeoffByKey = new Map(takeoff.filter((item) => item.itemCode).map((item) => [item.itemCode as string, item]));
@@ -38,7 +41,7 @@ export function compareDesignTakeoffEstimateEvidence(
     const takeoffItem = takeoffByKey.get(item.key);
     const estimateItem = estimateByKey.get(item.key);
     const designQuantity = round(item.quantity);
-    const takeoffQuantity = round(takeoffItem?.effectiveQuantity ?? 0);
+    const takeoffQuantity = round(takeoffItem ? effectiveTakeoffQuantity(takeoffItem) : 0);
     const estimateQuantity = round(estimateItem?.quantity ?? 0);
 
     let risk: ScopeRiskEvidence["risk"] = "MATCHED";
