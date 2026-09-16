@@ -7,7 +7,6 @@ import { buildDesignReportModel } from "../lib/contractor-os/design-report-model
 import { DEFAULT_CLIENT_DESIGN_REPORT_PROFILE, DEFAULT_INTERNAL_DESIGN_REPORT_PROFILE } from "../lib/contractor-os/design-report-profile";
 
 const geometry = (points: Array<{ x: number; y: number }>) => ({ schemaVersion: 1 as const, points });
-
 const document = createCanvasDocument([
   { id: "camera-1", kind: "DEVICE", discipline: "CCTV", category: "CAMERA", layerId: "cctv", geometry: geometry([{ x: 10, y: 10 }]) },
   { id: "door-1", kind: "DEVICE", discipline: "ACCESS_CONTROL", category: "READER", layerId: "access-control", geometry: geometry([{ x: 20, y: 20 }]) },
@@ -16,25 +15,28 @@ const document = createCanvasDocument([
 
 test("report composition aggregates floor, BOM and cable schedule evidence", () => {
   const model = buildDesignReportModel([{ id: "floor-1", name: "First Floor", document }], DEFAULT_CLIENT_DESIGN_REPORT_PROFILE, 0.01);
-  assert.equal(model.floors[0].deviceCount, 2);
-  assert.equal(model.floors[0].cablePathCount, 1);
-  assert.ok(model.bom.some((item) => item.key === "CCTV:CAMERA"));
-  assert.ok(model.cableSchedule.some((item) => item.key.startsWith("CABLE:")));
-  assert.equal(model.pricingVisible, false);
+  assert.equal(model.floors[0].deviceCount, 2); assert.equal(model.floors[0].cablePathCount, 1);
+  assert.ok(model.bom.some((item) => item.key === "CCTV:CAMERA")); assert.ok(model.cableSchedule.some((item) => item.key.startsWith("CABLE:")));
+  assert.equal(model.pricingVisible, false); assert.deepEqual(model.warnings, []);
 });
 
-test("visible report layers constrain evidence without mutating the source document", () => {
+test("visible report layers constrain evidence without mutating source", () => {
   const profile = { ...DEFAULT_CLIENT_DESIGN_REPORT_PROFILE, visibleLayerIds: ["cctv"] };
   const model = buildDesignReportModel([{ id: "floor-1", name: "First Floor", document }], profile, 0.01);
-  assert.equal(model.floors[0].deviceCount, 1);
-  assert.equal(model.floors[0].cablePathCount, 0);
-  assert.deepEqual(model.bom.map((item) => item.key), ["CCTV:CAMERA"]);
-  assert.equal(document.elements.length, 3);
+  assert.equal(model.floors[0].deviceCount, 1); assert.equal(model.floors[0].cablePathCount, 0);
+  assert.deepEqual(model.bom.map((item) => item.key), ["CCTV:CAMERA"]); assert.equal(document.elements.length, 3);
 });
 
-test("internal report can expose pricing section while client-safe report cannot", () => {
+test("internal report can expose pricing while client-safe cannot", () => {
   const internal = buildDesignReportModel([{ id: "floor-1", name: "First Floor", document }], DEFAULT_INTERNAL_DESIGN_REPORT_PROFILE, 0.01);
   const client = buildDesignReportModel([{ id: "floor-1", name: "First Floor", document }], DEFAULT_CLIENT_DESIGN_REPORT_PROFILE, 0.01);
-  assert.equal(internal.pricingVisible, true);
-  assert.equal(client.pricingVisible, false);
+  assert.equal(internal.pricingVisible, true); assert.equal(client.pricingVisible, false);
+});
+
+test("uncalibrated report preserves device evidence and warns instead of inventing cable lengths", () => {
+  const model = buildDesignReportModel([{ id: "floor-1", name: "First Floor", document }], DEFAULT_CLIENT_DESIGN_REPORT_PROFILE);
+  assert.equal(model.floors[0].cablePathCount, 1);
+  assert.ok(model.bom.some((item) => item.key === "CCTV:CAMERA"));
+  assert.equal(model.cableSchedule.length, 0);
+  assert.equal(model.warnings.length, 1);
 });
