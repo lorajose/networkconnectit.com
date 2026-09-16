@@ -42,14 +42,17 @@ export function buildDesignReportCommercialSections(
         ...first,
         selectedIds: [],
         elements: documents.flatMap((document) => document.elements),
-        layers: documents.flatMap((document) => document.layers),
+        layers: {
+          ...first.layers,
+          layers: documents.flatMap((document) => document.layers.layers),
+        },
       }
     : {
         schemaVersion: 1,
         viewport: { x: 0, y: 0, zoom: 1 },
         selectedIds: [],
         elements: [],
-        layers: [],
+        layers: { layers: [] },
       };
   const takeoff = buildDesignTakeoff(combined, pricing, metersPerDesignUnit);
 
