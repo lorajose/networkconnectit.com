@@ -159,6 +159,19 @@ model Organization {
   contactName          String?               @db.VarChar(191)
   contactEmail         String?               @db.VarChar(191)
   phone                String?               @db.VarChar(64)
+  legalName            String?               @db.VarChar(191)
+  websiteUrl           String?               @db.VarChar(255)
+  addressLine1         String?               @db.VarChar(191)
+  addressLine2         String?               @db.VarChar(191)
+  city                 String?               @db.VarChar(191)
+  stateRegion          String?               @map("state") @db.VarChar(191)
+  postalCode           String?               @db.VarChar(32)
+  country              String?               @db.VarChar(191)
+  timezone             String?               @db.VarChar(64)
+  logoUrl              String?               @db.VarChar(512)
+  brandPrimaryColor    String?               @db.VarChar(16)
+  brandAccentColor     String?               @db.VarChar(16)
+  brandTagline         String?               @db.VarChar(191)
   status               OrganizationStatus    @default(ACTIVE)
   users                User[]
   sites                Site[]
@@ -442,13 +455,6 @@ model Alert {
   organizationId String        @db.VarChar(191)
   siteId         String?       @db.VarChar(191)
   deviceId       String?       @db.VarChar(191)
-  title          String        @db.VarChar(191)
-  message        String        @db.Text
-  severity       AlertSeverity @default(MEDIUM)
-  status         AlertStatus   @default(OPEN)
-  triggeredAt    DateTime      @default(now())
-  acknowledgedAt DateTime?
-  resolvedAt     DateTime?
   createdById    String?       @db.VarChar(191)
   resolvedById   String?       @db.VarChar(191)
   organization   Organization  @relation(fields: [organizationId], references: [id], onDelete: Cascade)
@@ -456,10 +462,20 @@ model Alert {
   device         Device?       @relation(fields: [deviceId], references: [id], onDelete: SetNull)
   createdBy      User?         @relation("AlertCreatedBy", fields: [createdById], references: [id], onDelete: SetNull)
   resolvedBy     User?         @relation("AlertResolvedBy", fields: [resolvedById], references: [id], onDelete: SetNull)
+  severity       AlertSeverity
+  status         AlertStatus   @default(OPEN)
+  title          String        @db.VarChar(191)
+  message        String?       @db.Text
+  source         String?       @db.VarChar(191)
+  detectedAt     DateTime      @default(now())
+  acknowledgedAt DateTime?
+  resolvedAt     DateTime?
   createdAt      DateTime      @default(now())
   updatedAt      DateTime      @updatedAt
 
-  @@index([organizationId, status, severity])
-  @@index([siteId])
-  @@index([deviceId])
+  @@index([organizationId, status])
+  @@index([siteId, status])
+  @@index([deviceId, status])
+  @@index([severity, status])
+  @@index([detectedAt])
 }
