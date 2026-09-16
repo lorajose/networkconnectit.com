@@ -18,10 +18,13 @@ export type DesignReportCableRow = {
 export type DesignReportPricingSummary = {
   materialCost: number;
   laborCost: number;
-  subtotalCost: number;
-  markupAmount: number;
-  contingencyAmount: number;
+  laborBurden: number;
+  contingencyCost: number;
+  directCost: number;
+  sellSubtotal: number;
   totalPrice: number;
+  grossProfit: number;
+  marginPercent: number;
 } | null;
 
 export type DesignReportCommercialSections = {
@@ -72,10 +75,13 @@ export function buildDesignReportCommercialSections(
     ? {
         materialCost: takeoff.totals.materialCost,
         laborCost: takeoff.totals.laborCost,
-        subtotalCost: takeoff.totals.subtotalCost,
-        markupAmount: takeoff.totals.markupAmount,
-        contingencyAmount: takeoff.totals.contingencyAmount,
-        totalPrice: takeoff.totals.totalPrice,
+        laborBurden: takeoff.totals.laborBurden,
+        contingencyCost: takeoff.totals.contingencyCost,
+        directCost: takeoff.totals.directCost,
+        sellSubtotal: takeoff.totals.sellSubtotal,
+        totalPrice: takeoff.totals.total,
+        grossProfit: takeoff.totals.grossProfit,
+        marginPercent: takeoff.totals.marginPercent,
       }
     : null;
 
