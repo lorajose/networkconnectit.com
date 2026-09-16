@@ -36,10 +36,21 @@ export function buildDesignReportCommercialSections(
   pricing: DesignTakeoffPricing = {},
   metersPerDesignUnit = 0.01,
 ): DesignReportCommercialSections {
-  const combined: CanvasDocument = {
-    schemaVersion: 1,
-    elements: documents.flatMap((document) => document.elements),
-  };
+  const first = documents[0];
+  const combined: CanvasDocument = first
+    ? {
+        ...first,
+        selectedIds: [],
+        elements: documents.flatMap((document) => document.elements),
+        layers: documents.flatMap((document) => document.layers),
+      }
+    : {
+        schemaVersion: 1,
+        viewport: { x: 0, y: 0, zoom: 1 },
+        selectedIds: [],
+        elements: [],
+        layers: [],
+      };
   const takeoff = buildDesignTakeoff(combined, pricing, metersPerDesignUnit);
 
   const bom = reportIncludesSection(profile, "BOM")
