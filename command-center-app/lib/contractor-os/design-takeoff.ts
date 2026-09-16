@@ -1,5 +1,5 @@
 import type { CanvasDocument, CanvasElement } from "./design-canvas-state";
-import { measureCableRoute, type CableRouteSettings } from "./cable-route";
+import { cableRouteTypeLabel, measureCableRoute, routeFromGeometry, type CableRouteSettings } from "./cable-route";
 import { calculateEstimate, type CostLineInput, type EstimateTotals } from "./cost-engine";
 
 export type DesignTakeoffItem = {
@@ -27,6 +27,21 @@ export type DesignTakeoffResult = {
   totals: EstimateTotals;
 };
 
+export type ProposedDesignTakeoffSnapshot = {
+  id: string;
+  generatedAt: string;
+  status: "PROPOSED";
+  requiresHumanApproval: true;
+  items: DesignTakeoffItem[];
+};
+
+export type DesignTakeoffDiff = {
+  added: DesignTakeoffItem[];
+  removed: DesignTakeoffItem[];
+  changed: Array<{ before: DesignTakeoffItem; after: DesignTakeoffItem; quantityDelta: number }>;
+  unchanged: DesignTakeoffItem[];
+};
+
 function activeElements(document: CanvasDocument) {
   return document.elements.filter((element) => !element.hidden);
 }
@@ -35,7 +50,7 @@ function deviceKey(element: CanvasElement) {
   return `${element.discipline ?? "UNASSIGNED"}:${element.category ?? "DEVICE"}`;
 }
 
-export function buildDesignTakeoffItems(document: CanvasDocument, designUnitsPerMeter = 100): DesignTakeoffItem[] {
+export function buildDesignTakeoffItems(document: CanvasDocument, metersPerDesignUnit = 0.01): DesignTakeoffItem[] {
   const grouped = new Map<string, DesignTakeoffItem>();
 
   for (const element of activeElements(document)) {
@@ -62,8 +77,10 @@ export function buildDesignTakeoffItems(document: CanvasDocument, designUnitsPer
     if (element.kind === "CABLE_PATH") {
       const settings = element.cableRoute as CableRouteSettings | undefined;
       if (!settings) continue;
-      const measurement = measureCableRoute(element.geometry.points, settings, designUnitsPerMeter);
-      const key = `CABLE:${settings.cableType}`;
+      const route = routeFromGeometry(element.id, element.geometry.points, settings);
+      const measurement = measureCableRoute(route, metersPerDesignUnit);
+      const cableType = cableRouteTypeLabel(route);
+      const key = `CABLE:${cableType}`;
       const existing = grouped.get(key);
       if (existing) {
         existing.quantity += measurement.totalFeet;
@@ -73,7 +90,7 @@ export function buildDesignTakeoffItems(document: CanvasDocument, designUnitsPer
           key,
           discipline: element.discipline ?? "PATHWAY",
           category: element.category ?? "CABLE_ROUTE",
-          description: `${settings.cableType} cable`,
+          description: `${cableType} cable`,
           quantity: measurement.totalFeet,
           unit: "FT",
           sourceElementIds: [element.id],
@@ -82,11 +99,13 @@ export function buildDesignTakeoffItems(document: CanvasDocument, designUnitsPer
     }
   }
 
-  return [...grouped.values()].map((item) => ({ ...item, quantity: Math.round(item.quantity * 100) / 100 }));
+  return [...grouped.values()]
+    .map((item) => ({ ...item, quantity: Math.round(item.quantity * 100) / 100, sourceElementIds: [...item.sourceElementIds].sort() }))
+    .sort((a, b) => a.key.localeCompare(b.key));
 }
 
-export function buildDesignTakeoff(document: CanvasDocument, pricing: DesignTakeoffPricing = {}, designUnitsPerMeter = 100): DesignTakeoffResult {
-  const items = buildDesignTakeoffItems(document, designUnitsPerMeter);
+export function buildDesignTakeoff(document: CanvasDocument, pricing: DesignTakeoffPricing = {}, metersPerDesignUnit = 0.01): DesignTakeoffResult {
+  const items = buildDesignTakeoffItems(document, metersPerDesignUnit);
   const costLines: CostLineInput[] = items.map((item) => ({
     type: "MATERIAL",
     description: item.description,
@@ -117,4 +136,53 @@ export function buildDesignTakeoff(document: CanvasDocument, pricing: DesignTake
       contingencyPercent: pricing.contingencyPercent,
     }),
   };
+}
+
+export function createProposedDesignTakeoffSnapshot(
+  document: CanvasDocument,
+  metersPerDesignUnit = 0.01,
+  generatedAt = new Date().toISOString(),
+): ProposedDesignTakeoffSnapshot {
+  const items = buildDesignTakeoffItems(document, metersPerDesignUnit);
+  const signature = items.map((item) => `${item.key}:${item.quantity}:${item.sourceElementIds.join(",")}`).join("|");
+  return {
+    id: `design-takeoff:${generatedAt}:${signature}`,
+    generatedAt,
+    status: "PROPOSED",
+    requiresHumanApproval: true,
+    items,
+  };
+}
+
+export function diffDesignTakeoffItems(previous: DesignTakeoffItem[], proposed: DesignTakeoffItem[]): DesignTakeoffDiff {
+  const before = new Map(previous.map((item) => [item.key, item]));
+  const after = new Map(proposed.map((item) => [item.key, item]));
+  const added: DesignTakeoffItem[] = [];
+  const removed: DesignTakeoffItem[] = [];
+  const changed: DesignTakeoffDiff["changed"] = [];
+  const unchanged: DesignTakeoffItem[] = [];
+
+  for (const item of proposed) {
+    const old = before.get(item.key);
+    if (!old) {
+      added.push(item);
+      continue;
+    }
+    const sameSources = old.sourceElementIds.slice().sort().join("|") === item.sourceElementIds.slice().sort().join("|");
+    if (old.quantity !== item.quantity || old.unit !== item.unit || !sameSources) {
+      changed.push({ before: old, after: item, quantityDelta: Math.round((item.quantity - old.quantity) * 100) / 100 });
+    } else {
+      unchanged.push(item);
+    }
+  }
+
+  for (const item of previous) if (!after.has(item.key)) removed.push(item);
+  return { added, removed, changed, unchanged };
+}
+
+export function diffProposedDesignTakeoff(
+  previous: ProposedDesignTakeoffSnapshot | undefined,
+  proposed: ProposedDesignTakeoffSnapshot,
+): DesignTakeoffDiff {
+  return diffDesignTakeoffItems(previous?.items ?? [], proposed.items);
 }
