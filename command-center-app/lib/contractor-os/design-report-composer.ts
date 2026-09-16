@@ -13,12 +13,18 @@ export type DesignReportFloor = {
   document: CanvasDocument;
 };
 
+export type DesignReportSourceLink = {
+  estimateId?: string;
+  proposalId?: string;
+};
+
 export type DesignReportComposition = {
   profile: DesignReportProfile;
   floors: Array<{ id: string; name: string; document: CanvasDocument }>;
   bom: Array<{ key: string; description: string; quantity: number; unit: "EA" | "FT" }>;
   cableSchedule: Array<{ key: string; description: string; feet: number }>;
   pricingSummary?: { subtotal: number; total: number };
+  source: DesignReportSourceLink;
 };
 
 export function composeDesignReport(input: {
@@ -26,6 +32,7 @@ export function composeDesignReport(input: {
   profile?: Partial<DesignReportProfile>;
   pricing?: DesignTakeoffPricing;
   metersPerDesignUnit?: number;
+  source?: DesignReportSourceLink;
 }): DesignReportComposition {
   const profile = resolveDesignReportProfile(input.profile);
   const metersPerDesignUnit = input.metersPerDesignUnit ?? 0.01;
@@ -63,5 +70,6 @@ export function composeDesignReport(input: {
     bom,
     cableSchedule,
     pricingSummary: reportIncludesSection(profile, "PRICING_SUMMARY") ? { subtotal, total } : undefined,
+    source: { estimateId: input.source?.estimateId, proposalId: input.source?.proposalId },
   };
 }
