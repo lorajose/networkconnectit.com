@@ -23,7 +23,7 @@ export type DesignReportComposition = {
   floors: Array<{ id: string; name: string; document: CanvasDocument }>;
   bom: Array<{ key: string; description: string; quantity: number; unit: "EA" | "FT" }>;
   cableSchedule: Array<{ key: string; description: string; feet: number }>;
-  pricingSummary?: { subtotal: number; total: number };
+  pricingSummary?: { sellSubtotal: number; total: number };
   source: DesignReportSourceLink;
 };
 
@@ -61,7 +61,7 @@ export function composeDesignReport(input: {
     ? bom.filter((item) => item.unit === "FT").map((item) => ({ key: item.key, description: item.description, feet: item.quantity }))
     : [];
 
-  const subtotal = takeoffs.reduce((sum, takeoff) => sum + takeoff.totals.subtotal, 0);
+  const sellSubtotal = takeoffs.reduce((sum, takeoff) => sum + takeoff.totals.sellSubtotal, 0);
   const total = takeoffs.reduce((sum, takeoff) => sum + takeoff.totals.total, 0);
 
   return {
@@ -69,7 +69,7 @@ export function composeDesignReport(input: {
     floors,
     bom,
     cableSchedule,
-    pricingSummary: reportIncludesSection(profile, "PRICING_SUMMARY") ? { subtotal, total } : undefined,
+    pricingSummary: reportIncludesSection(profile, "PRICING_SUMMARY") ? { sellSubtotal, total } : undefined,
     source: { estimateId: input.source?.estimateId, proposalId: input.source?.proposalId },
   };
 }
