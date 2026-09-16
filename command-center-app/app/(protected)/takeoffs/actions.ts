@@ -4,6 +4,9 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireUser } from "@/lib/auth";
+import { approveDesignTakeoffProposal } from "@/lib/contractor-os/design-takeoff-handoff";
+import { applyApprovedDesignTakeoff } from "@/lib/contractor-os/design-takeoff-repository";
+import type { ProposedDesignTakeoffSnapshot } from "@/lib/contractor-os/design-takeoff";
 import { pushTakeoffBomToEstimate } from "@/lib/contractor-os/takeoff-estimate-handoff";
 import { updateBomPricing } from "@/lib/contractor-os/takeoff-pricing-repository";
 import {
@@ -33,6 +36,20 @@ function actor(user: Awaited<ReturnType<typeof requireUser>>) {
   return { role: user.role, organizationId: user.organizationId };
 }
 
+function parseDesignProposal(raw: string): ProposedDesignTakeoffSnapshot {
+  if (!raw) throw new Error("Design Takeoff proposal is required");
+  const parsed = JSON.parse(raw) as Partial<ProposedDesignTakeoffSnapshot>;
+  if (
+    typeof parsed.id !== "string" ||
+    parsed.status !== "PROPOSED" ||
+    parsed.requiresHumanApproval !== true ||
+    !Array.isArray(parsed.items)
+  ) {
+    throw new Error("Invalid Design Takeoff proposal");
+  }
+  return parsed as ProposedDesignTakeoffSnapshot;
+}
+
 export async function createTakeoffWorkspaceAction(formData: FormData) {
   const user = await requireUser();
   const requestedOrganizationId = formString(formData, "organizationId");
@@ -49,6 +66,40 @@ export async function createTakeoffWorkspaceAction(formData: FormData) {
 
   revalidatePath("/takeoffs");
   redirect(`/takeoffs/${workspaceId}?organizationId=${encodeURIComponent(organizationId)}`);
+}
+
+export async function applyDesignTakeoffProposalAction(formData: FormData) {
+  const user = await requireUser();
+  const organizationId = formString(formData, "organizationId");
+  const workspaceId = formString(formData, "workspaceId");
+  const proposal = parseDesignProposal(formString(formData, "proposal"));
+  const approvedItemKeys = formData
+    .getAll("approvedItemKeys")
+    .filter((value): value is string => typeof value === "string" && value.trim().length > 0)
+    .map((value) => value.trim());
+
+  if (!workspaceId) throw new Error("Takeoff workspace is required");
+  if (!approvedItemKeys.length) throw new Error("Approve at least one Design Takeoff item before applying");
+
+  const approvedBy = user.email || user.id;
+  const approvedAt = new Date().toISOString();
+  const handoff = approveDesignTakeoffProposal(proposal, {
+    proposalId: proposal.id,
+    approvedBy,
+    approvedAt,
+    approvedItemKeys,
+  });
+
+  await applyApprovedDesignTakeoff(actor(user), {
+    organizationId,
+    workspaceId,
+    handoff,
+  });
+
+  revalidatePath(`/takeoffs/${workspaceId}`);
+  revalidatePath(`/takeoffs/${workspaceId}/pricing`);
+  revalidatePath("/takeoffs");
+  revalidatePath("/estimates");
 }
 
 export async function addTakeoffItemAction(formData: FormData) {
