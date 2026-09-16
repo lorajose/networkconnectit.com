@@ -1,36 +1,36 @@
-import type { Role } from "@prisma/client";
+import type { AppRole } from "../rbac";
 
 export type DesignPermission = "VIEW" | "EDIT" | "EXPORT";
 export type DesignTeamGroup = "ESTIMATOR" | "DESIGNER" | "PROJECT_MANAGER" | "FIELD_TECHNICIAN";
 
 export type DesignCollaborationActor = {
   id?: string | null;
-  role: Role;
+  role: AppRole;
   organizationId?: string | null;
   groups?: DesignTeamGroup[];
 };
 
 export type DesignCollaborationRules = {
-  permissionsByRole?: Partial<Record<Role, DesignPermission[]>>;
-  permissionsByGroup?: Partial<Record<DesignTeamGroup, DesignPermission[]>>;
+  permissionsByRole?: Partial<Record<AppRole, readonly DesignPermission[]>>;
+  permissionsByGroup?: Partial<Record<DesignTeamGroup, readonly DesignPermission[]>>;
   enforceOrganizationBrandingOnExport?: boolean;
 };
 
-const DEFAULT_ROLE_PERMISSIONS: Partial<Record<Role, DesignPermission[]>> = {
+const DEFAULT_ROLE_PERMISSIONS: Partial<Record<AppRole, readonly DesignPermission[]>> = {
   SUPER_ADMIN: ["VIEW", "EDIT", "EXPORT"],
   INTERNAL_ADMIN: ["VIEW", "EDIT", "EXPORT"],
   CLIENT_ADMIN: ["VIEW", "EDIT", "EXPORT"],
   VIEWER: ["VIEW"],
 };
 
-const DEFAULT_GROUP_PERMISSIONS: Record<DesignTeamGroup, DesignPermission[]> = {
+const DEFAULT_GROUP_PERMISSIONS: Record<DesignTeamGroup, readonly DesignPermission[]> = {
   ESTIMATOR: ["VIEW", "EXPORT"],
   DESIGNER: ["VIEW", "EDIT", "EXPORT"],
   PROJECT_MANAGER: ["VIEW", "EDIT", "EXPORT"],
   FIELD_TECHNICIAN: ["VIEW"],
 };
 
-function isPlatformAdmin(role: Role) {
+function isPlatformAdmin(role: AppRole) {
   return role === "SUPER_ADMIN" || role === "INTERNAL_ADMIN";
 }
 
