@@ -73,3 +73,41 @@ export function composeDesignReport(input: {
     source: { estimateId: input.source?.estimateId, proposalId: input.source?.proposalId },
   };
 }
+
+export type IssuedDesignReportSnapshot = {
+  id: string;
+  status: "ISSUED";
+  projectId: string;
+  revision: number;
+  issuedAt: string;
+  issuedByUserId: string;
+  source: DesignReportSourceLink;
+  composition: Readonly<DesignReportComposition>;
+};
+
+export function issueDesignReport(input: {
+  projectId: string;
+  revision: number;
+  composition: DesignReportComposition;
+  issuedByUserId: string;
+  issuedAt?: string;
+}): Readonly<IssuedDesignReportSnapshot> {
+  if (!input.projectId.trim()) throw new Error("Design project is required");
+  if (!Number.isInteger(input.revision) || input.revision < 1) throw new Error("Valid design revision is required");
+  if (!input.issuedByUserId.trim()) throw new Error("Authenticated issuer is required");
+  if (!input.composition.source.estimateId && !input.composition.source.proposalId) {
+    throw new Error("Issued design report must link to an Estimate or Proposal");
+  }
+
+  const issuedAt = input.issuedAt ?? new Date().toISOString();
+  return Object.freeze({
+    id: `design-report:${input.projectId}:r${input.revision}:${issuedAt}`,
+    status: "ISSUED" as const,
+    projectId: input.projectId,
+    revision: input.revision,
+    issuedAt,
+    issuedByUserId: input.issuedByUserId,
+    source: Object.freeze({ ...input.composition.source }),
+    composition: Object.freeze(input.composition),
+  });
+}
