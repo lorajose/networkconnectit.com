@@ -9,6 +9,14 @@ import {
   diffProposedDesignTakeoff,
 } from "../../lib/contractor-os/design-takeoff";
 
+const deviceGeometry = (x: number, y: number) => ({
+  schemaVersion: 1 as const,
+  points: [{ x, y }],
+  width: 20,
+  height: 20,
+  rotation: 0,
+});
+
 function fixture() {
   const document = createCanvasDocument();
   document.elements = [
@@ -17,21 +25,21 @@ function fixture() {
       kind: "DEVICE",
       discipline: "CCTV",
       category: "CAMERA",
-      geometry: { x: 10, y: 10, width: 20, height: 20, rotation: 0 },
+      geometry: deviceGeometry(10, 10),
     },
     {
       id: "cam-2",
       kind: "DEVICE",
       discipline: "CCTV",
       category: "CAMERA",
-      geometry: { x: 30, y: 10, width: 20, height: 20, rotation: 0 },
+      geometry: deviceGeometry(30, 10),
     },
     {
       id: "route-1",
       kind: "CABLE_PATH",
       discipline: "PATHWAY",
       category: "CABLE_ROUTE",
-      geometry: { x: 0, y: 0, width: 100, height: 0, rotation: 0, points: [{ x: 0, y: 0 }, { x: 100, y: 0 }] },
+      geometry: { schemaVersion: 1, points: [{ x: 0, y: 0 }, { x: 100, y: 0 }], rotation: 0 },
       cableRoute: DEFAULT_CABLE_ROUTE_SETTINGS,
     },
   ];
@@ -64,14 +72,14 @@ test("re-running handoff exposes additions removals and quantity changes", () =>
     kind: "DEVICE",
     discipline: "ACCESS_CONTROL",
     category: "READER",
-    geometry: { x: 50, y: 20, width: 20, height: 20, rotation: 0 },
+    geometry: deviceGeometry(50, 20),
   });
   afterDocument.elements.push({
     id: "cam-3",
     kind: "DEVICE",
     discipline: "CCTV",
     category: "CAMERA",
-    geometry: { x: 60, y: 10, width: 20, height: 20, rotation: 0 },
+    geometry: deviceGeometry(60, 10),
   });
 
   const after = createProposedDesignTakeoffSnapshot(afterDocument, 0.01, "2026-09-15T12:05:00.000Z");
