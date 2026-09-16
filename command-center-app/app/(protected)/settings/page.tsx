@@ -1,44 +1,26 @@
-import { ProtectedRoutePlaceholder } from "@/components/protected-route-placeholder";
+import { PageHeader } from "@/components/page-header";
+import { OrganizationProfileForm } from "@/components/settings/organization-profile-form";
 import { requireRoles } from "@/lib/auth";
+import { organizationProfileAccess } from "@/lib/contractor-os/organization-profile-access";
+import { getOrganizationForEdit, getOrganizationOptions } from "@/lib/management/organizations";
 import { routeAccess } from "@/lib/rbac";
+import { updateOrganizationProfileAction } from "./actions";
 
-export default async function SettingsPage() {
+type SettingsPageProps = { searchParams?: Record<string, string | string[] | undefined> };
+
+export default async function SettingsPage({ searchParams = {} }: SettingsPageProps) {
   const user = await requireRoles(routeAccess.settings);
+  const requested = typeof searchParams.organizationId === "string" ? searchParams.organizationId : undefined;
+  const options = await getOrganizationOptions(user);
+  const organizationId = requested || user.organizationId || options[0]?.id;
+  if (!organizationId) return <PageHeader eyebrow="Settings" title="Organization profile" description="Create an organization before configuring company profile and branding." />;
+  const access = organizationProfileAccess({ role: user.role, organizationId: user.organizationId }, organizationId);
+  const organization = await getOrganizationForEdit(user, access.organizationId);
+  if (!organization) return <PageHeader eyebrow="Settings" title="Organization profile unavailable" description="The selected organization is outside your tenant scope." />;
+  const action = updateOrganizationProfileAction.bind(null, organization.id);
 
-  return (
-    <ProtectedRoutePlaceholder
-      section="Settings"
-      title="Settings placeholder"
-      description="This route is reserved for future tenant and environment settings once the management modules are ready."
-      userRole={user.role}
-      allowedRoles={routeAccess.settings}
-      highlights={[
-        {
-          label: "Scope",
-          value: "Environment controls",
-          hint: "Future organization defaults, notification preferences, and operational settings."
-        },
-        {
-          label: "Access",
-          value: "Admin roles",
-          hint: "Read-only viewer users do not see this route in the shared shell."
-        },
-        {
-          label: "Status",
-          value: "Placeholder only",
-          hint: "No mutable settings surface is exposed in this block."
-        },
-        {
-          label: "Intent",
-          value: "Future-safe routing",
-          hint: "The nav and middleware are prepared for later feature work."
-        }
-      ]}
-      nextSteps={[
-        "Define organization-level settings requirements before exposing forms or persistence.",
-        "Separate global admin settings from tenant settings during the CRUD phase.",
-        "Preserve build stability by keeping this route placeholder-only for now."
-      ]}
-    />
-  );
+  return <div className="space-y-6">
+    <PageHeader eyebrow="Settings" title="Company profile & branding" description="Set the organization identity and brand defaults that Contractor OS can reuse across commercial and closeout documents." breadcrumbs={[{ label: "Command Center", href: "/dashboard" }, { label: "Settings" }]} />
+    <OrganizationProfileForm action={action} initialValues={organization as unknown as Record<string, string | null | undefined>} />
+  </div>;
 }
