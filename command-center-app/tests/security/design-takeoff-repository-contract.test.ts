@@ -15,7 +15,11 @@ test("design takeoff persistence is tenant-scoped and transactional", () => {
 test("design handoff preserves manual rows and replaces only matching AI proposal rows", () => {
   assert.match(source, /source='AI_SUGGESTED'/);
   assert.match(source, /notes LIKE/);
-  assert.doesNotMatch(source, /DELETE FROM TakeoffItem\s+WHERE takeoffWorkspaceId=\$\{input\.workspaceId\}\s+AND organizationId=\$\{organizationId\}\s*`/);
+  assert.match(source, /proposalMarker/);
+  assert.match(source, /DELETE FROM TakeoffItem/);
+  assert.match(source, /id=\$\{previous\.id\}/);
+  assert.match(source, /takeoffWorkspaceId=\$\{input\.workspaceId\}/);
+  assert.match(source, /organizationId=\$\{organizationId\}/);
 });
 
 test("review attribution is persisted with authoritative takeoff and BOM rows", () => {
