@@ -1,0 +1,1 @@
+NCI-073 QA package: release gate, ticket/P0 reconciliation, deployment-gap analysis, runtime runbook, evidence templates, browser/performance/security/commercial/report/private-storage checklists, and regression contract. Runtime QA is not claimed by this package.
