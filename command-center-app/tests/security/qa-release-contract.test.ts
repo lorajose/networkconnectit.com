@@ -29,7 +29,7 @@ test("production gate documents Command Center deployment separation", () => {
   const gate = read("docs/production-hardening-gate.md");
   const deployWorkflow = read("../.github/workflows/deploy-cpanel.yml");
 
-  assert.match(deployWorkflow, /command-center-app\/\*\*/);
+  assert.ok(deployWorkflow.includes("command-center-app/**"));
   assert.match(gate, /static website/i);
   assert.match(gate, /not evidence that Command Center\/Design Studio was deployed/i);
   assert.match(gate, /NCI-021/);
