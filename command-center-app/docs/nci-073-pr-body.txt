@@ -1,0 +1,3 @@
+Creates the NCI-073 master Design Studio QA/release gate after NCI-065 integration. Adds QA/P0 reconciliation, target-environment runbook, evidence templates, deployment-gap/client-safe/private-storage risk controls, Done/defect policies, and a security regression contract for critical QA requirements.
+
+This PR prepares QA; it does not claim deployed runtime QA has passed. Runtime execution remains required before QA tickets move to Done.
