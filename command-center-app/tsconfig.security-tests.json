@@ -9,7 +9,10 @@
     "noEmit": false,
     "incremental": false,
     "rootDir": ".",
-    "outDir": ".security-test-build"
+    "outDir": ".security-test-build",
+    "types": [
+      "node"
+    ]
   },
   "include": [
     "lib/rbac.ts",
