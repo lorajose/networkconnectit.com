@@ -58,3 +58,18 @@ test("GoDaddy production startup runs release gate before migrate deploy", () =>
   assert.ok(gateIndex < migrateIndex, "release gate must execute before migrations");
   assert.match(startup, /process\.env\.NODE_ENV === "production"/);
 });
+
+
+const startupSource = readFileSync(
+  resolve(process.cwd(), "scripts/start-godaddy.mjs"),
+  "utf8"
+);
+
+test("GoDaddy production startup runs the release gate before migrations", () => {
+  const gateIndex = startupSource.indexOf("Running Production Release Gate 1 runtime checks before migrations");
+  const migrateIndex = startupSource.indexOf("Applying pending Prisma migrations");
+  assert.ok(gateIndex >= 0, "production startup must invoke the release gate");
+  assert.ok(migrateIndex >= 0, "production startup must invoke prisma migrate deploy");
+  assert.ok(gateIndex < migrateIndex, "release gate must run before migrations");
+  assert.match(startupSource, /if \(gateResult\.status !== 0\)/);
+});
