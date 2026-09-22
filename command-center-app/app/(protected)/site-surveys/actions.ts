@@ -4,7 +4,7 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireRoles } from "@/lib/auth";
-import { completeSurveySession, createSurveyArea, createSurveyAssignment, createSurveyPoint, persistSurveyAsset, placeSurveyPointOnFloorPlan, saveSurveyFloorPlanGeometry, startSurveySession, updateSurveyChecklistResponse } from "@/lib/contractor-os/site-survey-repository";
+import { completeSurveySession, createSurveyArea, createSurveyAssignment, createSurveyPoint, persistSurveyAsset, placeSurveyPointOnFloorPlan, saveSurveyFloorPlanGeometry, startSurveySession, updateSurveyChecklistResponse, updateSurveyPointFloorPosition } from "@/lib/contractor-os/site-survey-repository";
 import { surveyPhotoStorageKey, validateSurveyPhoto } from "@/lib/contractor-os/site-survey-photo";
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
 import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
@@ -94,5 +94,12 @@ export async function placeSurveyPointOnFloorPlanAction(formData:FormData){
 export async function saveSurveyFloorPlanGeometryAction(formData:FormData){
  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  await saveSurveyFloorPlanGeometry({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),draftId:value(formData,"draftId"),geometryJson:value(formData,"geometryJson"),calibrationJson:value(formData,"calibrationJson")||null});
+ revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function updateSurveyPointFloorPositionAction(formData:FormData){
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await updateSurveyPointFloorPosition({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),draftId:value(formData,"draftId"),itemId:value(formData,"itemId"),normalizedX:Number(value(formData,"normalizedX")),normalizedY:Number(value(formData,"normalizedY"))});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
