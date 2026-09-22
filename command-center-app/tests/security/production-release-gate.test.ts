@@ -30,3 +30,11 @@ test("production gate fails closed on runtime-only hazards", () => {
   assert.match(source, /DATABASE_ADMIN_URL must not be configured in production/);
   assert.match(source, /BID_STORAGE_DRIVER must be filesystem or supabase/);
 });
+
+test("production gate validates database connection without exposing credentials", () => {
+  assert.match(source, /DB_HOST/);
+  assert.match(source, /DB_NAME/);
+  assert.match(source, /DB_USER/);
+  assert.match(source, /Production database connection must be configured/);
+  assert.match(source, /Production DATABASE_URL must not point to loopback/);
+});
