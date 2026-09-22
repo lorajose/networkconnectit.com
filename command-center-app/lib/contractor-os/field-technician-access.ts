@@ -19,7 +19,6 @@ export async function requireAssignedTechnicianAccess(actor:CommercialActor & {i
 
 
 export async function requireFieldSurveyWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string}){
- if(actor.role!=="VIEWER")return requireAssignedTechnicianAccess(actor,{...input,scope:"SURVEY"});
  return requireAssignedTechnicianAccess(actor,{...input,scope:"SURVEY"});
 }
 export async function requireFieldWorkOrderWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string;workOrderId:string}){
