@@ -22,5 +22,10 @@ export default async function ProjectExportPage({
     notFound();
   }
 
-  const profiledReport = applyCommissioningReportProfile(\n    report,\n    getCommissioningReportProfile(user.role)\n  );\n\n  return <CommissioningReportView report={profiledReport} />;
+  const profiledReport = applyCommissioningReportProfile(
+    report,
+    getCommissioningReportProfile(user.role)
+  );
+
+  return <CommissioningReportView report={profiledReport} />;
 }
