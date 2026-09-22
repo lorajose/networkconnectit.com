@@ -10,6 +10,7 @@ const schemaEnginePath = path.join(process.cwd(), "node_modules", "@prisma", "en
 const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
+const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");
 
 function configureDatabaseUrlFromDiscreteSecrets() {
   const rawDatabaseUrl = process.env.DATABASE_URL?.trim() ?? "";
@@ -71,6 +72,24 @@ if (!fs.existsSync(prismaCliPath)) {
 }
 
 configureDatabaseUrlFromDiscreteSecrets();
+
+if (process.env.NODE_ENV === "production") {
+  if (!fs.existsSync(productionReleaseGatePath)) {
+    console.error(`Production release gate not found: ${productionReleaseGatePath}`);
+    process.exit(1);
+  }
+  console.log("Running Production Release Gate 1 runtime checks before migrations...");
+  const gateResult = spawnSync(process.execPath, [productionReleaseGatePath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+  if (gateResult.status !== 0) {
+    console.error(`Production release gate failed with status ${gateResult.status ?? "unknown"}.`);
+    process.exit(gateResult.status ?? 1);
+  }
+}
+
 process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
 process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
 
