@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import type { CommercialActor } from "./commercial-access";
-import { commercialReadScope, requireCommercialWriteAccess } from "./commercial-access";
+import { commercialReadScope, requireCommercialWriteAccess, requireScopedFieldWriteAccess } from "./commercial-access";
 import { checklistForDisciplines, SURVEY_POINT_TYPES, type SurveyDiscipline } from "./site-survey";
 
 export type SurveyAssignmentSummary = {
