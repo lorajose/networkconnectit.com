@@ -93,3 +93,15 @@ export function parseSurveyDisciplines(values: string[]): SurveyDiscipline[] {
   if (!parsed.length) throw new Error("Select at least one survey discipline");
   return parsed;
 }
+
+
+export const SURVEY_POINT_TYPES: Record<SurveyDiscipline, readonly string[]> = {
+  CCTV: ["CAMERA","MONITOR","NVR_DVR","SWITCH","RACK","JUNCTION_BOX"],
+  NETWORK: ["ACCESS_POINT","DATA_DROP","SWITCH","ROUTER_FIREWALL","RACK","MDF_IDF"],
+  ACCESS_CONTROL: ["DOOR","READER","LOCK","REX","DOOR_CONTACT","CONTROLLER","POWER_SUPPLY","INTERCOM"],
+  FIRE_ALARM: ["SMOKE_DETECTOR","HEAT_DETECTOR","PULL_STATION","HORN_STROBE","STROBE","SPEAKER_STROBE","FACP","ANNUNCIATOR","MODULE"],
+  AUDIO_AV: ["SPEAKER","DISPLAY","MICROPHONE","AMPLIFIER","AV_RACK","CONTROL_PANEL"],
+  RADIO_WIRELESS: ["RADIO","ANTENNA","POE_INJECTOR","SD_WAN","GROUNDING","WAN_HANDOFF"],
+};
+
+export function pointTypesForDiscipline(discipline:SurveyDiscipline){return SURVEY_POINT_TYPES[discipline];}
