@@ -9,6 +9,7 @@ import { surveyPhotoStorageKey, validateSurveyPhoto } from "@/lib/contractor-os/
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
 import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
+import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -124,4 +125,11 @@ export async function linkSurveyPhotoToAreaAction(formData:FormData){
  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  await linkSurveyPhotoToArea({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),areaId:value(formData,"areaId"),assetId:value(formData,"assetId"),viewLabel:value(formData,"viewLabel")||null,userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function handoffSurveyToDesignStudioAction(formData:FormData){
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const result=await handoffSurveyToDesignStudio({id:user.id,role:user.role,organizationId:user.organizationId,groups:[]},{organizationId,sessionId:value(formData,"sessionId"),draftId:value(formData,"draftId"),userId:user.id});
+ redirect(`/design-studio/${result.designProjectId}?organizationId=${encodeURIComponent(organizationId)}`);
 }
