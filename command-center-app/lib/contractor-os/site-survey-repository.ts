@@ -128,6 +128,7 @@ export type SurveySessionWorkspace = {
   areas: Array<{ id:string; name:string; areaType:string; levelOrder:number }>;
   points: Array<{ id:string; areaId:string|null; assetId:string|null; discipline:string; pointType:string; lifecycle:string; label:string|null; normalizedX:Prisma.Decimal|null; normalizedY:Prisma.Decimal|null; notes:string|null; createdAt:Date }>;
   assets: Array<{ id:string; areaId:string|null; kind:string; originalName:string; mimeType:string; storageKey:string; byteSize:bigint; capturedAt:Date|null; createdAt:Date }>;
+  measurements: Array<{id:string;areaId:string|null;floorPlanDraftId:string|null;measurementType:string;label:string;value:Prisma.Decimal;unit:string;startX:Prisma.Decimal|null;startY:Prisma.Decimal|null;endX:Prisma.Decimal|null;endY:Prisma.Decimal|null;notes:string|null;createdAt:Date}>;
 };
 
 export async function getSurveySessionWorkspace(actor: CommercialActor, sessionId:string, requestedOrganizationId?:string):Promise<SurveySessionWorkspace|null>{
@@ -142,13 +143,14 @@ export async function getSurveySessionWorkspace(actor: CommercialActor, sessionI
     WHERE ss.id=${sessionId} AND ss.organizationId=${scope.organizationId} LIMIT 1
   `);
   const row=rows[0]; if(!row)return null;
-  const [responses,areas,points,assets]=await Promise.all([
+  const [responses,areas,points,assets,measurements]=await Promise.all([
     prisma.$queryRaw<SurveySessionWorkspace["responses"]>(Prisma.sql`SELECT itemKey,status,valueJson,notes,completedAt FROM SurveyChecklistResponse WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId}`),
     prisma.$queryRaw<SurveySessionWorkspace["areas"]>(Prisma.sql`SELECT id,name,areaType,levelOrder FROM SurveyArea WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY levelOrder,createdAt`),
     prisma.$queryRaw<SurveySessionWorkspace["points"]>(Prisma.sql`SELECT id,areaId,assetId,discipline,pointType,lifecycle,label,normalizedX,normalizedY,notes,createdAt FROM SurveyPoint WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt`),
     prisma.$queryRaw<SurveySessionWorkspace["assets"]>(Prisma.sql`SELECT id,areaId,kind,originalName,mimeType,storageKey,byteSize,capturedAt,createdAt FROM SurveyAsset WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt DESC`),
+    prisma.$queryRaw<SurveySessionWorkspace["measurements"]>(Prisma.sql`SELECT id,areaId,floorPlanDraftId,measurementType,label,value,unit,startX,startY,endX,endY,notes,createdAt FROM SurveyMeasurement WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt DESC`),
   ]);
-  return {session:{id:row.id,organizationId:row.organizationId,assignmentId:row.assignmentId,technicianUserId:row.technicianUserId,status:row.status,checklistSnapshotJson:row.checklistSnapshotJson,startedAt:row.startedAt,completedAt:row.completedAt,notes:row.notes},assignment:{id:row.assignmentId,title:row.title,disciplinesJson:row.disciplinesJson,projectInstallationId:row.projectInstallationId,siteId:row.siteId,projectName:row.projectName,siteName:row.siteName},responses,areas,points,assets};
+  return {session:{id:row.id,organizationId:row.organizationId,assignmentId:row.assignmentId,technicianUserId:row.technicianUserId,status:row.status,checklistSnapshotJson:row.checklistSnapshotJson,startedAt:row.startedAt,completedAt:row.completedAt,notes:row.notes},assignment:{id:row.assignmentId,title:row.title,disciplinesJson:row.disciplinesJson,projectInstallationId:row.projectInstallationId,siteId:row.siteId,projectName:row.projectName,siteName:row.siteName},responses,areas,points,assets,measurements};
 }
 
 export async function updateSurveyChecklistResponse(actor:CommercialActor,input:{organizationId:string;sessionId:string;itemKey:string;status:"PENDING"|"PASS"|"FAIL"|"NA";notes?:string|null;userId:string}){
@@ -258,4 +260,14 @@ export async function updateSurveyPointFloorPosition(actor:CommercialActor,input
  for(const coordinate of [input.normalizedX,input.normalizedY])if(!Number.isFinite(coordinate)||coordinate<0||coordinate>1)throw new Error("Floor plan coordinates must be between 0 and 1");
  const result=await prisma.$executeRaw(Prisma.sql`UPDATE SurveyFloorPlanItem i JOIN SurveyFloorPlanDraft d ON d.id=i.floorPlanDraftId AND d.organizationId=i.organizationId SET i.normalizedX=${input.normalizedX},i.normalizedY=${input.normalizedY},i.updatedAt=NOW(3) WHERE i.id=${input.itemId} AND i.organizationId=${organizationId} AND i.floorPlanDraftId=${input.draftId} AND d.sessionId=${input.sessionId}`);
  if(!result)throw new Error("Floor plan point not found");
+}
+
+
+export async function createSurveyMeasurement(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;floorPlanDraftId?:string|null;measurementType?:"DISTANCE"|"HEIGHT"|"CEILING_HEIGHT"|"PATHWAY";label:string;value:number;unit:"FT"|"IN"|"M"|"CM";startX?:number|null;startY?:number|null;endX?:number|null;endY?:number|null;notes?:string|null;userId:string}){
+ const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+ if(!Number.isFinite(input.value)||input.value<=0||input.value>100000)throw new Error("Measurement must be greater than zero");
+ const coords=[input.startX,input.startY,input.endX,input.endY];for(const n of coords)if(n!=null&&(!Number.isFinite(n)||n<0||n>1))throw new Error("Measurement coordinates must be between 0 and 1");
+ const id=randomUUID();
+ const result=await prisma.$executeRaw(Prisma.sql`INSERT INTO SurveyMeasurement (id,organizationId,sessionId,areaId,floorPlanDraftId,measurementType,label,value,unit,startX,startY,endX,endY,notes,createdByUserId,createdAt,updatedAt) SELECT ${id},${organizationId},ss.id,${input.areaId??null},${input.floorPlanDraftId??null},${input.measurementType??"DISTANCE"},${clean(input.label,"Measurement label")},${input.value},${input.unit},${input.startX??null},${input.startY??null},${input.endX??null},${input.endY??null},${input.notes?.trim()||null},${input.userId},NOW(3),NOW(3) FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}`);
+ if(!result)throw new Error("Survey session not found");return id;
 }
