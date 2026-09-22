@@ -147,3 +147,41 @@ Stop the deployment or rollback application code if any of these occurs:
 - health endpoint fails after deployment.
 
 Do not delete newly created additive tables merely to roll application code back.
+
+
+## P0/P1 V1 classification — 2026-09-22
+
+This classification controls Gate 1 only; it does not mark unfinished tickets Done.
+
+### Release blockers / must pass Gate 1
+- NCI-012 — commercial proposal flow: core proposal path must pass QA; PDF/analytics gaps remain tracked.
+- NCI-015 — closeout: the implemented V1 closeout path must pass QA; professional immutable PDF remains separately tracked by NCI-030.
+- NCI-021 / NCI-031 — client-safe report/export policy and runtime validation.
+- NCI-032 — tenant/RBAC Capacity and direct-ID runtime validation.
+- NCI-033 — production environment, migrations, backup/rollback and runtime gate.
+- NCI-042 / NCI-043 / NCI-044 — estimating/takeoff/risk workspaces must pass their V1 QA paths.
+- NCI-050 / 051 / 052 / 055 / 058 / 061 / 062 / 063 / 065 — Design Studio V1 functional chain must pass production QA.
+- NCI-073 — production-target Design Studio QA.
+- NCI-074 — consolidated release gate; closes last.
+
+### Required V1 scope with documented partial implementation
+- NCI-009 — ProjectInstallation remains the canonical project core; validate lifecycle integration, do not create a second Project model.
+- NCI-013 — Site Survey V1 mobile/structured/photo/project-link flow is in scope. Offline-first and full survey-report output are not represented as complete.
+- NCI-014 — Work Order cable execution implemented for the Gate 1 field flow; deeper topology/cable-run enhancements remain open.
+
+### Post-V1 / does not block Gate 1 unless a dependency is discovered
+- NCI-004, NCI-006, NCI-008, NCI-011.
+- NCI-016, NCI-017 — Project Pass/subscriptions.
+- NCI-018 — founding-contractor beta occurs after a successful production gate.
+- NCI-023, NCI-024, NCI-026, NCI-027.
+- NCI-030 — immutable professional binary proposal/closeout PDF hardening.
+- NCI-034, NCI-036, NCI-037.
+- NCI-039, NCI-040, NCI-041 — acquisition/SEO work does not authorize production release.
+- NCI-047 — estimate-to-project commercial handoff remains open; PR-number collisions are not implementation evidence.
+- NCI-053, NCI-054, NCI-056, NCI-059, NCI-060, NCI-064 — retain QA/backlog status and test where exercised, but they do not independently block Gate 1.
+- NCI-066, NCI-070, NCI-072.
+
+### Already completed foundation
+NCI-001, NCI-002, NCI-003, NCI-007, NCI-010, NCI-019, NCI-020, NCI-022, NCI-035 (duplicate closure), NCI-038 and NCI-049 remain historical foundation evidence; Gate 1 does not reopen them unless a regression is found.
+
+Status rule: code evidence may move a ticket toward Code Review/QA, but no ticket is marked Done solely by this classification. Production-sensitive tickets require target-runtime evidence.
