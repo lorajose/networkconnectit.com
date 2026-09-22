@@ -255,3 +255,39 @@ CREATE TABLE ProjectPunchListItem (
   INDEX ProjectPunchListItem_work_order_idx (organizationId, workOrderId, status, createdAt),
   INDEX ProjectPunchListItem_assignee_idx (organizationId, assignedToUserId, status)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE ProjectFinalAcceptance (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  workOrderId VARCHAR(191) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  customerName VARCHAR(255) NULL,
+  customerEmail VARCHAR(255) NULL,
+  customerNote TEXT NULL,
+  acceptedAt DATETIME(3) NULL,
+  decisionRecordedByUserId VARCHAR(191) NULL,
+  createdByUserId VARCHAR(191) NOT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX ProjectFinalAcceptance_work_order_key (organizationId, workOrderId)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE ProjectCloseoutPackage (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  projectInstallationId VARCHAR(191) NOT NULL,
+  surveySessionId VARCHAR(191) NOT NULL,
+  workOrderId VARCHAR(191) NOT NULL,
+  finalAcceptanceId VARCHAR(191) NOT NULL,
+  packageVersion INT NOT NULL DEFAULT 1,
+  status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+  manifestJson LONGTEXT NOT NULL,
+  manifestHash CHAR(64) NOT NULL,
+  generatedByUserId VARCHAR(191) NOT NULL,
+  generatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX ProjectCloseoutPackage_work_order_version_key (organizationId, workOrderId, packageVersion),
+  INDEX ProjectCloseoutPackage_project_idx (organizationId, projectInstallationId, generatedAt)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
