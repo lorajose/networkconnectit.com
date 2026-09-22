@@ -24,3 +24,13 @@ export async function requireFieldSurveyWriteAccess(actor:CommercialActor & {id:
 export async function requireFieldWorkOrderWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string;workOrderId:string}){
  return requireAssignedTechnicianAccess(actor,{...input,scope:"WORK_ORDER"});
 }
+
+
+export async function requireSiteSurveyPageAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string}){
+ const organizationId=input.organizationId.trim();
+ if(actor.role==="SUPER_ADMIN"||actor.role==="INTERNAL_ADMIN")return {organizationId,isTechnician:false};
+ if(!actor.organizationId||actor.organizationId!==organizationId)throw new Error("Cross-tenant site survey access denied");
+ if(actor.role==="CLIENT_ADMIN")return {organizationId,isTechnician:false};
+ const access=await requireAssignedTechnicianAccess(actor,{organizationId,sessionId:input.sessionId,scope:"SURVEY"});
+ return {organizationId,isTechnician:access.isTechnician};
+}
