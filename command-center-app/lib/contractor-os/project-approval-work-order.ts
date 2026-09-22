@@ -35,3 +35,17 @@ export async function recordCustomerFloorPlanDecision(actor:CommercialActor,inpu
   return {status,workOrderId};
  });
 }
+
+
+export type FloorPlanApprovalSummary={id:string;revisionNumber:number;status:string;customerName:string|null;customerEmail:string|null;customerNote:string|null;approvedAt:Date|null;createdAt:Date};
+export async function listFloorPlanApprovals(actor:CommercialActor,input:{organizationId:string;sessionId:string}){
+ const organizationId=input.organizationId.trim();
+ if(actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER"){if(actor.organizationId!==organizationId)throw new Error("Cross-tenant approval read denied");}
+ return prisma.$queryRaw<FloorPlanApprovalSummary[]>(Prisma.sql`SELECT id,revisionNumber,status,customerName,customerEmail,customerNote,approvedAt,createdAt FROM SurveyFloorPlanApproval WHERE organizationId=${organizationId} AND sessionId=${input.sessionId} ORDER BY revisionNumber DESC`);
+}
+export type ProjectActivitySummary={id:string;eventType:string;actorName:string|null;actorType:string;summary:string;customerNote:string|null;occurredAt:Date};
+export async function listProjectActivity(actor:CommercialActor,input:{organizationId:string;sessionId:string}){
+ const organizationId=input.organizationId.trim();
+ if(actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER"){if(actor.organizationId!==organizationId)throw new Error("Cross-tenant activity read denied");}
+ return prisma.$queryRaw<ProjectActivitySummary[]>(Prisma.sql`SELECT id,eventType,actorName,actorType,summary,customerNote,occurredAt FROM ProjectActivityEvent WHERE organizationId=${organizationId} AND surveySessionId=${input.sessionId} ORDER BY occurredAt DESC`);
+}
