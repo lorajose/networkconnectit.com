@@ -7,14 +7,14 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { requireRoles } from "@/lib/auth";
+import { requireUser } from "@/lib/auth";
+import { requireSiteSurveyPageAccess } from "@/lib/contractor-os/field-technician-access";
 import { SurveyPhotoAnnotator } from "@/components/site-survey/survey-photo-annotator";
 import { SurveyFloorPlanBuilder } from "@/components/site-survey/survey-floor-plan-builder";
 import { SurveyRoomBuilder } from "@/components/site-survey/survey-room-builder";
 import { SurveyMeasurementTool } from "@/components/site-survey/survey-measurement-tool";
 import { getOrCreateSurveyFloorPlanDraft, getSurveySessionWorkspace } from "@/lib/contractor-os/site-survey-repository";
 import { SURVEY_DISCIPLINES, type SurveyChecklistSection, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
-import { routeAccess } from "@/lib/rbac";
 import { getFinalAcceptanceAndCloseout, getWorkOrderBySurvey, listFieldTechnicians, listFloorPlanApprovals, listPunchListItems, listProjectActivity, listWorkOrderEvidence, listWorkOrderItemEvents } from "@/lib/contractor-os/project-approval-work-order";
 import { completeSurveySessionAction, createSurveyAreaAction, createSurveyMeasurementAction, createSurveyPointAction, placeSurveyPointOnFloorPlanAction, saveSurveyFloorPlanGeometryAction, handoffSurveyToDesignStudioAction, linkSurveyPhotoToAreaAction, updateSurveyChecklistAction, updateSurveyPointFloorPositionAction, uploadSurveyPhotoAction, submitFloorPlanForCustomerApprovalAction, recordCustomerFloorPlanDecisionAction, updateWorkOrderItemAction, uploadWorkOrderEvidenceAction, assignWorkOrderTechnicianAction, closeWorkOrderAction, createPunchListItemAction, generateCloseoutPackageAction, recordFinalAcceptanceAction, resolvePunchListItemAction } from "../actions";
 
@@ -22,9 +22,11 @@ type Props={params:{sessionId:string};searchParams?:{organizationId?:string}};
 const labels:Record<string,string>={CCTV:"CCTV",NETWORK:"Network / Wi-Fi",ACCESS_CONTROL:"Access Control",FIRE_ALARM:"Fire Alarm",AUDIO_AV:"Audio / AV",RADIO_WIRELESS:"Radio / Wireless"};
 
 export default async function SurveySessionPage({params,searchParams}:Props){
-  const user=await requireRoles(routeAccess.siteSurveys);
-  const organizationId=user.organizationId??searchParams?.organizationId??"";
+  const user=await requireUser();
+  const organizationId=(user.role==="CLIENT_ADMIN"||user.role==="VIEWER")?(user.organizationId??""):(searchParams?.organizationId??user.organizationId??"");
   if(!organizationId)notFound();
+  const pageAccess=await requireSiteSurveyPageAccess({id:user.id,role:user.role,organizationId:user.organizationId},{organizationId,sessionId:params.sessionId});
+  const isFieldTechnician=pageAccess.isTechnician;
   const workspace=await getSurveySessionWorkspace({role:user.role,organizationId:user.organizationId},params.sessionId,organizationId);
   if(!workspace)notFound();
   const checklist=JSON.parse(workspace.session.checklistSnapshotJson) as SurveyChecklistSection[];
