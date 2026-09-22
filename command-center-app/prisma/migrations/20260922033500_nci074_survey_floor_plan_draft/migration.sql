@@ -35,3 +35,28 @@ CREATE TABLE SurveyFloorPlanItem (
   UNIQUE INDEX SurveyFloorPlanItem_draft_point_key (organizationId, floorPlanDraftId, surveyPointId),
   INDEX SurveyFloorPlanItem_point_idx (organizationId, surveyPointId)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE SurveyMeasurement (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  sessionId VARCHAR(191) NOT NULL,
+  areaId VARCHAR(191) NULL,
+  floorPlanDraftId VARCHAR(191) NULL,
+  measurementType VARCHAR(32) NOT NULL DEFAULT 'DISTANCE',
+  label VARCHAR(255) NOT NULL,
+  value DECIMAL(12,3) NOT NULL,
+  unit VARCHAR(16) NOT NULL DEFAULT 'FT',
+  startX DECIMAL(9,6) NULL,
+  startY DECIMAL(9,6) NULL,
+  endX DECIMAL(9,6) NULL,
+  endY DECIMAL(9,6) NULL,
+  notes TEXT NULL,
+  createdByUserId VARCHAR(191) NOT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX SurveyMeasurement_session_idx (organizationId, sessionId, createdAt),
+  INDEX SurveyMeasurement_area_idx (organizationId, areaId),
+  INDEX SurveyMeasurement_draft_idx (organizationId, floorPlanDraftId)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
