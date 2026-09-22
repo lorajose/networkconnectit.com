@@ -40,7 +40,12 @@ if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) {
 if ((process.env.NCI_RECOVER_NCI049 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI049 recovery flag must be disabled for release");
 if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") failures.push("NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release");
 
+const nodeEnv = (process.env.NODE_ENV ?? "").trim().toLowerCase();
+if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
+if ((process.env.DATABASE_ADMIN_URL ?? "").trim()) failures.push("DATABASE_ADMIN_URL must not be configured in production");
+
 const storage = (process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
+if (!["filesystem", "supabase"].includes(storage)) failures.push("BID_STORAGE_DRIVER must be filesystem or supabase");
 if (storage === "supabase") {
   for (const name of ["BID_SUPABASE_URL", "BID_SUPABASE_SERVICE_ROLE_KEY", "BID_SUPABASE_BUCKET"]) {
     if (!(process.env[name]?.trim())) failures.push(`${name} is required when BID_STORAGE_DRIVER=supabase`);
