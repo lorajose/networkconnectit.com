@@ -23,3 +23,10 @@ test("production gate validates private storage configuration", () => {
   assert.match(source, /BID_SUPABASE_SERVICE_ROLE_KEY/);
   assert.match(source, /BID_PRIVATE_STORAGE_ROOT/);
 });
+
+
+test("production gate fails closed on runtime-only hazards", () => {
+  assert.match(source, /NODE_ENV must be production/);
+  assert.match(source, /DATABASE_ADMIN_URL must not be configured in production/);
+  assert.match(source, /BID_STORAGE_DRIVER must be filesystem or supabase/);
+});
