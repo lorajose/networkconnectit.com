@@ -47,3 +47,14 @@ test("production gate requires a non-loopback database connection shape", () => 
   assert.match(source, /Production DATABASE_URL must not point to loopback/);
   assert.match(source, /Production database connection must be configured/);
 });
+
+
+test("GoDaddy production startup runs release gate before migrate deploy", () => {
+  const startup = readFileSync(resolve(process.cwd(), "scripts/start-godaddy.mjs"), "utf8");
+  const gateIndex = startup.indexOf("production-release-gate.mjs");
+  const migrateIndex = startup.indexOf('"migrate", "deploy"');
+  assert.ok(gateIndex >= 0, "production release gate must be wired into startup");
+  assert.ok(migrateIndex >= 0, "migrate deploy must remain in startup");
+  assert.ok(gateIndex < migrateIndex, "release gate must execute before migrations");
+  assert.match(startup, /process\.env\.NODE_ENV === "production"/);
+});
