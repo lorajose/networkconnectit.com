@@ -129,6 +129,7 @@ export type SurveySessionWorkspace = {
   points: Array<{ id:string; areaId:string|null; assetId:string|null; discipline:string; pointType:string; lifecycle:string; label:string|null; normalizedX:Prisma.Decimal|null; normalizedY:Prisma.Decimal|null; notes:string|null; createdAt:Date }>;
   assets: Array<{ id:string; areaId:string|null; kind:string; originalName:string; mimeType:string; storageKey:string; byteSize:bigint; capturedAt:Date|null; createdAt:Date }>;
   measurements: Array<{id:string;areaId:string|null;floorPlanDraftId:string|null;measurementType:string;label:string;value:Prisma.Decimal;unit:string;startX:Prisma.Decimal|null;startY:Prisma.Decimal|null;endX:Prisma.Decimal|null;endY:Prisma.Decimal|null;notes:string|null;createdAt:Date}>;
+  photoAreaLinks:Array<{id:string;areaId:string;assetId:string;viewLabel:string|null;sortOrder:number}>;
 };
 
 export async function getSurveySessionWorkspace(actor: CommercialActor, sessionId:string, requestedOrganizationId?:string):Promise<SurveySessionWorkspace|null>{
@@ -143,14 +144,15 @@ export async function getSurveySessionWorkspace(actor: CommercialActor, sessionI
     WHERE ss.id=${sessionId} AND ss.organizationId=${scope.organizationId} LIMIT 1
   `);
   const row=rows[0]; if(!row)return null;
-  const [responses,areas,points,assets,measurements]=await Promise.all([
+  const [responses,areas,points,assets,measurements,photoAreaLinks]=await Promise.all([
     prisma.$queryRaw<SurveySessionWorkspace["responses"]>(Prisma.sql`SELECT itemKey,status,valueJson,notes,completedAt FROM SurveyChecklistResponse WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId}`),
     prisma.$queryRaw<SurveySessionWorkspace["areas"]>(Prisma.sql`SELECT id,name,areaType,levelOrder FROM SurveyArea WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY levelOrder,createdAt`),
     prisma.$queryRaw<SurveySessionWorkspace["points"]>(Prisma.sql`SELECT id,areaId,assetId,discipline,pointType,lifecycle,label,normalizedX,normalizedY,notes,createdAt FROM SurveyPoint WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt`),
     prisma.$queryRaw<SurveySessionWorkspace["assets"]>(Prisma.sql`SELECT id,areaId,kind,originalName,mimeType,storageKey,byteSize,capturedAt,createdAt FROM SurveyAsset WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt DESC`),
     prisma.$queryRaw<SurveySessionWorkspace["measurements"]>(Prisma.sql`SELECT id,areaId,floorPlanDraftId,measurementType,label,value,unit,startX,startY,endX,endY,notes,createdAt FROM SurveyMeasurement WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt DESC`),
+    prisma.$queryRaw<SurveySessionWorkspace["photoAreaLinks"]>(Prisma.sql`SELECT id,areaId,assetId,viewLabel,sortOrder FROM SurveyPhotoAreaLink WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY areaId,sortOrder,createdAt`),
   ]);
-  return {session:{id:row.id,organizationId:row.organizationId,assignmentId:row.assignmentId,technicianUserId:row.technicianUserId,status:row.status,checklistSnapshotJson:row.checklistSnapshotJson,startedAt:row.startedAt,completedAt:row.completedAt,notes:row.notes},assignment:{id:row.assignmentId,title:row.title,disciplinesJson:row.disciplinesJson,projectInstallationId:row.projectInstallationId,siteId:row.siteId,projectName:row.projectName,siteName:row.siteName},responses,areas,points,assets,measurements};
+  return {session:{id:row.id,organizationId:row.organizationId,assignmentId:row.assignmentId,technicianUserId:row.technicianUserId,status:row.status,checklistSnapshotJson:row.checklistSnapshotJson,startedAt:row.startedAt,completedAt:row.completedAt,notes:row.notes},assignment:{id:row.assignmentId,title:row.title,disciplinesJson:row.disciplinesJson,projectInstallationId:row.projectInstallationId,siteId:row.siteId,projectName:row.projectName,siteName:row.siteName},responses,areas,points,assets,measurements,photoAreaLinks};
 }
 
 export async function updateSurveyChecklistResponse(actor:CommercialActor,input:{organizationId:string;sessionId:string;itemKey:string;status:"PENDING"|"PASS"|"FAIL"|"NA";notes?:string|null;userId:string}){
@@ -270,4 +272,12 @@ export async function createSurveyMeasurement(actor:CommercialActor,input:{organ
  const id=randomUUID();
  const result=await prisma.$executeRaw(Prisma.sql`INSERT INTO SurveyMeasurement (id,organizationId,sessionId,areaId,floorPlanDraftId,measurementType,label,value,unit,startX,startY,endX,endY,notes,createdByUserId,createdAt,updatedAt) SELECT ${id},${organizationId},ss.id,${input.areaId??null},${input.floorPlanDraftId??null},${input.measurementType??"DISTANCE"},${clean(input.label,"Measurement label")},${input.value},${input.unit},${input.startX??null},${input.startY??null},${input.endX??null},${input.endY??null},${input.notes?.trim()||null},${input.userId},NOW(3),NOW(3) FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}`);
  if(!result)throw new Error("Survey session not found");return id;
+}
+
+
+export async function linkSurveyPhotoToArea(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId:string;assetId:string;viewLabel?:string|null;userId:string}){
+ const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+ const rows=await prisma.$queryRaw<Array<{ok:number}>>(Prisma.sql`SELECT 1 AS ok FROM SurveyArea a JOIN SurveyAsset s ON s.sessionId=a.sessionId AND s.organizationId=a.organizationId WHERE a.id=${input.areaId} AND s.id=${input.assetId} AND a.sessionId=${input.sessionId} AND a.organizationId=${organizationId} LIMIT 1`);
+ if(!rows[0])throw new Error("Photo and area must belong to the same survey session");
+ await prisma.$executeRaw(Prisma.sql`INSERT INTO SurveyPhotoAreaLink (id,organizationId,sessionId,areaId,assetId,viewLabel,sortOrder,createdByUserId,createdAt) VALUES (${randomUUID()},${organizationId},${input.sessionId},${input.areaId},${input.assetId},${input.viewLabel?.trim()||null},(SELECT COALESCE(MAX(x.sortOrder),-1)+1 FROM SurveyPhotoAreaLink x WHERE x.organizationId=${organizationId} AND x.areaId=${input.areaId}),${input.userId},NOW(3)) ON DUPLICATE KEY UPDATE viewLabel=VALUES(viewLabel)`);
 }
