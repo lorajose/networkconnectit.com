@@ -31,8 +31,9 @@ const namespacedBootstrap = (process.env.NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "")
 if (namespacedBootstrap && !["false", "0", "no", "off", "disabled"].includes(namespacedBootstrap.toLowerCase())) {
   failures.push("NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
 }
-if ((process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").toLowerCase() !== "false") {
-  failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be false");
+const legacyBootstrap = (process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").trim().toLowerCase();
+if (legacyBootstrap && !["false", "0", "no", "off", "disabled"].includes(legacyBootstrap)) {
+  failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
 }
 if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) {
   failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed");
