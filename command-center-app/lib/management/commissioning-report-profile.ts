@@ -1,11 +1,17 @@
-import type { CommissioningReportSnapshot } from "./commissioning-report";
+export type CommissioningReportProfileInput = {
+  project: { internalProjectManager: string | null; leadTechnician: string | null; salesOwner: string | null; remoteAccessMethod: string | null } | null;
+  networkSegments: Array<{ subnetCidr: string; gatewayIp: string | null; notes: string | null; [key: string]: unknown }>;
+  accessReferences: Array<{ vaultPath: string | null; remoteAccessMethod: string | null; notes: string | null; [key: string]: unknown }>;
+  deviceLinks: Array<{ sourcePort: string | null; targetPort: string | null; notes: string | null; [key: string]: unknown }>;
+  [key: string]: unknown;
+};
 
 export type CommissioningReportProfile =
   | "INTERNAL_OPERATIONS"
   | "CONTRACTOR_CLOSEOUT"
   | "CUSTOMER_COPY";
 
-type ProfiledCommissioningReport = CommissioningReportSnapshot & {
+type ProfiledCommissioningReport<T extends CommissioningReportProfileInput> = T & {
   reportProfile: CommissioningReportProfile;
 };
 
@@ -20,7 +26,7 @@ export function getCommissioningReportProfile(
 export function applyCommissioningReportProfile(
   report: CommissioningReportSnapshot,
   profile: CommissioningReportProfile
-): ProfiledCommissioningReport {
+): ProfiledCommissioningReport<T> {
   if (profile === "INTERNAL_OPERATIONS") {
     return { ...report, reportProfile: profile };
   }
