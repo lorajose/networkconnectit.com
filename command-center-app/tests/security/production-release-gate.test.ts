@@ -14,8 +14,8 @@ test("production gate fails closed on bootstrap and recovery hazards", () => {
   assert.match(source, /NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP/);
   assert.match(source, /ENABLE_FIRST_ADMIN_BOOTSTRAP must be false/);
   assert.match(source, /FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty\/removed/);
-  assert.match(source, /NCI_RECOVER_NCI049/);
-  assert.match(source, /NCI_RECOVER_ALERT_SCHEMA/);
+  assert.match(source, /NCI_RECOVER_NCI049 recovery flag must be disabled for release/);
+  assert.match(source, /NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release/);
 });
 
 test("production gate validates private storage configuration", () => {
