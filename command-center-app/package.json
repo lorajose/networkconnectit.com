@@ -19,7 +19,8 @@
     "prisma:migrate:deploy": "node scripts/run-prisma.mjs migrate deploy",
     "prisma:studio": "node scripts/run-prisma.mjs studio",
     "prisma:seed": "node prisma/seed.cjs",
-    "bootstrap:local": "node scripts/bootstrap-local.mjs"
+    "bootstrap:local": "node scripts/bootstrap-local.mjs",
+    "release:gate": "node scripts/production-release-gate.mjs"
   },
   "prisma": {
     "seed": "node prisma/seed.cjs"
