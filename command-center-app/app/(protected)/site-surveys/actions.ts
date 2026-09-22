@@ -4,8 +4,10 @@ import { revalidatePath } from "next/cache";
 import { redirect } from "next/navigation";
 
 import { requireRoles } from "@/lib/auth";
-import { createSurveyAssignment, startSurveySession } from "@/lib/contractor-os/site-survey-repository";
-import { parseSurveyDisciplines } from "@/lib/contractor-os/site-survey";
+import { completeSurveySession, createSurveyArea, createSurveyAssignment, createSurveyPoint, persistSurveyAsset, startSurveySession, updateSurveyChecklistResponse } from "@/lib/contractor-os/site-survey-repository";
+import { surveyPhotoStorageKey, validateSurveyPhoto } from "@/lib/contractor-os/site-survey-photo";
+import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
+import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
 
 function value(formData: FormData, key: string) {
@@ -41,9 +43,43 @@ export async function startSurveySessionAction(formData: FormData) {
   const requestedOrganizationId = value(formData, "organizationId");
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
   if (!organizationId) throw new Error("Organization context is required");
-  await startSurveySession(
-    { role: user.role, organizationId: user.organizationId },
-    { organizationId, assignmentId: value(formData, "assignmentId"), technicianUserId: user.id },
-  );
-  revalidatePath("/site-surveys");
+  const sessionId = await startSurveySession(\n    { role: user.role, organizationId: user.organizationId },\n    { organizationId, assignmentId: value(formData, "assignmentId"), technicianUserId: user.id },\n  );\n  revalidatePath("/site-surveys");\n  redirect(`/site-surveys/${sessionId}?organizationId=${encodeURIComponent(organizationId)}`);
+}
+
+
+function surveyOrganization(user:{role:string;organizationId?:string|null},requested:string){return user.role==="CLIENT_ADMIN"?user.organizationId??"":requested;}
+
+export async function updateSurveyChecklistAction(formData:FormData){
+  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  const status=value(formData,"status");if(!["PENDING","PASS","FAIL","NA"].includes(status))throw new Error("Invalid checklist status");
+  await updateSurveyChecklistResponse({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),itemKey:value(formData,"itemKey"),status:status as "PENDING"|"PASS"|"FAIL"|"NA",notes:value(formData,"notes")||null,userId:user.id});
+  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+export async function createSurveyAreaAction(formData:FormData){
+  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await createSurveyArea({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),name:value(formData,"name"),areaType:value(formData,"areaType")||"AREA"});
+  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+export async function createSurveyPointAction(formData:FormData){
+  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  const discipline=value(formData,"discipline");if(!SURVEY_DISCIPLINES.includes(discipline as SurveyDiscipline))throw new Error("Invalid survey discipline");
+  const x=value(formData,"normalizedX"),y=value(formData,"normalizedY");
+  await createSurveyPoint({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),areaId:value(formData,"areaId")||null,assetId:value(formData,"assetId")||null,discipline:discipline as SurveyDiscipline,pointType:value(formData,"pointType"),lifecycle:value(formData,"lifecycle")==="EXISTING"?"EXISTING":"PROPOSED",label:value(formData,"label")||null,normalizedX:x?Number(x):null,normalizedY:y?Number(y):null,notes:value(formData,"notes")||null,userId:user.id});
+  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+export async function uploadSurveyPhotoAction(formData:FormData){
+  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  const sessionId=value(formData,"sessionId"),uploaded=formData.get("photo");if(!(uploaded instanceof File)||!uploaded.name)throw new Error("Take or select a survey photo");
+  const bytes=new Uint8Array(await uploaded.arrayBuffer());const asset=validateSurveyPhoto({fileName:uploaded.name,mimeType:uploaded.type,bytes});const storageKey=surveyPhotoStorageKey(organizationId,sessionId,asset.assetId,asset.extension);
+  await storePrivateDesignAsset(storageKey,bytes);
+  try{await persistSurveyAsset({role:user.role,organizationId:user.organizationId},{organizationId,sessionId,areaId:value(formData,"areaId")||null,assetId:asset.assetId,originalName:asset.originalName,mimeType:asset.mimeType,storageKey,byteSize:asset.byteSize,sha256:asset.sha256,userId:user.id});}catch(error){await deletePrivateDesignAsset(storageKey);throw error;}
+  revalidatePath(`/site-surveys/${sessionId}`);
+}
+
+export async function completeSurveySessionAction(formData:FormData){
+  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await completeSurveySession({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId")});revalidatePath("/site-surveys");redirect(`/site-surveys?organizationId=${encodeURIComponent(organizationId)}`);
 }
