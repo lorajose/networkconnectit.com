@@ -76,3 +76,20 @@ CREATE TABLE SurveyPhotoAreaLink (
   UNIQUE INDEX SurveyPhotoAreaLink_area_asset_key (organizationId, areaId, assetId),
   INDEX SurveyPhotoAreaLink_session_area_idx (organizationId, sessionId, areaId, sortOrder)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE SurveyDesignHandoff (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  sessionId VARCHAR(191) NOT NULL,
+  floorPlanDraftId VARCHAR(191) NOT NULL,
+  designProjectId VARCHAR(191) NOT NULL,
+  designFloorId VARCHAR(191) NOT NULL,
+  sourceSnapshotJson LONGTEXT NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'CREATED',
+  createdByUserId VARCHAR(191) NOT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX SurveyDesignHandoff_session_draft_key (organizationId, sessionId, floorPlanDraftId),
+  INDEX SurveyDesignHandoff_design_idx (organizationId, designProjectId, designFloorId)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
