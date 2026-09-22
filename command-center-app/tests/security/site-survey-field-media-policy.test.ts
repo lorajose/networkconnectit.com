@@ -1,0 +1,4 @@
+import assert from "node:assert/strict";import { readFileSync } from "node:fs";import test from "node:test";import { resolve } from "node:path";
+const root=process.cwd();
+test("survey asset direct ID requires assigned technician access",()=>{const s=readFileSync(resolve(root,"app/(protected)/site-surveys/assets/[assetId]/route.ts"),"utf8");assert.match(s,/requireUser/);assert.match(s,/requireAssignedTechnicianAccess/);assert.match(s,/sessionId/);assert.match(s,/scope:"SURVEY"/);assert.match(s,/status:404/);});
+test("work order evidence direct ID requires assigned work order access",()=>{const s=readFileSync(resolve(root,"app/(protected)/site-surveys/evidence/[evidenceId]/route.ts"),"utf8");assert.match(s,/requireUser/);assert.match(s,/requireAssignedTechnicianAccess/);assert.match(s,/surveySessionId/);assert.match(s,/workOrderId/);assert.match(s,/scope:"WORK_ORDER"/);assert.match(s,/status:404/);});
