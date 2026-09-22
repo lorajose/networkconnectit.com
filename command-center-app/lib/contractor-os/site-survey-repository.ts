@@ -156,7 +156,7 @@ export async function getSurveySessionWorkspace(actor: CommercialActor, sessionI
 }
 
 export async function updateSurveyChecklistResponse(actor:CommercialActor,input:{organizationId:string;sessionId:string;itemKey:string;status:"PENDING"|"PASS"|"FAIL"|"NA";notes?:string|null;userId:string}){
-  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO SurveyChecklistResponse (id,organizationId,sessionId,itemKey,status,notes,completedByUserId,completedAt,updatedAt)
     SELECT ${randomUUID()},${organizationId},ss.id,${clean(input.itemKey,"Checklist item")},${input.status},${input.notes?.trim()||null},${input.userId},
@@ -167,7 +167,7 @@ export async function updateSurveyChecklistResponse(actor:CommercialActor,input:
 }
 
 export async function createSurveyArea(actor:CommercialActor,input:{organizationId:string;sessionId:string;name:string;areaType?:string}){
-  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
   const id=randomUUID();
   const result=await prisma.$executeRaw(Prisma.sql`
     INSERT INTO SurveyArea (id,organizationId,sessionId,areaType,name,levelOrder,createdAt,updatedAt)
@@ -180,7 +180,7 @@ export async function createSurveyArea(actor:CommercialActor,input:{organization
 }
 
 export async function createSurveyPoint(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;assetId?:string|null;discipline:SurveyDiscipline;pointType:string;lifecycle?:"EXISTING"|"PROPOSED";label?:string|null;normalizedX?:number|null;normalizedY?:number|null;notes?:string|null;userId:string}){
-  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
   if(!SURVEY_POINT_TYPES[input.discipline]?.includes(input.pointType))throw new Error("Point type is not valid for the selected discipline");
   for(const coordinate of [input.normalizedX,input.normalizedY])if(coordinate!=null&&(!Number.isFinite(coordinate)||coordinate<0||coordinate>1))throw new Error("Photo point coordinates must be between 0 and 1");
   if(input.areaId){const area=await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM SurveyArea WHERE id=${input.areaId} AND organizationId=${organizationId} AND sessionId=${input.sessionId} LIMIT 1`);if(!area[0])throw new Error("Survey area does not belong to this session");}
@@ -196,7 +196,7 @@ export async function createSurveyPoint(actor:CommercialActor,input:{organizatio
 }
 
 export async function persistSurveyAsset(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;assetId:string;originalName:string;mimeType:string;storageKey:string;byteSize:number;sha256:string;userId:string}){
-  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
   if(input.areaId){const area=await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM SurveyArea WHERE id=${input.areaId} AND sessionId=${input.sessionId} AND organizationId=${organizationId} LIMIT 1`);if(!area[0])throw new Error("Survey asset area must belong to the same survey session");}
   const result=await prisma.$executeRaw(Prisma.sql`
     INSERT INTO SurveyAsset (id,organizationId,sessionId,areaId,kind,originalName,mimeType,storageKey,byteSize,sha256,capturedAt,capturedByUserId,createdAt)
@@ -207,7 +207,7 @@ export async function persistSurveyAsset(actor:CommercialActor,input:{organizati
 }
 
 export async function completeSurveySession(actor:CommercialActor,input:{organizationId:string;sessionId:string}){
-  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
   const sessions=await prisma.$queryRaw<Array<{assignmentId:string;checklistSnapshotJson:string}>>(Prisma.sql`SELECT assignmentId,checklistSnapshotJson FROM SurveySession WHERE id=${input.sessionId} AND organizationId=${organizationId} LIMIT 1`);
   const session=sessions[0];if(!session)throw new Error("Survey session not found");
   const checklist=JSON.parse(session.checklistSnapshotJson) as Array<{items:Array<{key:string;required:boolean}>}>;
@@ -270,7 +270,7 @@ export async function updateSurveyPointFloorPosition(actor:CommercialActor,input
 
 
 export async function createSurveyMeasurement(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;floorPlanDraftId?:string|null;measurementType?:"DISTANCE"|"HEIGHT"|"CEILING_HEIGHT"|"PATHWAY";label:string;value:number;unit:"FT"|"IN"|"M"|"CM";startX?:number|null;startY?:number|null;endX?:number|null;endY?:number|null;notes?:string|null;userId:string}){
- const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+ const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
  if(!Number.isFinite(input.value)||input.value<=0||input.value>100000)throw new Error("Measurement must be greater than zero");
  const coords=[input.startX,input.startY,input.endX,input.endY];for(const n of coords)if(n!=null&&(!Number.isFinite(n)||n<0||n>1))throw new Error("Measurement coordinates must be between 0 and 1");
  if(input.areaId){const area=await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM SurveyArea WHERE id=${input.areaId} AND sessionId=${input.sessionId} AND organizationId=${organizationId} LIMIT 1`);if(!area[0])throw new Error("Measurement area must belong to the same survey session");}\n if(input.floorPlanDraftId){const draft=await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM SurveyFloorPlanDraft WHERE id=${input.floorPlanDraftId} AND sessionId=${input.sessionId} AND organizationId=${organizationId} LIMIT 1`);if(!draft[0])throw new Error("Measurement floor plan must belong to the same survey session");}\n const id=randomUUID();\n const result=await prisma.$executeRaw(Prisma.sql`INSERT INTO SurveyMeasurement (id,organizationId,sessionId,areaId,floorPlanDraftId,measurementType,label,value,unit,startX,startY,endX,endY,notes,createdByUserId,createdAt,updatedAt) SELECT ${id},${organizationId},ss.id,${input.areaId??null},${input.floorPlanDraftId??null},${input.measurementType??"DISTANCE"},${clean(input.label,"Measurement label")},${input.value},${input.unit},${input.startX??null},${input.startY??null},${input.endX??null},${input.endY??null},${input.notes?.trim()||null},${input.userId},NOW(3),NOW(3) FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}`);
@@ -279,7 +279,7 @@ export async function createSurveyMeasurement(actor:CommercialActor,input:{organ
 
 
 export async function linkSurveyPhotoToArea(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId:string;assetId:string;viewLabel?:string|null;userId:string}){
- const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+ const organizationId=requireScopedFieldWriteAccess(actor,input.organizationId.trim());
  const rows=await prisma.$queryRaw<Array<{ok:number}>>(Prisma.sql`SELECT 1 AS ok FROM SurveyArea a JOIN SurveyAsset s ON s.sessionId=a.sessionId AND s.organizationId=a.organizationId WHERE a.id=${input.areaId} AND s.id=${input.assetId} AND a.sessionId=${input.sessionId} AND a.organizationId=${organizationId} LIMIT 1`);
  if(!rows[0])throw new Error("Photo and area must belong to the same survey session");
  await prisma.$executeRaw(Prisma.sql`INSERT INTO SurveyPhotoAreaLink (id,organizationId,sessionId,areaId,assetId,viewLabel,sortOrder,createdByUserId,createdAt) VALUES (${randomUUID()},${organizationId},${input.sessionId},${input.areaId},${input.assetId},${input.viewLabel?.trim()||null},(SELECT COALESCE(MAX(x.sortOrder),-1)+1 FROM SurveyPhotoAreaLink x WHERE x.organizationId=${organizationId} AND x.areaId=${input.areaId}),${input.userId},NOW(3)) ON DUPLICATE KEY UPDATE viewLabel=VALUES(viewLabel)`);
