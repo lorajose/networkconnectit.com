@@ -11,7 +11,7 @@ import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contrac
 import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
 import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
-import { assignWorkOrderTechnician, persistWorkOrderEvidence, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
+import { assignWorkOrderTechnician, createPunchListItem, persistWorkOrderEvidence, resolvePunchListItem, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -168,4 +168,14 @@ export async function assignWorkOrderTechnicianAction(formData:FormData){
  const user=await requireRoles(["SUPER_ADMIN","INTERNAL_ADMIN","CLIENT_ADMIN"]);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  await assignWorkOrderTechnician({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),technicianUserId:value(formData,"technicianUserId"),userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function createPunchListItemAction(formData:FormData){
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await createPunchListItem({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),workOrderItemId:value(formData,"workOrderItemId")||null,title:value(formData,"title"),description:value(formData,"description")||null,severity:value(formData,"severity")||"NORMAL",assignedToUserId:value(formData,"assignedToUserId")||null,userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+export async function resolvePunchListItemAction(formData:FormData){
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await resolvePunchListItem({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),punchListItemId:value(formData,"punchListItemId"),resolutionNote:value(formData,"resolutionNote")||null,userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
