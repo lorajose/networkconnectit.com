@@ -10,7 +10,7 @@ import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contrac
 import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
 import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
-import { recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval } from "@/lib/contractor-os/project-approval-work-order";
+import { recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -144,5 +144,12 @@ export async function submitFloorPlanForCustomerApprovalAction(formData:FormData
 export async function recordCustomerFloorPlanDecisionAction(formData:FormData){
  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  await recordCustomerFloorPlanDecision({role:user.role,organizationId:user.organizationId},{organizationId,approvalId:value(formData,"approvalId"),approved:value(formData,"decision")==="APPROVE",customerName:value(formData,"customerName"),customerNote:value(formData,"customerNote")||null,userId:user.id});
+ revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function updateWorkOrderItemAction(formData:FormData){
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await updateWorkOrderItem({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),itemId:value(formData,"itemId"),pulledInstalled:formData.get("pulledInstalled")==="on",terminated:formData.get("terminated")==="on",testStatus:value(formData,"testStatus")||null,technicianNote:value(formData,"technicianNote")||null,userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
