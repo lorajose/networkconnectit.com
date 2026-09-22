@@ -1,4 +1,5 @@
-const required = ["NEXTAUTH_URL", "NEXTAUTH_SECRET", "NEXT_PUBLIC_APP_BASE_PATH"];
+const required = ["NEXTAUTH_URL", "NEXTAUTH_SECRET"];
+const expectedBasePath = "/tools/command-center";
 const failures = [];
 const warnings = [];
 
@@ -14,6 +15,7 @@ if (secret && (secret.length < 32 || /replace-with|changeme|example|secret/i.tes
 
 const authUrl = process.env.NEXTAUTH_URL?.trim() ?? "";
 const basePath = process.env.NEXT_PUBLIC_APP_BASE_PATH?.trim() ?? "";
+if (basePath !== expectedBasePath) failures.push(`NEXT_PUBLIC_APP_BASE_PATH must be ${expectedBasePath} for Production Release Gate 1`);
 if (authUrl) {
   try {
     const url = new URL(authUrl);
@@ -25,6 +27,10 @@ if (authUrl) {
   }
 }
 
+const namespacedBootstrap = (process.env.NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").trim();
+if (namespacedBootstrap && !["false", "0", "no", "off", "disabled"].includes(namespacedBootstrap.toLowerCase())) {
+  failures.push("NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
+}
 if ((process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").toLowerCase() !== "false") {
   failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be false");
 }
