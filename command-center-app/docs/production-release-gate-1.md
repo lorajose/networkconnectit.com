@@ -80,3 +80,70 @@ After the single controlled deploy:
 - browser QA required by NCI-073
 
 Production Release Gate 1 is PASS only after the pre-deploy checks are evidenced and the post-deploy QA completes successfully.
+
+
+## P0/P1 V1 disposition
+
+This classification is for Release Gate 1 only. A ticket is not marked Done merely because related code exists.
+
+### Release blockers / must be evidenced before Gate 1 PASS
+
+- NCI-012 Proposal Builder: keep open until production-grade PDF/output and proposal analytics acceptance criteria are evidenced or explicitly deferred from V1.
+- NCI-021 / NCI-031 Client-safe commissioning exports: code and regression evidence exist; production role/tenant/export smoke remains required. Confirm the final policy satisfies the explicit allowlist requirement.
+- NCI-032 Tenant isolation/direct-ID policy: regression coverage exists; production role/tenant smoke remains required.
+- NCI-033 Production environment hardening: pre-deploy environment, migration, backup, recovery-flag, storage, and DB transport evidence remains required.
+- NCI-073 Design Studio QA: target-runtime browser/iPad/E2E checks remain required after the controlled deploy.
+- NCI-074 Production Release Gate 1: remains In Progress until every required pre-deploy and post-deploy item passes.
+
+### Partial implementation; do not close as Done
+
+- NCI-013 Site Survey: mobile/photo/structured/project linkage exists; offline/poor-connectivity behavior and survey report output remain open.
+- NCI-014 Cable execution: Work Order lifecycle provides substantial execution coverage, but deeper cable-specific acceptance remains open.
+- NCI-015 Closeout: package structure exists, but true branded immutable PDF, customer signature/auth flow, and As-Built output remain open.
+
+### Post-V1 / not a reason to silently expand this release
+
+- NCI-066 through NCI-072 remain post-V1 unless separately promoted through an explicit scope decision.
+- NCI-004 remains open; existing free-tool workflow mapping has not been completed.
+- NCI-047 remains open; historical PR numbering/title collisions are not implementation evidence for the current ticket.
+
+## Production QA evidence sheet
+
+Record PASS/FAIL plus evidence for every row. A failure blocks Gate 1 unless an explicit scope decision is documented.
+
+| Area | Check | Evidence required |
+| --- | --- | --- |
+| Release | Deployed commit equals frozen SHA | deployed git revision |
+| Runtime | health endpoint through the public base path | HTTP success + timestamp |
+| Auth | login, callback, logout under /tools/command-center | successful session flow |
+| Roles | SUPER_ADMIN, INTERNAL_ADMIN, CLIENT_ADMIN, VIEWER | expected allow/deny result per role |
+| Tenant security | direct-ID request across organizations | denial without data leakage |
+| Exports | Project commissioning customer copy | customer-safe output |
+| Exports | Site commissioning customer copy | customer-safe output |
+| Capacity | site/project capacity routes | authorized same-tenant access + cross-tenant denial |
+| Site Survey | assignment/session/photo/structured capture | successful field flow |
+| Floor plan | draft -> approval | immutable approved snapshot/revision evidence |
+| Work Order | create -> pulled/installed -> terminated -> test | PASS required for completion |
+| Evidence | private work-order photo evidence | authorized retrieval; unauthorized denial |
+| Punch | open issue blocks closeout; resolution clears it | gate behavior |
+| Acceptance | final acceptance | accepted record before closeout |
+| Closeout | generate package | manifest/version evidence |
+| Commercial | Estimate -> Proposal | successful linked flow |
+| Design | Design Studio -> Takeoff/BOM -> Estimate -> Proposal | successful linked flow |
+| NCI-073 | target browsers/iPad/performance/E2E | QA evidence attached to ticket |
+
+## Gate stop conditions
+
+Stop the deployment or rollback application code if any of these occurs:
+
+- release gate script fails;
+- unexpected migration state or pre-existing NCI-074 tables;
+- backup cannot be confirmed;
+- auth/base-path failure;
+- cross-tenant data exposure;
+- customer export exposes internal-only fields;
+- private evidence/storage becomes publicly accessible;
+- migrations fail;
+- health endpoint fails after deployment.
+
+Do not delete newly created additive tables merely to roll application code back.
