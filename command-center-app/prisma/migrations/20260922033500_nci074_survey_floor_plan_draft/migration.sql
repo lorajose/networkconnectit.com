@@ -233,3 +233,25 @@ CREATE TABLE FieldTechnicianProfile (
   UNIQUE INDEX FieldTechnicianProfile_user_key (organizationId, userId),
   INDEX FieldTechnicianProfile_status_idx (organizationId, status)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE ProjectPunchListItem (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  workOrderId VARCHAR(191) NOT NULL,
+  workOrderItemId VARCHAR(191) NULL,
+  title VARCHAR(255) NOT NULL,
+  description TEXT NULL,
+  severity VARCHAR(16) NOT NULL DEFAULT 'NORMAL',
+  status VARCHAR(32) NOT NULL DEFAULT 'OPEN',
+  assignedToUserId VARCHAR(191) NULL,
+  createdByUserId VARCHAR(191) NOT NULL,
+  resolvedByUserId VARCHAR(191) NULL,
+  resolvedAt DATETIME(3) NULL,
+  resolutionNote TEXT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX ProjectPunchListItem_work_order_idx (organizationId, workOrderId, status, createdAt),
+  INDEX ProjectPunchListItem_assignee_idx (organizationId, assignedToUserId, status)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
