@@ -93,3 +93,94 @@ CREATE TABLE SurveyDesignHandoff (
   UNIQUE INDEX SurveyDesignHandoff_session_draft_key (organizationId, sessionId, floorPlanDraftId),
   INDEX SurveyDesignHandoff_design_idx (organizationId, designProjectId, designFloorId)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE SurveyFloorPlanApproval (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  sessionId VARCHAR(191) NOT NULL,
+  floorPlanDraftId VARCHAR(191) NOT NULL,
+  revisionNumber INT NOT NULL,
+  snapshotJson LONGTEXT NOT NULL,
+  snapshotHash CHAR(64) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING_CUSTOMER',
+  customerName VARCHAR(255) NULL,
+  customerEmail VARCHAR(255) NULL,
+  customerNote TEXT NULL,
+  approvedAt DATETIME(3) NULL,
+  approvedByUserId VARCHAR(191) NULL,
+  createdByUserId VARCHAR(191) NOT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX SurveyFloorPlanApproval_revision_key (organizationId, sessionId, revisionNumber),
+  UNIQUE INDEX SurveyFloorPlanApproval_hash_key (organizationId, sessionId, snapshotHash),
+  INDEX SurveyFloorPlanApproval_status_idx (organizationId, status, updatedAt)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE ProjectWorkOrder (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  projectInstallationId VARCHAR(191) NOT NULL,
+  siteId VARCHAR(191) NOT NULL,
+  surveySessionId VARCHAR(191) NOT NULL,
+  floorPlanApprovalId VARCHAR(191) NOT NULL,
+  title VARCHAR(255) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'DRAFT',
+  assignedToUserId VARCHAR(191) NULL,
+  customerNote TEXT NULL,
+  createdByUserId VARCHAR(191) NOT NULL,
+  startedAt DATETIME(3) NULL,
+  completedAt DATETIME(3) NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX ProjectWorkOrder_approval_key (organizationId, floorPlanApprovalId),
+  INDEX ProjectWorkOrder_project_status_idx (organizationId, projectInstallationId, status),
+  INDEX ProjectWorkOrder_assignee_idx (organizationId, assignedToUserId, status)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE ProjectWorkOrderItem (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  workOrderId VARCHAR(191) NOT NULL,
+  sourceSurveyPointId VARCHAR(191) NULL,
+  discipline VARCHAR(32) NOT NULL,
+  itemType VARCHAR(64) NOT NULL,
+  label VARCHAR(255) NULL,
+  areaName VARCHAR(255) NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
+  pulledInstalled BOOLEAN NOT NULL DEFAULT FALSE,
+  terminated BOOLEAN NOT NULL DEFAULT FALSE,
+  testStatus VARCHAR(16) NULL,
+  photoEvidenceRequired BOOLEAN NOT NULL DEFAULT FALSE,
+  technicianNote TEXT NULL,
+  completedByUserId VARCHAR(191) NULL,
+  completedAt DATETIME(3) NULL,
+  sortOrder INT NOT NULL DEFAULT 0,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX ProjectWorkOrderItem_work_order_idx (organizationId, workOrderId, sortOrder),
+  INDEX ProjectWorkOrderItem_status_idx (organizationId, workOrderId, status)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE ProjectActivityEvent (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  projectInstallationId VARCHAR(191) NOT NULL,
+  surveySessionId VARCHAR(191) NULL,
+  workOrderId VARCHAR(191) NULL,
+  eventType VARCHAR(64) NOT NULL,
+  actorUserId VARCHAR(191) NULL,
+  actorName VARCHAR(255) NULL,
+  actorType VARCHAR(32) NOT NULL DEFAULT 'USER',
+  summary VARCHAR(512) NOT NULL,
+  detailsJson LONGTEXT NULL,
+  customerNote TEXT NULL,
+  occurredAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX ProjectActivityEvent_project_time_idx (organizationId, projectInstallationId, occurredAt),
+  INDEX ProjectActivityEvent_survey_time_idx (organizationId, surveySessionId, occurredAt),
+  INDEX ProjectActivityEvent_work_order_time_idx (organizationId, workOrderId, occurredAt)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
