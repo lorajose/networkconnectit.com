@@ -43,7 +43,12 @@ export async function startSurveySessionAction(formData: FormData) {
   const requestedOrganizationId = value(formData, "organizationId");
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
   if (!organizationId) throw new Error("Organization context is required");
-  const sessionId = await startSurveySession(\n    { role: user.role, organizationId: user.organizationId },\n    { organizationId, assignmentId: value(formData, "assignmentId"), technicianUserId: user.id },\n  );\n  revalidatePath("/site-surveys");\n  redirect(`/site-surveys/${sessionId}?organizationId=${encodeURIComponent(organizationId)}`);
+  const sessionId = await startSurveySession(
+    { role: user.role, organizationId: user.organizationId },
+    { organizationId, assignmentId: value(formData, "assignmentId"), technicianUserId: user.id },
+  );
+  revalidatePath("/site-surveys");
+  redirect(`/site-surveys/${sessionId}?organizationId=${encodeURIComponent(organizationId)}`);
 }
 
 
