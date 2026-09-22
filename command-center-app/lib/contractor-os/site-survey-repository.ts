@@ -119,3 +119,97 @@ export async function startSurveySession(
   });
   return id;
 }
+
+
+export type SurveySessionWorkspace = {
+  session: { id:string; organizationId:string; assignmentId:string; technicianUserId:string; status:string; checklistSnapshotJson:string; startedAt:Date; completedAt:Date|null; notes:string|null };
+  assignment: { id:string; title:string; disciplinesJson:string; projectInstallationId:string; siteId:string; projectName:string; siteName:string };
+  responses: Array<{ itemKey:string; status:string; valueJson:string|null; notes:string|null; completedAt:Date|null }>;
+  areas: Array<{ id:string; name:string; areaType:string; levelOrder:number }>;
+  points: Array<{ id:string; areaId:string|null; assetId:string|null; discipline:string; pointType:string; lifecycle:string; label:string|null; normalizedX:Prisma.Decimal|null; normalizedY:Prisma.Decimal|null; notes:string|null; createdAt:Date }>;
+  assets: Array<{ id:string; areaId:string|null; kind:string; originalName:string; mimeType:string; storageKey:string; byteSize:bigint; capturedAt:Date|null; createdAt:Date }>;
+};
+
+export async function getSurveySessionWorkspace(actor: CommercialActor, sessionId:string, requestedOrganizationId?:string):Promise<SurveySessionWorkspace|null>{
+  const scope=commercialReadScope(actor,requestedOrganizationId);
+  const rows=await prisma.$queryRaw<Array<SurveySessionWorkspace["session"] & SurveySessionWorkspace["assignment"]>>(Prisma.sql`
+    SELECT ss.id,ss.organizationId,ss.assignmentId,ss.technicianUserId,ss.status,ss.checklistSnapshotJson,ss.startedAt,ss.completedAt,ss.notes,
+      a.title,a.disciplinesJson,a.projectInstallationId,a.siteId,p.name AS projectName,s.name AS siteName
+    FROM SurveySession ss
+    JOIN SurveyAssignment a ON a.id=ss.assignmentId AND a.organizationId=ss.organizationId
+    JOIN ProjectInstallation p ON p.id=a.projectInstallationId AND p.organizationId=a.organizationId
+    JOIN Site s ON s.id=a.siteId AND s.organizationId=a.organizationId
+    WHERE ss.id=${sessionId} AND ss.organizationId=${scope.organizationId} LIMIT 1
+  `);
+  const row=rows[0]; if(!row)return null;
+  const [responses,areas,points,assets]=await Promise.all([
+    prisma.$queryRaw<SurveySessionWorkspace["responses"]>(Prisma.sql`SELECT itemKey,status,valueJson,notes,completedAt FROM SurveyChecklistResponse WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId}`),
+    prisma.$queryRaw<SurveySessionWorkspace["areas"]>(Prisma.sql`SELECT id,name,areaType,levelOrder FROM SurveyArea WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY levelOrder,createdAt`),
+    prisma.$queryRaw<SurveySessionWorkspace["points"]>(Prisma.sql`SELECT id,areaId,assetId,discipline,pointType,lifecycle,label,normalizedX,normalizedY,notes,createdAt FROM SurveyPoint WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt`),
+    prisma.$queryRaw<SurveySessionWorkspace["assets"]>(Prisma.sql`SELECT id,areaId,kind,originalName,mimeType,storageKey,byteSize,capturedAt,createdAt FROM SurveyAsset WHERE organizationId=${scope.organizationId} AND sessionId=${sessionId} ORDER BY createdAt DESC`),
+  ]);
+  return {session:{id:row.id,organizationId:row.organizationId,assignmentId:row.assignmentId,technicianUserId:row.technicianUserId,status:row.status,checklistSnapshotJson:row.checklistSnapshotJson,startedAt:row.startedAt,completedAt:row.completedAt,notes:row.notes},assignment:{id:row.assignmentId,title:row.title,disciplinesJson:row.disciplinesJson,projectInstallationId:row.projectInstallationId,siteId:row.siteId,projectName:row.projectName,siteName:row.siteName},responses,areas,points,assets};
+}
+
+export async function updateSurveyChecklistResponse(actor:CommercialActor,input:{organizationId:string;sessionId:string;itemKey:string;status:"PENDING"|"PASS"|"FAIL"|"NA";notes?:string|null;userId:string}){
+  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO SurveyChecklistResponse (id,organizationId,sessionId,itemKey,status,notes,completedByUserId,completedAt,updatedAt)
+    SELECT ${randomUUID()},${organizationId},ss.id,${clean(input.itemKey,"Checklist item")},${input.status},${input.notes?.trim()||null},${input.userId},
+      CASE WHEN ${input.status}='PENDING' THEN NULL ELSE NOW(3) END,NOW(3)
+    FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}
+    ON DUPLICATE KEY UPDATE status=VALUES(status),notes=VALUES(notes),completedByUserId=VALUES(completedByUserId),completedAt=VALUES(completedAt),updatedAt=NOW(3)
+  `);
+}
+
+export async function createSurveyArea(actor:CommercialActor,input:{organizationId:string;sessionId:string;name:string;areaType?:string}){
+  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const id=randomUUID();
+  const result=await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO SurveyArea (id,organizationId,sessionId,areaType,name,levelOrder,createdAt,updatedAt)
+    SELECT ${id},${organizationId},ss.id,${input.areaType?.trim()||"AREA"},${clean(input.name,"Area name")},
+      (SELECT COALESCE(MAX(a.levelOrder),-1)+1 FROM SurveyArea a WHERE a.organizationId=${organizationId} AND a.sessionId=${input.sessionId}),NOW(3),NOW(3)
+    FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}
+  `);
+  if(!result)throw new Error("Survey session not found");
+  return id;
+}
+
+export async function createSurveyPoint(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;assetId?:string|null;discipline:SurveyDiscipline;pointType:string;lifecycle?:"EXISTING"|"PROPOSED";label?:string|null;normalizedX?:number|null;normalizedY?:number|null;notes?:string|null;userId:string}){
+  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  for(const coordinate of [input.normalizedX,input.normalizedY])if(coordinate!=null&&(!Number.isFinite(coordinate)||coordinate<0||coordinate>1))throw new Error("Photo point coordinates must be between 0 and 1");
+  const id=randomUUID();
+  const result=await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO SurveyPoint (id,organizationId,sessionId,areaId,assetId,discipline,pointType,lifecycle,label,normalizedX,normalizedY,notes,createdByUserId,createdAt,updatedAt)
+    SELECT ${id},${organizationId},ss.id,${input.areaId??null},${input.assetId??null},${input.discipline},${clean(input.pointType,"Point type")},${input.lifecycle??"PROPOSED"},${input.label?.trim()||null},${input.normalizedX??null},${input.normalizedY??null},${input.notes?.trim()||null},${input.userId},NOW(3),NOW(3)
+    FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}
+  `);
+  if(!result)throw new Error("Survey session not found");
+  return id;
+}
+
+export async function persistSurveyAsset(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;assetId:string;originalName:string;mimeType:string;storageKey:string;byteSize:number;sha256:string;userId:string}){
+  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const result=await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO SurveyAsset (id,organizationId,sessionId,areaId,kind,originalName,mimeType,storageKey,byteSize,sha256,capturedAt,capturedByUserId,createdAt)
+    SELECT ${input.assetId},${organizationId},ss.id,${input.areaId??null},'PHOTO',${input.originalName},${input.mimeType},${input.storageKey},${input.byteSize},${input.sha256},NOW(3),${input.userId},NOW(3)
+    FROM SurveySession ss WHERE ss.id=${input.sessionId} AND ss.organizationId=${organizationId}
+  `);
+  if(!result)throw new Error("Survey session not found");
+}
+
+export async function completeSurveySession(actor:CommercialActor,input:{organizationId:string;sessionId:string}){
+  const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  const sessions=await prisma.$queryRaw<Array<{assignmentId:string;checklistSnapshotJson:string}>>(Prisma.sql`SELECT assignmentId,checklistSnapshotJson FROM SurveySession WHERE id=${input.sessionId} AND organizationId=${organizationId} LIMIT 1`);
+  const session=sessions[0];if(!session)throw new Error("Survey session not found");
+  const checklist=JSON.parse(session.checklistSnapshotJson) as Array<{items:Array<{key:string;required:boolean}>}>;
+  const required=checklist.flatMap(section=>section.items).filter(item=>item.required).map(item=>item.key);
+  const responses=await prisma.$queryRaw<Array<{itemKey:string;status:string}>>(Prisma.sql`SELECT itemKey,status FROM SurveyChecklistResponse WHERE organizationId=${organizationId} AND sessionId=${input.sessionId}`);
+  const done=new Set(responses.filter(r=>r.status!=="PENDING").map(r=>r.itemKey));
+  const missing=required.filter(key=>!done.has(key));
+  if(missing.length)throw new Error(`Complete required checklist items before finishing (${missing.length} remaining)`);
+  await prisma.$transaction([
+    prisma.$executeRaw(Prisma.sql`UPDATE SurveySession SET status='COMPLETE',completedAt=NOW(3),updatedAt=NOW(3) WHERE id=${input.sessionId} AND organizationId=${organizationId}`),
+    prisma.$executeRaw(Prisma.sql`UPDATE SurveyAssignment SET status='COMPLETE',updatedAt=NOW(3) WHERE id=${session.assignmentId} AND organizationId=${organizationId}`),
+  ]);
+}
