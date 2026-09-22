@@ -11,7 +11,7 @@ import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contrac
 import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
 import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
-import { assignWorkOrderTechnician, createPunchListItem, persistWorkOrderEvidence, resolvePunchListItem, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
+import { assignWorkOrderTechnician, closeWorkOrder, createPunchListItem, generateCloseoutPackageManifest, persistWorkOrderEvidence, recordFinalAcceptance, resolvePunchListItem, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -178,4 +178,18 @@ export async function createPunchListItemAction(formData:FormData){
 export async function resolvePunchListItemAction(formData:FormData){
  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  await resolvePunchListItem({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),punchListItemId:value(formData,"punchListItemId"),resolutionNote:value(formData,"resolutionNote")||null,userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function recordFinalAcceptanceAction(formData:FormData){
+ const user=await requireRoles(["SUPER_ADMIN","INTERNAL_ADMIN","CLIENT_ADMIN"]);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await recordFinalAcceptance({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),customerName:value(formData,"customerName"),customerEmail:value(formData,"customerEmail")||null,customerNote:value(formData,"customerNote")||null,accepted:value(formData,"decision")==="ACCEPTED",userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+export async function closeWorkOrderAction(formData:FormData){
+ const user=await requireRoles(["SUPER_ADMIN","INTERNAL_ADMIN","CLIENT_ADMIN"]);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await closeWorkOrder({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+export async function generateCloseoutPackageAction(formData:FormData){
+ const user=await requireRoles(["SUPER_ADMIN","INTERNAL_ADMIN","CLIENT_ADMIN"]);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await generateCloseoutPackageManifest({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
