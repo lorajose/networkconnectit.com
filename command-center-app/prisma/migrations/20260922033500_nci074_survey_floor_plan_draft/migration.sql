@@ -184,3 +184,38 @@ CREATE TABLE ProjectActivityEvent (
   INDEX ProjectActivityEvent_survey_time_idx (organizationId, surveySessionId, occurredAt),
   INDEX ProjectActivityEvent_work_order_time_idx (organizationId, workOrderId, occurredAt)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE ProjectWorkOrderItemEvent (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  workOrderId VARCHAR(191) NOT NULL,
+  workOrderItemId VARCHAR(191) NOT NULL,
+  stage VARCHAR(32) NOT NULL,
+  result VARCHAR(32) NULL,
+  actorUserId VARCHAR(191) NOT NULL,
+  note TEXT NULL,
+  occurredAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX ProjectWorkOrderItemEvent_item_time_idx (organizationId, workOrderItemId, occurredAt),
+  INDEX ProjectWorkOrderItemEvent_work_order_time_idx (organizationId, workOrderId, occurredAt)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+CREATE TABLE ProjectWorkOrderEvidence (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  workOrderId VARCHAR(191) NOT NULL,
+  workOrderItemId VARCHAR(191) NOT NULL,
+  evidenceType VARCHAR(32) NOT NULL DEFAULT 'PHOTO',
+  originalName VARCHAR(255) NOT NULL,
+  mimeType VARCHAR(128) NOT NULL,
+  byteSize BIGINT NOT NULL,
+  storageKey VARCHAR(1024) NOT NULL,
+  sha256 CHAR(64) NOT NULL,
+  caption VARCHAR(512) NULL,
+  uploadedByUserId VARCHAR(191) NOT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  INDEX ProjectWorkOrderEvidence_item_time_idx (organizationId, workOrderItemId, createdAt),
+  UNIQUE INDEX ProjectWorkOrderEvidence_storage_key (storageKey)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
