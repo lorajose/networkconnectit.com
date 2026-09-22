@@ -12,7 +12,7 @@ test("production gate pins the current path-based deployment", () => {
 
 test("production gate fails closed on bootstrap and recovery hazards", () => {
   assert.match(source, /NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP/);
-  assert.match(source, /ENABLE_FIRST_ADMIN_BOOTSTRAP must be false/);
+  assert.match(source, /ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present/);
   assert.match(source, /FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty\/removed/);
   assert.match(source, /NCI_RECOVER_NCI049 recovery flag must be disabled for release/);
   assert.match(source, /NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release/);
