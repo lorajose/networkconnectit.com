@@ -38,3 +38,12 @@ test("production gate validates database connection without exposing credentials
   assert.match(source, /Production database connection must be configured/);
   assert.match(source, /Production DATABASE_URL must not point to loopback/);
 });
+
+
+test("production gate requires a non-loopback database connection shape", () => {
+  assert.match(source, /DB_HOST/);
+  assert.match(source, /DB_NAME/);
+  assert.match(source, /DB_USER/);
+  assert.match(source, /Production DATABASE_URL must not point to loopback/);
+  assert.match(source, /Production database connection must be configured/);
+});
