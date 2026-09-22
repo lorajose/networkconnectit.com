@@ -3,7 +3,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { CommercialActor } from "./commercial-access";
 import { requireCommercialWriteAccess } from "./commercial-access";
-import { requireFieldWorkOrderWriteAccess } from "./field-technician-access";
+import { requireAssignedTechnicianAccess, requireFieldWorkOrderWriteAccess } from "./field-technician-access";
 
 function hash(value:string){return createHash("sha256").update(value).digest("hex");}
 export async function submitFloorPlanForCustomerApproval(actor:CommercialActor,input:{organizationId:string;sessionId:string;draftId:string;userId:string;customerName?:string|null;customerEmail?:string|null}){
@@ -53,8 +53,8 @@ export async function listProjectActivity(actor:CommercialActor,input:{organizat
 
 
 export type WorkOrderView={id:string;title:string;status:string;assignedToUserId:string|null;customerNote:string|null;createdAt:Date;items:Array<{id:string;discipline:string;itemType:string;label:string|null;areaName:string|null;status:string;pulledInstalled:boolean;terminated:boolean;testStatus:string|null;photoEvidenceRequired:boolean;technicianNote:string|null;completedByUserId:string|null;completedAt:Date|null}>};
-export async function getWorkOrderBySurvey(actor:CommercialActor,input:{organizationId:string;sessionId:string}):Promise<WorkOrderView|null>{
- const organizationId=input.organizationId.trim();if(actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER"){if(actor.organizationId!==organizationId)throw new Error("Cross-tenant work order read denied");}
+export async function getWorkOrderBySurvey(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string}):Promise<WorkOrderView|null>{
+ const organizationId=input.organizationId.trim();if(actor.role==="VIEWER")await requireAssignedTechnicianAccess(actor,{organizationId,sessionId:input.sessionId,scope:"SURVEY"});else if(actor.role==="CLIENT_ADMIN"&&actor.organizationId!==organizationId)throw new Error("Cross-tenant work order read denied");
  const orders=await prisma.$queryRaw<Array<Omit<WorkOrderView,"items">>>(Prisma.sql`SELECT id,title,status,assignedToUserId,customerNote,createdAt FROM ProjectWorkOrder WHERE organizationId=${organizationId} AND surveySessionId=${input.sessionId} ORDER BY createdAt DESC LIMIT 1`);const order=orders[0];if(!order)return null;
  const items=await prisma.$queryRaw<WorkOrderView["items"]>(Prisma.sql`SELECT id,discipline,itemType,label,areaName,status,pulledInstalled,terminated,testStatus,photoEvidenceRequired,technicianNote,completedByUserId,completedAt FROM ProjectWorkOrderItem WHERE organizationId=${organizationId} AND workOrderId=${order.id} ORDER BY sortOrder,id`);
  return {...order,items};
@@ -72,8 +72,8 @@ export async function updateWorkOrderItem(actor:CommercialActor & {id:string},in
 }
 
 
-export async function listWorkOrderItemEvents(actor:CommercialActor,input:{organizationId:string;workOrderId:string}){
- const organizationId=input.organizationId.trim();if(actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER"){if(actor.organizationId!==organizationId)throw new Error("Cross-tenant work order event read denied");}
+export async function listWorkOrderItemEvents(actor:CommercialActor & {id:string},input:{organizationId:string;workOrderId:string;sessionId:string}){
+ const organizationId=input.organizationId.trim();if(actor.role==="VIEWER")await requireAssignedTechnicianAccess(actor,{organizationId,sessionId:input.sessionId,workOrderId:input.workOrderId,scope:"WORK_ORDER"});else if(actor.role==="CLIENT_ADMIN"&&actor.organizationId!==organizationId)throw new Error("Cross-tenant work order event read denied");
  return prisma.$queryRaw<Array<{id:string;workOrderItemId:string;stage:string;result:string|null;actorUserId:string;note:string|null;occurredAt:Date}>>(Prisma.sql`SELECT id,workOrderItemId,stage,result,actorUserId,note,occurredAt FROM ProjectWorkOrderItemEvent WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId} ORDER BY occurredAt DESC`);
 }
 
@@ -82,7 +82,7 @@ export async function persistWorkOrderEvidence(actor:CommercialActor & {id:strin
  const organizationId=input.organizationId.trim();const workOrders=await prisma.$queryRaw<Array<{surveySessionId:string}>>(Prisma.sql`SELECT surveySessionId FROM ProjectWorkOrder WHERE id=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`);const workOrder=workOrders[0];if(!workOrder)throw new Error("Work order not found");await requireFieldWorkOrderWriteAccess(actor,{organizationId,sessionId:workOrder.surveySessionId,workOrderId:input.workOrderId});const rows=await prisma.$queryRaw<Array<{id:string;projectInstallationId:string;surveySessionId:string}>>(Prisma.sql`SELECT i.id,w.projectInstallationId,w.surveySessionId FROM ProjectWorkOrderItem i JOIN ProjectWorkOrder w ON w.id=i.workOrderId AND w.organizationId=i.organizationId WHERE i.id=${input.itemId} AND i.workOrderId=${input.workOrderId} AND i.organizationId=${organizationId} LIMIT 1`);const item=rows[0];if(!item)throw new Error("Work order item not found");
  await prisma.$transaction([prisma.$executeRaw(Prisma.sql`INSERT INTO ProjectWorkOrderEvidence (id,organizationId,workOrderId,workOrderItemId,evidenceType,originalName,mimeType,byteSize,storageKey,sha256,caption,uploadedByUserId,createdAt) VALUES (${input.evidenceId},${organizationId},${input.workOrderId},${input.itemId},'PHOTO',${input.originalName},${input.mimeType},${input.byteSize},${input.storageKey},${input.sha256},${input.caption?.trim()||null},${input.userId},NOW(3))`),prisma.$executeRaw(Prisma.sql`INSERT INTO ProjectActivityEvent (id,organizationId,projectInstallationId,surveySessionId,workOrderId,eventType,actorUserId,summary,detailsJson,occurredAt) VALUES (${randomUUID()},${organizationId},${item.projectInstallationId},${item.surveySessionId},${input.workOrderId},'WORK_ORDER_EVIDENCE_ADDED',${input.userId},'Photo evidence added to work order item',${JSON.stringify({itemId:input.itemId,evidenceId:input.evidenceId,sha256:input.sha256})},NOW(3))`)]);
 }
-export async function listWorkOrderEvidence(actor:CommercialActor,input:{organizationId:string;workOrderId:string}){const organizationId=input.organizationId.trim();if(actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER"){if(actor.organizationId!==organizationId)throw new Error("Cross-tenant evidence read denied");}return prisma.$queryRaw<Array<{id:string;workOrderItemId:string;originalName:string;caption:string|null;uploadedByUserId:string;createdAt:Date}>>(Prisma.sql`SELECT id,workOrderItemId,originalName,caption,uploadedByUserId,createdAt FROM ProjectWorkOrderEvidence WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId} ORDER BY createdAt DESC`);}
+export async function listWorkOrderEvidence(actor:CommercialActor & {id:string},input:{organizationId:string;workOrderId:string;sessionId:string}){const organizationId=input.organizationId.trim();if(actor.role==="VIEWER")await requireAssignedTechnicianAccess(actor,{organizationId,sessionId:input.sessionId,workOrderId:input.workOrderId,scope:"WORK_ORDER"});else if(actor.role==="CLIENT_ADMIN"&&actor.organizationId!==organizationId)throw new Error("Cross-tenant evidence read denied");return prisma.$queryRaw<Array<{id:string;workOrderItemId:string;originalName:string;caption:string|null;uploadedByUserId:string;createdAt:Date}>>(Prisma.sql`SELECT id,workOrderItemId,originalName,caption,uploadedByUserId,createdAt FROM ProjectWorkOrderEvidence WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId} ORDER BY createdAt DESC`);}
 
 
 export async function assignWorkOrderTechnician(actor:CommercialActor,input:{organizationId:string;workOrderId:string;technicianUserId:string;userId:string}){
