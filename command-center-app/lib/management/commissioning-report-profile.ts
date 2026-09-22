@@ -23,8 +23,8 @@ export function getCommissioningReportProfile(
     : "INTERNAL_OPERATIONS";
 }
 
-export function applyCommissioningReportProfile(
-  report: CommissioningReportSnapshot,
+export function applyCommissioningReportProfile<T extends CommissioningReportProfileInput>(
+  report: T,
   profile: CommissioningReportProfile
 ): ProfiledCommissioningReport<T> {
   if (profile === "INTERNAL_OPERATIONS") {
