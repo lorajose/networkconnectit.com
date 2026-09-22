@@ -44,6 +44,24 @@ const nodeEnv = (process.env.NODE_ENV ?? "").trim().toLowerCase();
 if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
 if ((process.env.DATABASE_ADMIN_URL ?? "").trim()) failures.push("DATABASE_ADMIN_URL must not be configured in production");
 
+const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
+const hasDiscreteDatabaseSecrets = ["DB_HOST", "DB_NAME", "DB_USER"].every(
+  (name) => (process.env[name] ?? "").trim().length > 0
+);
+if (!databaseUrl && !hasDiscreteDatabaseSecrets) {
+  failures.push("Production database connection must be configured with DATABASE_URL or DB_HOST/DB_NAME/DB_USER");
+}
+if (databaseUrl) {
+  try {
+    const db = new URL(databaseUrl);
+    if (["localhost", "127.0.0.1"].includes(db.hostname)) {
+      failures.push("Production DATABASE_URL must not point to loopback");
+    }
+  } catch {
+    failures.push("DATABASE_URL must be a valid connection URL when configured");
+  }
+}
+
 const storage = (process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
 if (!["filesystem", "supabase"].includes(storage)) failures.push("BID_STORAGE_DRIVER must be filesystem or supabase");
 if (storage === "supabase") {
