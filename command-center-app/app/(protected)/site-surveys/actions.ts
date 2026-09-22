@@ -11,7 +11,7 @@ import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contrac
 import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
 import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
-import { persistWorkOrderEvidence, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
+import { assignWorkOrderTechnician, persistWorkOrderEvidence, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -160,5 +160,12 @@ export async function uploadWorkOrderEvidenceAction(formData:FormData){
  const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  const file=formData.get("photo");if(!(file instanceof File))throw new Error("Evidence photo is required");const bytes=new Uint8Array(await file.arrayBuffer());const validated=validateWorkOrderEvidence({fileName:file.name,mimeType:file.type,bytes});const workOrderId=value(formData,"workOrderId"),itemId=value(formData,"itemId");const storageKey=workOrderEvidenceStorageKey(organizationId,workOrderId,itemId,validated.evidenceId,validated.extension);
  await storePrivateDesignAsset(storageKey,bytes,validated.mimeType);try{await persistWorkOrderEvidence({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId,itemId,evidenceId:validated.evidenceId,originalName:validated.originalName,mimeType:validated.mimeType,byteSize:validated.byteSize,storageKey,sha256:validated.sha256,caption:value(formData,"caption")||null,userId:user.id});}catch(error){await deletePrivateDesignAsset(storageKey).catch(()=>undefined);throw error;}
+ revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function assignWorkOrderTechnicianAction(formData:FormData){
+ const user=await requireRoles(["SUPER_ADMIN","INTERNAL_ADMIN","CLIENT_ADMIN"]);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await assignWorkOrderTechnician({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),technicianUserId:value(formData,"technicianUserId"),userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
