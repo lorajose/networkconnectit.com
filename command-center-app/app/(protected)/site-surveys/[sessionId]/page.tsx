@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Camera, CheckCircle2, Crosshair, DoorOpen, Grid3X3, Images, MapPin, Plus, RadioTower, Ruler } from "lucide-react";
+import { Camera, CheckCircle2, Crosshair, DoorOpen, Grid3X3, Images, MapPin, Plus, RadioTower, Ruler, Send } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -15,7 +15,7 @@ import { SurveyMeasurementTool } from "@/components/site-survey/survey-measureme
 import { getOrCreateSurveyFloorPlanDraft, getSurveySessionWorkspace } from "@/lib/contractor-os/site-survey-repository";
 import { SURVEY_DISCIPLINES, type SurveyChecklistSection, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
-import { completeSurveySessionAction, createSurveyAreaAction, createSurveyMeasurementAction, createSurveyPointAction, placeSurveyPointOnFloorPlanAction, saveSurveyFloorPlanGeometryAction, linkSurveyPhotoToAreaAction, updateSurveyChecklistAction, updateSurveyPointFloorPositionAction, uploadSurveyPhotoAction } from "../actions";
+import { completeSurveySessionAction, createSurveyAreaAction, createSurveyMeasurementAction, createSurveyPointAction, placeSurveyPointOnFloorPlanAction, saveSurveyFloorPlanGeometryAction, handoffSurveyToDesignStudioAction, linkSurveyPhotoToAreaAction, updateSurveyChecklistAction, updateSurveyPointFloorPositionAction, uploadSurveyPhotoAction } from "../actions";
 
 type Props={params:{sessionId:string};searchParams?:{organizationId?:string}};
 const labels:Record<string,string>={CCTV:"CCTV",NETWORK:"Network / Wi-Fi",ACCESS_CONTROL:"Access Control",FIRE_ALARM:"Fire Alarm",AUDIO_AV:"Audio / AV",RADIO_WIRELESS:"Radio / Wireless"};
@@ -57,6 +57,8 @@ export default async function SurveySessionPage({params,searchParams}:Props){
     <Card><CardHeader><Ruler className="h-5 w-5 text-primary"/><CardTitle>Field measurements</CardTitle><CardDescription>Capture real wall, ceiling and pathway dimensions and anchor them to the progressive floor plan.</CardDescription></CardHeader><CardContent><SurveyMeasurementTool organizationId={organizationId} sessionId={params.sessionId} draftId={floorPlanDraft.id} areas={workspace.areas.map(a=>({id:a.id,name:a.name}))} measurements={workspace.measurements.map(m=>({id:m.id,label:m.label,value:Number(m.value),unit:m.unit,measurementType:m.measurementType}))} action={createSurveyMeasurementAction}/></CardContent></Card>
 
     <Card><CardHeader><Grid3X3 className="h-5 w-5 text-primary"/><CardTitle>Progressive floor plan</CardTitle><CardDescription>Place the device points captured from site photos onto a field layout. Calibrate known dimensions before using it for design/takeoff.</CardDescription></CardHeader><CardContent><SurveyFloorPlanBuilder organizationId={organizationId} sessionId={params.sessionId} draft={{...floorPlanDraft,items:floorPlanDraft.items.map(i=>({...i,normalizedX:Number(i.normalizedX),normalizedY:Number(i.normalizedY)}))}} points={workspace.points.map(p=>({id:p.id,discipline:p.discipline,pointType:p.pointType,label:p.label}))} placeAction={placeSurveyPointOnFloorPlanAction} moveAction={updateSurveyPointFloorPositionAction} saveAction={saveSurveyFloorPlanGeometryAction}/></CardContent></Card>
+
+    <Card><CardHeader><Send className="h-5 w-5 text-primary"/><CardTitle>Send to Design Studio</CardTitle><CardDescription>Create a Design Studio floor from this confirmed field draft. Survey points become design devices while the original survey evidence remains traceable.</CardDescription></CardHeader><CardContent><form action={handoffSurveyToDesignStudioAction}><input type="hidden" name="organizationId" value={organizationId}/><input type="hidden" name="sessionId" value={params.sessionId}/><input type="hidden" name="draftId" value={floorPlanDraft.id}/><Button type="submit" variant="outline">Create Design Studio floor</Button></form></CardContent></Card>
 
     <Card className="border-primary/30"><CardHeader><CardTitle>Finish field survey</CardTitle><CardDescription>Required checklist items must be recorded before completion. Issues can be marked Fail and preserved for review.</CardDescription></CardHeader><CardContent><form action={completeSurveySessionAction}><input type="hidden" name="organizationId" value={organizationId}/><input type="hidden" name="sessionId" value={params.sessionId}/><Button type="submit">Complete survey</Button></form></CardContent></Card>
   </div>;
