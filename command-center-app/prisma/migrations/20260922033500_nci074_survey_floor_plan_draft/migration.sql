@@ -32,5 +32,6 @@ CREATE TABLE SurveyFloorPlanItem (
   updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
   PRIMARY KEY (id),
   INDEX SurveyFloorPlanItem_draft_idx (organizationId, floorPlanDraftId),
+  UNIQUE INDEX SurveyFloorPlanItem_draft_point_key (organizationId, floorPlanDraftId, surveyPointId),
   INDEX SurveyFloorPlanItem_point_idx (organizationId, surveyPointId)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
