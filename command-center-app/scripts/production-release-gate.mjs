@@ -37,8 +37,8 @@ if ((process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").toLowerCase() !== "false") 
 if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) {
   failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed");
 }
-if ((process.env.NCI_RECOVER_NCI049 ?? "").trim() === "1") warnings.push("NCI_RECOVER_NCI049 recovery flag is still enabled");
-if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") warnings.push("NCI_RECOVER_ALERT_SCHEMA recovery flag is still enabled");
+if ((process.env.NCI_RECOVER_NCI049 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI049 recovery flag must be disabled for release");
+if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") failures.push("NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release");
 
 const storage = (process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
 if (storage === "supabase") {
