@@ -1,4 +1,4 @@
-import type { CommissioningReportSnapshot } from "@/lib/management/commissioning-report";
+import type { CommissioningReportSnapshot } from "./commissioning-report";
 
 export type CommissioningReportProfile =
   | "INTERNAL_OPERATIONS"
