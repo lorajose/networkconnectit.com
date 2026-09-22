@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Camera, CheckCircle2, Crosshair, Grid3X3, MapPin, Plus, RadioTower } from "lucide-react";
+import { Camera, CheckCircle2, Crosshair, DoorOpen, Grid3X3, MapPin, Plus, RadioTower } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -10,6 +10,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { requireRoles } from "@/lib/auth";
 import { SurveyPhotoAnnotator } from "@/components/site-survey/survey-photo-annotator";
 import { SurveyFloorPlanBuilder } from "@/components/site-survey/survey-floor-plan-builder";
+import { SurveyRoomBuilder } from "@/components/site-survey/survey-room-builder";
 import { getOrCreateSurveyFloorPlanDraft, getSurveySessionWorkspace } from "@/lib/contractor-os/site-survey-repository";
 import { SURVEY_DISCIPLINES, type SurveyChecklistSection, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
@@ -47,6 +48,8 @@ export default async function SurveySessionPage({params,searchParams}:Props){
         <Card><CardHeader><RadioTower className="h-5 w-5 text-primary"/><CardTitle>Equipment / survey point</CardTitle><CardDescription>Record existing or proposed devices now; photo-coordinate annotation comes next.</CardDescription></CardHeader><CardContent><form action={createSurveyPointAction} className="space-y-3"><input type="hidden" name="organizationId" value={organizationId}/><input type="hidden" name="sessionId" value={params.sessionId}/><Select name="discipline" required>{SURVEY_DISCIPLINES.filter(d=>disciplines.includes(d)).map(d=><option key={d} value={d}>{labels[d]}</option>)}</Select><Select name="areaId"><option value="">No area</option>{workspace.areas.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</Select><Select name="assetId"><option value="">No photo</option>{workspace.assets.map(a=><option key={a.id} value={a.id}>{a.originalName}</option>)}</Select><Input name="pointType" placeholder="Camera, AP, switch, door, reader..." required/><Input name="label" placeholder="Label / ID (CAM-01)"/><Select name="lifecycle" defaultValue="PROPOSED"><option value="PROPOSED">Proposed</option><option value="EXISTING">Existing</option></Select><Textarea name="notes" placeholder="Mounting, pathway, power, condition..."/><Button type="submit" className="w-full">Add survey point</Button></form><p className="mt-3 text-xs text-muted-foreground">{workspace.points.length} point{workspace.points.length===1?"":"s"} recorded.</p></CardContent></Card>
       </div>
     </div>
+
+    <Card><CardHeader><DoorOpen className="h-5 w-5 text-primary"/><CardTitle>Rooms / floor layout</CardTitle><CardDescription>Build the field background progressively by outlining rooms and areas captured during the walkthrough.</CardDescription></CardHeader><CardContent><SurveyRoomBuilder organizationId={organizationId} sessionId={params.sessionId} draftId={floorPlanDraft.id} geometryJson={floorPlanDraft.geometryJson} action={saveSurveyFloorPlanGeometryAction}/></CardContent></Card>
 
     <Card><CardHeader><Grid3X3 className="h-5 w-5 text-primary"/><CardTitle>Progressive floor plan</CardTitle><CardDescription>Place the device points captured from site photos onto a field layout. Calibrate known dimensions before using it for design/takeoff.</CardDescription></CardHeader><CardContent><SurveyFloorPlanBuilder organizationId={organizationId} sessionId={params.sessionId} draft={{...floorPlanDraft,items:floorPlanDraft.items.map(i=>({...i,normalizedX:Number(i.normalizedX),normalizedY:Number(i.normalizedY)}))}} points={workspace.points.map(p=>({id:p.id,discipline:p.discipline,pointType:p.pointType,label:p.label}))} placeAction={placeSurveyPointOnFloorPlanAction} saveAction={saveSurveyFloorPlanGeometryAction}/></CardContent></Card>
 
