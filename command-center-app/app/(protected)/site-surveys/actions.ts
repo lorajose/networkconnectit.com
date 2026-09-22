@@ -103,27 +103,30 @@ export async function completeSurveySessionAction(formData:FormData){
 
 
 export async function placeSurveyPointOnFloorPlanAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  await placeSurveyPointOnFloorPlan({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),draftId:value(formData,"draftId"),surveyPointId:value(formData,"surveyPointId"),normalizedX:Number(value(formData,"normalizedX")),normalizedY:Number(value(formData,"normalizedY"))});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
 
 export async function saveSurveyFloorPlanGeometryAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  await saveSurveyFloorPlanGeometry({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),draftId:value(formData,"draftId"),geometryJson:value(formData,"geometryJson"),calibrationJson:value(formData,"calibrationJson")||null});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
 
 
 export async function updateSurveyPointFloorPositionAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  await updateSurveyPointFloorPosition({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),draftId:value(formData,"draftId"),itemId:value(formData,"itemId"),normalizedX:Number(value(formData,"normalizedX")),normalizedY:Number(value(formData,"normalizedY"))});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
 
 
 export async function createSurveyMeasurementAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
   await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  const unit=value(formData,"unit");if(!["FT","IN","M","CM"].includes(unit))throw new Error("Invalid measurement unit");
  const type=value(formData,"measurementType");if(!["DISTANCE","HEIGHT","CEILING_HEIGHT","PATHWAY"].includes(type))throw new Error("Invalid measurement type");
@@ -134,7 +137,7 @@ export async function createSurveyMeasurementAction(formData:FormData){
 
 
 export async function linkSurveyPhotoToAreaAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
   await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  await linkSurveyPhotoToArea({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),areaId:value(formData,"areaId"),assetId:value(formData,"assetId"),viewLabel:value(formData,"viewLabel")||null,userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
