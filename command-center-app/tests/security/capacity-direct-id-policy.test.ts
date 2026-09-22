@@ -52,3 +52,36 @@ test("work-order evidence direct-ID route requires authenticated exact assignmen
   assert.match(workOrderEvidenceRoute, /workOrderId/);
   assert.match(workOrderEvidenceRoute, /organizationId/);
 });
+
+
+const closeoutSource = readFileSync(
+  resolve(process.cwd(), "lib/contractor-os/closeout-report.ts"),
+  "utf8"
+);
+const bidSource = readFileSync(
+  resolve(process.cwd(), "lib/contractor-os/bid-repository.ts"),
+  "utf8"
+);
+const takeoffSource = readFileSync(
+  resolve(process.cwd(), "lib/contractor-os/takeoff-repository.ts"),
+  "utf8"
+);
+const designPolicySource = readFileSync(
+  resolve(process.cwd(), "lib/contractor-os/design-collaboration-policy.ts"),
+  "utf8"
+);
+
+test("closeout package direct-ID lookup is tenant-bound", () => {
+  assert.match(closeoutSource, /WHERE id=\$\{input\.packageId\} AND organizationId=\$\{organizationId\}/);
+  assert.match(closeoutSource, /Cross-tenant closeout report read denied/);
+});
+
+test("bid and takeoff direct-ID reads include organization scope", () => {
+  assert.match(bidSource, /FROM BidWorkspace WHERE id=\$\{bidId\} AND organizationId=\$\{scope\.organizationId\}/);
+  assert.match(takeoffSource, /FROM TakeoffWorkspace WHERE id=\$\{workspaceId\} AND organizationId=\$\{scope\.organizationId\}/);
+});
+
+test("design export policy enforces tenant boundary and EXPORT permission", () => {
+  assert.match(designPolicySource, /assertDesignOrganizationBoundary/);
+  assert.match(designPolicySource, /requireDesignPermission\(actor, organizationId, "EXPORT"/);
+});
