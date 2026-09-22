@@ -62,20 +62,23 @@ async function allowSurveyFieldAction(user:Awaited<ReturnType<typeof requireUser
 async function allowWorkOrderFieldAction(user:Awaited<ReturnType<typeof requireUser>>,organizationId:string,sessionId:string,workOrderId:string){await requireFieldWorkOrderWriteAccess({id:user.id,role:user.role,organizationId:user.organizationId},{organizationId,sessionId,workOrderId});}
 
 export async function updateSurveyChecklistAction(formData:FormData){
-  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
   const status=value(formData,"status");if(!["PENDING","PASS","FAIL","NA"].includes(status))throw new Error("Invalid checklist status");
   await updateSurveyChecklistResponse({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),itemKey:value(formData,"itemKey"),status:status as "PENDING"|"PASS"|"FAIL"|"NA",notes:value(formData,"notes")||null,userId:user.id});
   revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
 
 export async function createSurveyAreaAction(formData:FormData){
-  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
   await createSurveyArea({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),name:value(formData,"name"),areaType:value(formData,"areaType")||"AREA"});
   revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
 
 export async function createSurveyPointAction(formData:FormData){
-  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
   const discipline=value(formData,"discipline");if(!SURVEY_DISCIPLINES.includes(discipline as SurveyDiscipline))throw new Error("Invalid survey discipline");
   const x=value(formData,"normalizedX"),y=value(formData,"normalizedY");
   await createSurveyPoint({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),areaId:value(formData,"areaId")||null,assetId:value(formData,"assetId")||null,discipline:discipline as SurveyDiscipline,pointType:value(formData,"pointType"),lifecycle:value(formData,"lifecycle")==="EXISTING"?"EXISTING":"PROPOSED",label:value(formData,"label")||null,normalizedX:x?Number(x):null,normalizedY:y?Number(y):null,notes:value(formData,"notes")||null,userId:user.id});
@@ -83,7 +86,8 @@ export async function createSurveyPointAction(formData:FormData){
 }
 
 export async function uploadSurveyPhotoAction(formData:FormData){
-  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
   const sessionId=value(formData,"sessionId"),uploaded=formData.get("photo");if(!(uploaded instanceof File)||!uploaded.name)throw new Error("Take or select a survey photo");
   const bytes=new Uint8Array(await uploaded.arrayBuffer());const asset=validateSurveyPhoto({fileName:uploaded.name,mimeType:uploaded.type,bytes});const storageKey=surveyPhotoStorageKey(organizationId,sessionId,asset.assetId,asset.extension);
   await storePrivateDesignAsset(storageKey,bytes);
@@ -92,7 +96,8 @@ export async function uploadSurveyPhotoAction(formData:FormData){
 }
 
 export async function completeSurveySessionAction(formData:FormData){
-  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+  const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
   await completeSurveySession({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId")});revalidatePath("/site-surveys");redirect(`/site-surveys?organizationId=${encodeURIComponent(organizationId)}`);
 }
 
@@ -118,7 +123,8 @@ export async function updateSurveyPointFloorPositionAction(formData:FormData){
 
 
 export async function createSurveyMeasurementAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  const unit=value(formData,"unit");if(!["FT","IN","M","CM"].includes(unit))throw new Error("Invalid measurement unit");
  const type=value(formData,"measurementType");if(!["DISTANCE","HEIGHT","CEILING_HEIGHT","PATHWAY"].includes(type))throw new Error("Invalid measurement type");
  const number=(key:string)=>{const raw=value(formData,key);return raw===""?null:Number(raw)};
@@ -128,7 +134,8 @@ export async function createSurveyMeasurementAction(formData:FormData){
 
 
 export async function linkSurveyPhotoToAreaAction(formData:FormData){
- const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
+ const user=await requireRoles(routeAccess.siteSurveys);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  await linkSurveyPhotoToArea({role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),areaId:value(formData,"areaId"),assetId:value(formData,"assetId"),viewLabel:value(formData,"viewLabel")||null,userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
@@ -154,14 +161,16 @@ export async function recordCustomerFloorPlanDecisionAction(formData:FormData){
 
 
 export async function updateWorkOrderItemAction(formData:FormData){
- const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n await allowWorkOrderFieldAction(user,organizationId,value(formData,"sessionId"),value(formData,"workOrderId"));
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowWorkOrderFieldAction(user,organizationId,value(formData,"sessionId"),value(formData,"workOrderId"));
  await updateWorkOrderItem({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),itemId:value(formData,"itemId"),pulledInstalled:formData.get("pulledInstalled")==="on",terminated:formData.get("terminated")==="on",testStatus:value(formData,"testStatus")||null,technicianNote:value(formData,"technicianNote")||null,userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
 }
 
 
 export async function uploadWorkOrderEvidenceAction(formData:FormData){
- const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");\n await allowWorkOrderFieldAction(user,organizationId,value(formData,"sessionId"),value(formData,"workOrderId"));
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+  await allowWorkOrderFieldAction(user,organizationId,value(formData,"sessionId"),value(formData,"workOrderId"));
  const file=formData.get("photo");if(!(file instanceof File))throw new Error("Evidence photo is required");const bytes=new Uint8Array(await file.arrayBuffer());const validated=validateWorkOrderEvidence({fileName:file.name,mimeType:file.type,bytes});const workOrderId=value(formData,"workOrderId"),itemId=value(formData,"itemId");const storageKey=workOrderEvidenceStorageKey(organizationId,workOrderId,itemId,validated.evidenceId,validated.extension);
  await storePrivateDesignAsset(storageKey,bytes,validated.mimeType);try{await persistWorkOrderEvidence({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId,itemId,evidenceId:validated.evidenceId,originalName:validated.originalName,mimeType:validated.mimeType,byteSize:validated.byteSize,storageKey,sha256:validated.sha256,caption:value(formData,"caption")||null,userId:user.id});}catch(error){await deletePrivateDesignAsset(storageKey).catch(()=>undefined);throw error;}
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
