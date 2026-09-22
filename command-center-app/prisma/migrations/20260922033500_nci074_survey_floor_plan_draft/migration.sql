@@ -219,3 +219,17 @@ CREATE TABLE ProjectWorkOrderEvidence (
   INDEX ProjectWorkOrderEvidence_item_time_idx (organizationId, workOrderItemId, createdAt),
   UNIQUE INDEX ProjectWorkOrderEvidence_storage_key (storageKey)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE FieldTechnicianProfile (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  userId VARCHAR(191) NOT NULL,
+  displayName VARCHAR(255) NOT NULL,
+  status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3) ON UPDATE CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX FieldTechnicianProfile_user_key (organizationId, userId),
+  INDEX FieldTechnicianProfile_status_idx (organizationId, status)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
