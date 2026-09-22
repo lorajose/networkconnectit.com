@@ -60,3 +60,19 @@ CREATE TABLE SurveyMeasurement (
   INDEX SurveyMeasurement_area_idx (organizationId, areaId),
   INDEX SurveyMeasurement_draft_idx (organizationId, floorPlanDraftId)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
+
+
+CREATE TABLE SurveyPhotoAreaLink (
+  id VARCHAR(191) NOT NULL,
+  organizationId VARCHAR(191) NOT NULL,
+  sessionId VARCHAR(191) NOT NULL,
+  areaId VARCHAR(191) NOT NULL,
+  assetId VARCHAR(191) NOT NULL,
+  viewLabel VARCHAR(255) NULL,
+  sortOrder INT NOT NULL DEFAULT 0,
+  createdByUserId VARCHAR(191) NOT NULL,
+  createdAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
+  PRIMARY KEY (id),
+  UNIQUE INDEX SurveyPhotoAreaLink_area_asset_key (organizationId, areaId, assetId),
+  INDEX SurveyPhotoAreaLink_session_area_idx (organizationId, sessionId, areaId, sortOrder)
+) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
