@@ -16,3 +16,12 @@ export async function fieldTechnicianAccess(actor:CommercialActor & {id:string},
 export async function requireAssignedTechnicianAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string;workOrderId?:string|null;scope:"SURVEY"|"WORK_ORDER"}){
  const access=await fieldTechnicianAccess(actor,input);const allowed=input.scope==="SURVEY"?access.canAccessSurvey:access.canAccessWorkOrder;if(!allowed)throw new Error("This field record is not assigned to the current technician");return access;
 }
+
+
+export async function requireFieldSurveyWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string}){
+ if(actor.role!=="VIEWER")return requireAssignedTechnicianAccess(actor,{...input,scope:"SURVEY"});
+ return requireAssignedTechnicianAccess(actor,{...input,scope:"SURVEY"});
+}
+export async function requireFieldWorkOrderWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string;workOrderId:string}){
+ return requireAssignedTechnicianAccess(actor,{...input,scope:"WORK_ORDER"});
+}
