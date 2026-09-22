@@ -59,3 +59,17 @@ test("contractor closeout removes vault and remote access references", () => {
   assert.equal(report.accessReferences[0]?.remoteAccessMethod, null);
   assert.equal(report.accessReferences[0]?.notes, null);
 });
+
+
+test("project and site export routes enforce the server-selected report profile", async () => {
+  const { readFile } = await import("node:fs/promises");
+  const projectRoute = await readFile("app/(exports)/projects/[id]/export/page.tsx", "utf8");
+  const siteRoute = await readFile("app/(exports)/sites/[id]/export/page.tsx", "utf8");
+
+  for (const source of [projectRoute, siteRoute]) {
+    assert.match(source, /requireRoles\(/);
+    assert.match(source, /getCommissioningReportProfile\(user\.role\)/);
+    assert.match(source, /applyCommissioningReportProfile\(/);
+    assert.match(source, /CommissioningReportView report=\{profiledReport\}/);
+  }
+});
