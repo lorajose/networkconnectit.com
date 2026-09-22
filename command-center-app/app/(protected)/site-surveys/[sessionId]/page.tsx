@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Camera, CheckCircle2, MapPin, Plus, RadioTower } from "lucide-react";
+import { Camera, CheckCircle2, Crosshair, MapPin, Plus, RadioTower } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -8,8 +8,9 @@ import { Label } from "@/components/ui/label";
 import { Select } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
 import { requireRoles } from "@/lib/auth";
+import { SurveyPhotoAnnotator } from "@/components/site-survey/survey-photo-annotator";
 import { getSurveySessionWorkspace } from "@/lib/contractor-os/site-survey-repository";
-import { SURVEY_DISCIPLINES, type SurveyChecklistSection } from "@/lib/contractor-os/site-survey";
+import { SURVEY_DISCIPLINES, type SurveyChecklistSection, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
 import { completeSurveySessionAction, createSurveyAreaAction, createSurveyPointAction, updateSurveyChecklistAction, uploadSurveyPhotoAction } from "../actions";
 
@@ -36,6 +37,8 @@ export default async function SurveySessionPage({params,searchParams}:Props){
 
       <div className="space-y-5">
         <Card><CardHeader><Camera className="h-5 w-5 text-primary"/><CardTitle>Site photos</CardTitle><CardDescription>On mobile, Take photo opens the device camera when supported.</CardDescription></CardHeader><CardContent><form action={uploadSurveyPhotoAction} className="space-y-3"><input type="hidden" name="organizationId" value={organizationId}/><input type="hidden" name="sessionId" value={params.sessionId}/><Select name="areaId"><option value="">No area selected</option>{workspace.areas.map(a=><option key={a.id} value={a.id}>{a.name}</option>)}</Select><Input name="photo" type="file" accept="image/jpeg,image/png,image/webp" capture="environment" required/><Button className="w-full" type="submit"><Camera className="mr-2 h-4 w-4"/>Take / upload photo</Button></form><p className="mt-3 text-xs text-muted-foreground">{workspace.assets.length} photo{workspace.assets.length===1?"":"s"} captured.</p></CardContent></Card>
+
+        <Card><CardHeader><Crosshair className="h-5 w-5 text-primary"/><CardTitle>Photo → device point</CardTitle><CardDescription>Open the photo of the exact customer-requested location, tap the mounting point, and attach the peripheral.</CardDescription></CardHeader><CardContent><SurveyPhotoAnnotator organizationId={organizationId} sessionId={params.sessionId} disciplines={disciplines as SurveyDiscipline[]} assets={workspace.assets.map(a=>({id:a.id,originalName:a.originalName,url:`/site-surveys/assets/${a.id}`}))} areas={workspace.areas.map(a=>({id:a.id,name:a.name}))} points={workspace.points.map(p=>({id:p.id,assetId:p.assetId,discipline:p.discipline,pointType:p.pointType,label:p.label,normalizedX:p.normalizedX==null?null:Number(p.normalizedX),normalizedY:p.normalizedY==null?null:Number(p.normalizedY)}))} action={createSurveyPointAction}/></CardContent></Card>
 
         <Card><CardHeader><MapPin className="h-5 w-5 text-primary"/><CardTitle>Areas / rooms</CardTitle></CardHeader><CardContent className="space-y-3"><div className="space-y-2">{workspace.areas.map(a=><div key={a.id} className="rounded-xl border px-3 py-2 text-sm">{a.name} <span className="text-muted-foreground">· {a.areaType}</span></div>)}</div><form action={createSurveyAreaAction} className="space-y-2"><input type="hidden" name="organizationId" value={organizationId}/><input type="hidden" name="sessionId" value={params.sessionId}/><Input name="name" placeholder="Level 1 / IDF / Lobby" required/><Select name="areaType" defaultValue="AREA"><option value="BUILDING">Building</option><option value="FLOOR">Floor</option><option value="ROOM">Room</option><option value="AREA">Area</option></Select><Button type="submit" variant="outline" className="w-full"><Plus className="mr-2 h-4 w-4"/>Add area</Button></form></CardContent></Card>
 
