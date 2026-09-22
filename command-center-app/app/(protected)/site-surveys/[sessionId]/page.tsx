@@ -1,5 +1,5 @@
 import { notFound } from "next/navigation";
-import { Camera, CheckCircle2, Crosshair, DoorOpen, Grid3X3, MapPin, Plus, RadioTower } from "lucide-react";
+import { Camera, CheckCircle2, Crosshair, DoorOpen, Grid3X3, MapPin, Plus, RadioTower, Ruler } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
@@ -11,10 +11,11 @@ import { requireRoles } from "@/lib/auth";
 import { SurveyPhotoAnnotator } from "@/components/site-survey/survey-photo-annotator";
 import { SurveyFloorPlanBuilder } from "@/components/site-survey/survey-floor-plan-builder";
 import { SurveyRoomBuilder } from "@/components/site-survey/survey-room-builder";
+import { SurveyMeasurementTool } from "@/components/site-survey/survey-measurement-tool";
 import { getOrCreateSurveyFloorPlanDraft, getSurveySessionWorkspace } from "@/lib/contractor-os/site-survey-repository";
 import { SURVEY_DISCIPLINES, type SurveyChecklistSection, type SurveyDiscipline } from "@/lib/contractor-os/site-survey";
 import { routeAccess } from "@/lib/rbac";
-import { completeSurveySessionAction, createSurveyAreaAction, createSurveyPointAction, placeSurveyPointOnFloorPlanAction, saveSurveyFloorPlanGeometryAction, updateSurveyChecklistAction, updateSurveyPointFloorPositionAction, uploadSurveyPhotoAction } from "../actions";
+import { completeSurveySessionAction, createSurveyAreaAction, createSurveyMeasurementAction, createSurveyPointAction, placeSurveyPointOnFloorPlanAction, saveSurveyFloorPlanGeometryAction, updateSurveyChecklistAction, updateSurveyPointFloorPositionAction, uploadSurveyPhotoAction } from "../actions";
 
 type Props={params:{sessionId:string};searchParams?:{organizationId?:string}};
 const labels:Record<string,string>={CCTV:"CCTV",NETWORK:"Network / Wi-Fi",ACCESS_CONTROL:"Access Control",FIRE_ALARM:"Fire Alarm",AUDIO_AV:"Audio / AV",RADIO_WIRELESS:"Radio / Wireless"};
@@ -50,6 +51,8 @@ export default async function SurveySessionPage({params,searchParams}:Props){
     </div>
 
     <Card><CardHeader><DoorOpen className="h-5 w-5 text-primary"/><CardTitle>Rooms / floor layout</CardTitle><CardDescription>Build the field background progressively by outlining rooms and areas captured during the walkthrough.</CardDescription></CardHeader><CardContent><SurveyRoomBuilder organizationId={organizationId} sessionId={params.sessionId} draftId={floorPlanDraft.id} geometryJson={floorPlanDraft.geometryJson} action={saveSurveyFloorPlanGeometryAction}/></CardContent></Card>
+
+    <Card><CardHeader><Ruler className="h-5 w-5 text-primary"/><CardTitle>Field measurements</CardTitle><CardDescription>Capture real wall, ceiling and pathway dimensions and anchor them to the progressive floor plan.</CardDescription></CardHeader><CardContent><SurveyMeasurementTool organizationId={organizationId} sessionId={params.sessionId} draftId={floorPlanDraft.id} areas={workspace.areas.map(a=>({id:a.id,name:a.name}))} measurements={workspace.measurements.map(m=>({id:m.id,label:m.label,value:Number(m.value),unit:m.unit,measurementType:m.measurementType}))} action={createSurveyMeasurementAction}/></CardContent></Card>
 
     <Card><CardHeader><Grid3X3 className="h-5 w-5 text-primary"/><CardTitle>Progressive floor plan</CardTitle><CardDescription>Place the device points captured from site photos onto a field layout. Calibrate known dimensions before using it for design/takeoff.</CardDescription></CardHeader><CardContent><SurveyFloorPlanBuilder organizationId={organizationId} sessionId={params.sessionId} draft={{...floorPlanDraft,items:floorPlanDraft.items.map(i=>({...i,normalizedX:Number(i.normalizedX),normalizedY:Number(i.normalizedY)}))}} points={workspace.points.map(p=>({id:p.id,discipline:p.discipline,pointType:p.pointType,label:p.label}))} placeAction={placeSurveyPointOnFloorPlanAction} moveAction={updateSurveyPointFloorPositionAction} saveAction={saveSurveyFloorPlanGeometryAction}/></CardContent></Card>
 
