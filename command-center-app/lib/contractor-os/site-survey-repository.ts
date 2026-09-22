@@ -251,3 +251,11 @@ export async function saveSurveyFloorPlanGeometry(actor:CommercialActor,input:{o
  const result=await prisma.$executeRaw(Prisma.sql`UPDATE SurveyFloorPlanDraft SET geometryJson=${input.geometryJson},calibrationJson=${input.calibrationJson??null},updatedAt=NOW(3) WHERE id=${input.draftId} AND organizationId=${organizationId} AND sessionId=${input.sessionId}`);
  if(!result)throw new Error("Floor plan draft not found");
 }
+
+
+export async function updateSurveyPointFloorPosition(actor:CommercialActor,input:{organizationId:string;sessionId:string;draftId:string;itemId:string;normalizedX:number;normalizedY:number}){
+ const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+ for(const coordinate of [input.normalizedX,input.normalizedY])if(!Number.isFinite(coordinate)||coordinate<0||coordinate>1)throw new Error("Floor plan coordinates must be between 0 and 1");
+ const result=await prisma.$executeRaw(Prisma.sql`UPDATE SurveyFloorPlanItem i JOIN SurveyFloorPlanDraft d ON d.id=i.floorPlanDraftId AND d.organizationId=i.organizationId SET i.normalizedX=${input.normalizedX},i.normalizedY=${input.normalizedY},i.updatedAt=NOW(3) WHERE i.id=${input.itemId} AND i.organizationId=${organizationId} AND i.floorPlanDraftId=${input.draftId} AND d.sessionId=${input.sessionId}`);
+ if(!result)throw new Error("Floor plan point not found");
+}
