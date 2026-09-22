@@ -19,9 +19,13 @@ export async function requireAssignedTechnicianAccess(actor:CommercialActor & {i
 
 
 export async function requireFieldSurveyWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string}){
+ if(actor.role==="SUPER_ADMIN"||actor.role==="INTERNAL_ADMIN")return {isTechnician:false,canAccessSurvey:true,canAccessWorkOrder:true};
+ if(actor.role==="CLIENT_ADMIN"){if(actor.organizationId!==input.organizationId.trim())throw new Error("Cross-tenant field write denied");return {isTechnician:false,canAccessSurvey:true,canAccessWorkOrder:true};}
  return requireAssignedTechnicianAccess(actor,{...input,scope:"SURVEY"});
 }
 export async function requireFieldWorkOrderWriteAccess(actor:CommercialActor & {id:string},input:{organizationId:string;sessionId:string;workOrderId:string}){
+ if(actor.role==="SUPER_ADMIN"||actor.role==="INTERNAL_ADMIN")return {isTechnician:false,canAccessSurvey:true,canAccessWorkOrder:true};
+ if(actor.role==="CLIENT_ADMIN"){if(actor.organizationId!==input.organizationId.trim())throw new Error("Cross-tenant field write denied");return {isTechnician:false,canAccessSurvey:true,canAccessWorkOrder:true};}
  return requireAssignedTechnicianAccess(actor,{...input,scope:"WORK_ORDER"});
 }
 
