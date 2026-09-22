@@ -1,0 +1,35 @@
+import { randomUUID } from "node:crypto";
+import { Prisma } from "@prisma/client";
+import { prisma } from "@/lib/db";
+import type { CommercialActor } from "./commercial-access";
+import { requireCommercialWriteAccess } from "./commercial-access";
+import type { DesignCollaborationActor } from "./design-collaboration-policy";
+import { requireDesignPermission } from "./design-collaboration-policy";
+import type { SurveyDiscipline } from "./site-survey";
+
+type Actor=CommercialActor & Pick<DesignCollaborationActor,"id"|"groups">;
+const disciplineMap:Record<SurveyDiscipline,string>={CCTV:"CCTV",NETWORK:"NETWORK",ACCESS_CONTROL:"ACCESS_CONTROL",FIRE_ALARM:"ANNOTATION",AUDIO_AV:"ANNOTATION",RADIO_WIRELESS:"NETWORK"};
+
+export async function handoffSurveyToDesignStudio(actor:Actor,input:{organizationId:string;sessionId:string;draftId:string;userId:string}){
+ const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+ requireDesignPermission({id:actor.id,role:actor.role,organizationId:actor.organizationId,groups:actor.groups},organizationId,"EDIT");
+ return prisma.$transaction(async tx=>{
+  const existing=await tx.$queryRaw<Array<{designProjectId:string;designFloorId:string}>>(Prisma.sql`SELECT designProjectId,designFloorId FROM SurveyDesignHandoff WHERE organizationId=${organizationId} AND sessionId=${input.sessionId} AND floorPlanDraftId=${input.draftId} LIMIT 1`);
+  if(existing[0])return existing[0];
+  const rows=await tx.$queryRaw<Array<{projectInstallationId:string;projectName:string;siteName:string;draftName:string;geometryJson:string;calibrationJson:string|null}>>(Prisma.sql`SELECT a.projectInstallationId,p.name AS projectName,s.name AS siteName,d.name AS draftName,d.geometryJson,d.calibrationJson FROM SurveySession ss JOIN SurveyAssignment a ON a.id=ss.assignmentId AND a.organizationId=ss.organizationId JOIN ProjectInstallation p ON p.id=a.projectInstallationId AND p.organizationId=a.organizationId JOIN Site s ON s.id=a.siteId AND s.organizationId=a.organizationId JOIN SurveyFloorPlanDraft d ON d.sessionId=ss.id AND d.organizationId=ss.organizationId WHERE ss.id=${input.sessionId} AND d.id=${input.draftId} AND ss.organizationId=${organizationId} LIMIT 1`);
+  const source=rows[0];if(!source)throw new Error("Survey floor plan draft not found");
+  let projects=await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM DesignProject WHERE organizationId=${organizationId} AND projectInstallationId=${source.projectInstallationId} ORDER BY updatedAt DESC LIMIT 1`);
+  let designProjectId=projects[0]?.id;
+  if(!designProjectId){designProjectId=randomUUID();await tx.$executeRaw(Prisma.sql`INSERT INTO DesignProject (id,organizationId,name,status,projectInstallationId,createdByUserId,workingRevision,createdAt,updatedAt) VALUES (${designProjectId},${organizationId},${source.projectName},'DRAFT',${source.projectInstallationId},${input.userId},1,NOW(3),NOW(3))`);}
+  const designFloorId=randomUUID();
+  let scaleUnit="FT",ratio:null|number=null;if(source.calibrationJson){try{const cal=JSON.parse(source.calibrationJson) as {width?:number;length?:number;unit?:string};scaleUnit=cal.unit==="M"?"M":"FT";const max=Math.max(Number(cal.width)||0,Number(cal.length)||0);if(max>0)ratio=max/1000;}catch{}}
+  await tx.$executeRaw(Prisma.sql`INSERT INTO DesignFloor (id,organizationId,designProjectId,name,levelOrder,canvasWidth,canvasHeight,scaleUnit,realUnitsPerDesignUnit,calibrationJson,createdAt,updatedAt) VALUES (${designFloorId},${organizationId},${designProjectId},${source.draftName},0,1000,1000,${scaleUnit},${ratio},${source.calibrationJson},NOW(3),NOW(3))`);
+  const points=await tx.$queryRaw<Array<{id:string;discipline:SurveyDiscipline;pointType:string;label:string|null;normalizedX:Prisma.Decimal;normalizedY:Prisma.Decimal}>>(Prisma.sql`SELECT i.id,i.discipline,i.pointType,i.label,i.normalizedX,i.normalizedY FROM SurveyFloorPlanItem i WHERE i.organizationId=${organizationId} AND i.floorPlanDraftId=${input.draftId}`);
+  const layerIds=new Map<string,string>();
+  for(const point of points){const discipline=disciplineMap[point.discipline]??"ANNOTATION";let layerId=layerIds.get(discipline);if(!layerId){layerId=randomUUID();layerIds.set(discipline,layerId);await tx.$executeRaw(Prisma.sql`INSERT INTO DesignLayer (id,organizationId,designProjectId,designFloorId,discipline,name,sortOrder,isVisible,isLocked,createdAt,updatedAt) VALUES (${layerId},${organizationId},${designProjectId},${designFloorId},${discipline},${discipline.replaceAll("_"," ")},${layerIds.size-1},TRUE,FALSE,NOW(3),NOW(3))`);}const elementId=randomUUID(),geometryJson=JSON.stringify({schemaVersion:1,points:[{x:Number(point.normalizedX)*1000,y:Number(point.normalizedY)*1000}]}),metadataJson=JSON.stringify({discipline,category:point.pointType,source:"SITE_SURVEY",sourceSurveySessionId:input.sessionId,sourceSurveyPointId:point.id,label:point.label});await tx.$executeRaw(Prisma.sql`INSERT INTO DesignElement (id,organizationId,designProjectId,designFloorId,designLayerId,kind,geometryJson,metadataJson,schemaVersion,createdAt,updatedAt) VALUES (${elementId},${organizationId},${designProjectId},${designFloorId},${layerId},'DEVICE',${geometryJson},${metadataJson},1,NOW(3),NOW(3))`);await tx.$executeRaw(Prisma.sql`INSERT INTO DesignDevice (id,organizationId,designProjectId,designFloorId,designElementId,discipline,deviceType,notes,createdAt,updatedAt) VALUES (${randomUUID()},${organizationId},${designProjectId},${designFloorId},${elementId},${discipline},${point.pointType},'Imported from Site Survey Studio',NOW(3),NOW(3))`);}
+  const snapshot=JSON.stringify({schemaVersion:1,sessionId:input.sessionId,draftId:input.draftId,geometry:JSON.parse(source.geometryJson),calibration:source.calibrationJson?JSON.parse(source.calibrationJson):null,pointCount:points.length});
+  await tx.$executeRaw(Prisma.sql`INSERT INTO SurveyDesignHandoff (id,organizationId,sessionId,floorPlanDraftId,designProjectId,designFloorId,sourceSnapshotJson,status,createdByUserId,createdAt) VALUES (${randomUUID()},${organizationId},${input.sessionId},${input.draftId},${designProjectId},${designFloorId},${snapshot},'CREATED',${input.userId},NOW(3))`);
+  await tx.$executeRaw(Prisma.sql`UPDATE DesignProject SET workingRevision=workingRevision+1,updatedAt=NOW(3) WHERE id=${designProjectId} AND organizationId=${organizationId}`);
+  return {designProjectId,designFloorId};
+ });
+}
