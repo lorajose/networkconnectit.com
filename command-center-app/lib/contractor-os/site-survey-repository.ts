@@ -181,7 +181,10 @@ export async function createSurveyArea(actor:CommercialActor,input:{organization
 
 export async function createSurveyPoint(actor:CommercialActor,input:{organizationId:string;sessionId:string;areaId?:string|null;assetId?:string|null;discipline:SurveyDiscipline;pointType:string;lifecycle?:"EXISTING"|"PROPOSED";label?:string|null;normalizedX?:number|null;normalizedY?:number|null;notes?:string|null;userId:string}){
   const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  if(!SURVEY_POINT_TYPES[input.discipline]?.includes(input.pointType))throw new Error("Point type is not valid for the selected discipline");
   for(const coordinate of [input.normalizedX,input.normalizedY])if(coordinate!=null&&(!Number.isFinite(coordinate)||coordinate<0||coordinate>1))throw new Error("Photo point coordinates must be between 0 and 1");
+  if(input.areaId){const area=await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM SurveyArea WHERE id=${input.areaId} AND organizationId=${organizationId} AND sessionId=${input.sessionId} LIMIT 1`);if(!area[0])throw new Error("Survey area does not belong to this session");}
+  if(input.assetId){const asset=await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM SurveyAsset WHERE id=${input.assetId} AND organizationId=${organizationId} AND sessionId=${input.sessionId} LIMIT 1`);if(!asset[0])throw new Error("Survey photo does not belong to this session");}
   const id=randomUUID();
   const result=await prisma.$executeRaw(Prisma.sql`
     INSERT INTO SurveyPoint (id,organizationId,sessionId,areaId,assetId,discipline,pointType,lifecycle,label,normalizedX,normalizedY,notes,createdByUserId,createdAt,updatedAt)
