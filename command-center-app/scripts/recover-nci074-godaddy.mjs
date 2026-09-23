@@ -5,16 +5,13 @@ import { PrismaClient } from "@prisma/client";
 const migrationName = "20260922033500_nci074_survey_floor_plan_draft";
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 
-const partialTables = [
+const migrationTablesInOrder = [
   "SurveyFloorPlanDraft",
   "SurveyFloorPlanItem",
   "SurveyMeasurement",
   "SurveyPhotoAreaLink",
   "SurveyFloorPlanApproval",
-  "ProjectWorkOrder"
-];
-
-const laterTables = [
+  "ProjectWorkOrder",
   "ProjectWorkOrderItem",
   "ProjectActivityEvent",
   "ProjectWorkOrderItemEvent",
@@ -23,6 +20,11 @@ const laterTables = [
   "ProjectPunchListItem",
   "ProjectFinalAcceptance",
   "ProjectCloseoutPackage"
+];
+
+const knownPartialStates = [
+  migrationTablesInOrder.slice(0, 6),
+  migrationTablesInOrder.slice(0, 9)
 ];
 
 const prisma = new PrismaClient();
@@ -45,6 +47,10 @@ async function rowCount(name) {
   return Number(rows[0]?.count ?? 0);
 }
 
+function arraysEqual(left, right) {
+  return left.length === right.length && left.every((value, index) => value === right[index]);
+}
+
 try {
   const migrations = await prisma.$queryRawUnsafe(
     "SELECT finished_at finishedAt, rolled_back_at rolledBackAt FROM _prisma_migrations WHERE migration_name = ? ORDER BY started_at DESC",
@@ -59,19 +65,18 @@ try {
     if (!activeFailure) {
       fail(`no active failed migration row found for ${migrationName}`);
     } else {
-      for (const table of laterTables) {
-        if (await tableExists(table)) {
-          fail(`unexpected later table ${table} exists; refusing automatic cleanup`);
-          break;
-        }
+      const existingTables = [];
+      for (const table of migrationTablesInOrder) {
+        if (await tableExists(table)) existingTables.push(table);
+      }
+
+      const matchedState = knownPartialStates.find((state) => arraysEqual(existingTables, state));
+      if (!matchedState) {
+        fail(`unexpected partial table state [${existingTables.join(", ")}]; refusing automatic cleanup`);
       }
 
       if (!process.exitCode) {
-        for (const table of partialTables) {
-          if (!(await tableExists(table))) {
-            fail(`expected partial table ${table} is missing; refusing automatic cleanup`);
-            break;
-          }
+        for (const table of matchedState) {
           const count = await rowCount(table);
           if (count !== 0) {
             fail(`partial table ${table} contains ${count} row(s); refusing to drop data`);
@@ -81,8 +86,8 @@ try {
       }
 
       if (!process.exitCode) {
-        console.log("NCI-074 recovery: verified exact partial state and zero rows; removing partial tables...");
-        for (const table of [...partialTables].reverse()) {
+        console.log(`NCI-074 recovery: verified known partial state with ${matchedState.length} zero-row tables; removing partial tables...`);
+        for (const table of [...matchedState].reverse()) {
           await prisma.$executeRawUnsafe(`DROP TABLE \`${table}\``);
           console.log(`NCI-074 recovery: dropped ${table}`);
         }
