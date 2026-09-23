@@ -63,24 +63,6 @@ if (databaseUrl) {
   }
 }
 
-const databaseUrl = process.env.DATABASE_URL?.trim() ?? "";
-const discreteDatabaseConfigured = Boolean(
-  process.env.DB_HOST?.trim() &&
-  process.env.DB_NAME?.trim() &&
-  process.env.DB_USER?.trim()
-);
-if (!databaseUrl && !discreteDatabaseConfigured) {
-  failures.push("Production database connection must be configured through DATABASE_URL or DB_HOST/DB_NAME/DB_USER");
-}
-if (databaseUrl) {
-  try {
-    const db = new URL(databaseUrl);
-    if (["localhost", "127.0.0.1"].includes(db.hostname)) failures.push("Production DATABASE_URL must not point to loopback");
-  } catch {
-    failures.push("DATABASE_URL must be a valid MySQL URL when configured");
-  }
-}
-
 const storage = (process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
 if (!["filesystem", "supabase"].includes(storage)) failures.push("BID_STORAGE_DRIVER must be filesystem or supabase");
 if (storage === "supabase") {
