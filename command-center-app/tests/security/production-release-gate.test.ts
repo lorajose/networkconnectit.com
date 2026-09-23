@@ -80,3 +80,22 @@ test("GoDaddy production startup runs the release gate before migrations", () =>
   assert.ok(gateIndex < migrateIndex, "release gate must run before migrations");
   assert.match(startupSource, /if \(gateResult\.status !== 0\)/);
 });
+
+
+test("NCI-074 guarded recovery runs before migrate deploy and fails closed", () => {
+  const startup = readFileSync(resolve(process.cwd(), "scripts/start-godaddy.mjs"), "utf8");
+  const recoveryIndex = startup.indexOf("NCI_RECOVER_NCI074=1");
+  const migrateIndex = startup.indexOf("Applying pending Prisma migrations");
+  assert.ok(recoveryIndex >= 0, "NCI-074 recovery must be wired into startup");
+  assert.ok(migrateIndex >= 0, "migrate deploy must remain in startup");
+  assert.ok(recoveryIndex < migrateIndex, "NCI-074 recovery must execute before migrate deploy");
+  assert.match(startup, /NCI-074 recovery failed with status/);
+});
+
+test("NCI-074 recovery verifies zero-row partial tables before dropping and uses prisma resolve", () => {
+  const recovery = readFileSync(resolve(process.cwd(), "scripts/recover-nci074-godaddy.mjs"), "utf8");
+  assert.match(recovery, /partial table .* contains .* row\(s\); refusing to drop data/);
+  assert.match(recovery, /DROP TABLE/);
+  assert.match(recovery, /"migrate", "resolve", "--rolled-back", migrationName/);
+  assert.match(recovery, /unexpected later table .* exists; refusing automatic cleanup/);
+});
