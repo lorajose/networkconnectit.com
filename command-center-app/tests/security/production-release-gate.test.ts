@@ -1,9 +1,16 @@
 import assert from "node:assert/strict";
 import { readFileSync } from "node:fs";
 import { resolve } from "node:path";
+import { spawnSync } from "node:child_process";
 import test from "node:test";
 
-const source = readFileSync(resolve(process.cwd(), "scripts/production-release-gate.mjs"), "utf8");
+const gatePath = resolve(process.cwd(), "scripts/production-release-gate.mjs");
+const source = readFileSync(gatePath, "utf8");
+
+test("production gate script is syntactically valid JavaScript", () => {
+  const result = spawnSync(process.execPath, ["--check", gatePath], { encoding: "utf8" });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
 
 test("production gate pins the current path-based deployment", () => {
   assert.match(source, /expectedBasePath = "\/tools\/command-center"/);
