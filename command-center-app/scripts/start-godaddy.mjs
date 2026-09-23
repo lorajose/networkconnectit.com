@@ -10,6 +10,7 @@ const schemaEnginePath = path.join(process.cwd(), "node_modules", "@prisma", "en
 const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
+const nci074RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci074-godaddy.mjs");
 const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");
 
 function configureDatabaseUrlFromDiscreteSecrets() {
@@ -92,6 +93,25 @@ if (process.env.NODE_ENV === "production") {
 
 process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
 process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+
+if (process.env.NCI_RECOVER_NCI074 === "1") {
+  if (!fs.existsSync(nci074RecoveryPath)) {
+    console.error(`NCI-074 recovery script not found: ${nci074RecoveryPath}`);
+    process.exit(1);
+  }
+
+  console.log("NCI_RECOVER_NCI074=1: running guarded NCI-074 partial migration recovery before migrate deploy...");
+  const recoveryResult = spawnSync(process.execPath, [nci074RecoveryPath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+
+  if (recoveryResult.status !== 0) {
+    console.error(`NCI-074 recovery failed with status ${recoveryResult.status ?? "unknown"}.`);
+    process.exit(recoveryResult.status ?? 1);
+  }
+}
 
 if (process.env.NCI_RECOVER_NCI049 === "1") {
   if (!fs.existsSync(nci049RecoveryPath)) {
