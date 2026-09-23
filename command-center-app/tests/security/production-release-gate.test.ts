@@ -94,8 +94,21 @@ test("NCI-074 guarded recovery runs before migrate deploy and fails closed", () 
 
 test("NCI-074 recovery verifies zero-row partial tables before dropping and uses prisma resolve", () => {
   const recovery = readFileSync(resolve(process.cwd(), "scripts/recover-nci074-godaddy.mjs"), "utf8");
-  assert.match(recovery, /partial table .* contains .* row\(s\); refusing to drop data/);
+  assert.match(recovery, /partial table .* contains .* row\\(s\\); refusing to drop data/);
   assert.match(recovery, /DROP TABLE/);
   assert.match(recovery, /"migrate", "resolve", "--rolled-back", migrationName/);
-  assert.match(recovery, /unexpected later table .* exists; refusing automatic cleanup/);
+  assert.match(recovery, /unexpected partial table state .* refusing automatic cleanup/);
+  assert.match(recovery, /migrationTablesInOrder\.slice\(0, 6\)/);
+  assert.match(recovery, /migrationTablesInOrder\.slice\(0, 9\)/);
+});
+
+
+test("NCI-074 evidence storage key unique index stays within MariaDB utf8mb4 key limit", () => {
+  const migration = readFileSync(
+    resolve(process.cwd(), "prisma/migrations/20260922033500_nci074_survey_floor_plan_draft/migration.sql"),
+    "utf8"
+  );
+  assert.match(migration, /storageKey VARCHAR\(512\) NOT NULL/);
+  assert.doesNotMatch(migration, /storageKey VARCHAR\(1024\) NOT NULL/);
+  assert.match(migration, /UNIQUE INDEX ProjectWorkOrderEvidence_storage_key \(storageKey\)/);
 });
