@@ -94,7 +94,7 @@ test("NCI-074 guarded recovery runs before migrate deploy and fails closed", () 
 
 test("NCI-074 recovery verifies zero-row partial tables before dropping and uses prisma resolve", () => {
   const recovery = readFileSync(resolve(process.cwd(), "scripts/recover-nci074-godaddy.mjs"), "utf8");
-  assert.match(recovery, /partial table .* contains .* row\\(s\\); refusing to drop data/);
+  assert.match(recovery, /partial table .* contains .* row\(s\); refusing to drop data/);
   assert.match(recovery, /DROP TABLE/);
   assert.match(recovery, /"migrate", "resolve", "--rolled-back", migrationName/);
   assert.match(recovery, /unexpected partial table state .* refusing automatic cleanup/);
