@@ -135,7 +135,7 @@ CREATE TABLE ProjectWorkOrderItem (
   areaName VARCHAR(255) NULL,
   status VARCHAR(32) NOT NULL DEFAULT 'PENDING',
   pulledInstalled BOOLEAN NOT NULL DEFAULT FALSE,
-  terminated BOOLEAN NOT NULL DEFAULT FALSE,
+  isTerminated BOOLEAN NOT NULL DEFAULT FALSE,
   testStatus VARCHAR(16) NULL,
   photoEvidenceRequired BOOLEAN NOT NULL DEFAULT FALSE,
   technicianNote TEXT NULL,
