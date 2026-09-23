@@ -194,7 +194,7 @@ CREATE TABLE ProjectWorkOrderEvidence (
   originalName VARCHAR(255) NOT NULL,
   mimeType VARCHAR(128) NOT NULL,
   byteSize BIGINT NOT NULL,
-  storageKey VARCHAR(1024) NOT NULL,
+  storageKey VARCHAR(512) NOT NULL,
   sha256 CHAR(64) NOT NULL,
   caption VARCHAR(512) NULL,
   uploadedByUserId VARCHAR(191) NOT NULL,
