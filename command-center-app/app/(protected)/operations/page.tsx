@@ -57,6 +57,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
       <form action={createScheduleAction} className="space-y-3 rounded-2xl border p-4">
         <h3 className="font-semibold">Scheduling & Availability</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="technicianProfileId" required><option value="">Select technician</option>{snapshot.technicians.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}</select>
+        <select className={field} name="projectInstallationId"><option value="">No project (availability / PTO)</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
         <input className={field} name="title" placeholder="Assignment / PTO / unavailable" required />
         <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="startsAt" type="datetime-local" required /><input className={field} name="endsAt" type="datetime-local" required /></div>
         <select className={field} name="entryType"><option value="ASSIGNMENT">Assignment</option><option value="AVAILABLE">Available</option><option value="UNAVAILABLE">Unavailable</option><option value="PTO">PTO</option></select><button className={button}>Schedule</button>
