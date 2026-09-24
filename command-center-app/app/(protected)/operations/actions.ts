@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRoles } from "@/lib/auth";
-import { addInvoiceLine, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice } from "@/lib/company-operations/repository";
+import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, submitTimeEntry } from "@/lib/company-operations/repository";
 import { routeAccess } from "@/lib/rbac";
 
 function text(formData: FormData, key: string) {
@@ -120,5 +120,18 @@ export async function addInvoiceLineAction(formData: FormData) {
     quantity: number(formData, "quantity"),
     unitPrice: number(formData, "unitPrice")
   });
+  refresh();
+}
+
+
+export async function submitTimeEntryAction(formData: FormData) {
+  const user = await actor();
+  await submitTimeEntry(user, { organizationId: org(formData), timeEntryId: text(formData, "timeEntryId") });
+  refresh();
+}
+
+export async function approveTimeEntryAction(formData: FormData) {
+  const user = await actor();
+  await approveTimeEntry(user, { organizationId: org(formData), timeEntryId: text(formData, "timeEntryId") });
   refresh();
 }
