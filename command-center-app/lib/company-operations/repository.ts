@@ -105,13 +105,18 @@ export async function createInvoice(actor: OperationsActor, input: {
 }
 
 export async function createExpense(actor: OperationsActor, input: {
-  organizationId?: string; category: string; description: string; amount: number; expenseDate: string; reimbursable: boolean;
+  organizationId?: string; projectInstallationId?: string; category: string; description: string; amount: number; expenseDate: string; reimbursable: boolean;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   choice(input.category, ["MATERIALS", "TRAVEL", "TOOLS", "SUBCONTRACTOR", "OTHER"], "expense category");
   input.description = requiredText(input.description, "Expense description", 512);
   nonNegativeDecimal(input.amount, "Expense amount", 999999999999.99);
   const expenseDate = calendarDate(input.expenseDate, "expense date");
+  const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
+  if (projectInstallationId) {
+    const project = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM ProjectInstallation WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
+    if (!project[0]) throw new Error("Project is outside your tenant scope.");
+  }
   if (typeof input.reimbursable !== "boolean") throw new Error("Invalid reimbursable flag.");
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
