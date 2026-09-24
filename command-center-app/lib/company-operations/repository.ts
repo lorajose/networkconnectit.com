@@ -279,3 +279,44 @@ export async function sendInvoice(actor: OperationsActor, input: { organizationI
     WHERE id = ${input.invoiceId} AND organizationId = ${organizationId} AND status = 'DRAFT'`);
   if (updated !== 1) throw new Error("Invoice is outside your tenant scope or is not a draft.");
 }
+
+
+export async function addInvoiceLine(actor: OperationsActor, input: {
+  organizationId?: string; invoiceId: string; lineType: string; description: string; quantity: number; unitPrice: number;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
+  choice(input.lineType, ["SERVICE", "LABOR", "MATERIAL", "TRAVEL", "OTHER"], "invoice line type");
+  input.description = requiredText(input.description, "Line description", 512);
+  nonNegativeDecimal(input.quantity, "Quantity", 999999999.999);
+  nonNegativeDecimal(input.unitPrice, "Unit price", 999999999999.99);
+  if (input.quantity <= 0) throw new Error("Quantity must be greater than zero.");
+  const amount = Math.round(input.quantity * input.unitPrice * 100) / 100;
+
+  return prisma.$transaction(async (tx) => {
+    const invoices = await tx.$queryRaw<Array<{ id: string; status: string }>>(Prisma.sql`
+      SELECT id, status FROM OperationsInvoice
+      WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}
+      LIMIT 1 FOR UPDATE`);
+    const invoice = invoices[0];
+    if (!invoice) throw new Error("Invoice is outside your tenant scope.");
+    if (invoice.status !== "DRAFT") throw new Error("Only draft invoices can be edited.");
+
+    const id = randomUUID();
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO OperationsInvoiceLine
+        (id, organizationId, invoiceId, lineType, description, quantity, unitPrice, amount, sortOrder, createdAt)
+      VALUES
+        (${id}, ${organizationId}, ${input.invoiceId}, ${input.lineType}, ${input.description}, ${input.quantity}, ${input.unitPrice}, ${amount},
+         (SELECT COALESCE(MAX(existing.sortOrder), -1) + 1 FROM OperationsInvoiceLine existing WHERE existing.organizationId = ${organizationId} AND existing.invoiceId = ${input.invoiceId}), NOW(3))`);
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE OperationsInvoice i SET
+        i.subtotal = (SELECT COALESCE(SUM(l.amount), 0) FROM OperationsInvoiceLine l WHERE l.organizationId = ${organizationId} AND l.invoiceId = ${input.invoiceId}),
+        i.totalAmount = GREATEST(0,
+          (SELECT COALESCE(SUM(l.amount), 0) FROM OperationsInvoiceLine l WHERE l.organizationId = ${organizationId} AND l.invoiceId = ${input.invoiceId})
+          + i.taxAmount - i.discountAmount),
+        i.updatedAt = NOW(3)
+      WHERE i.id = ${input.invoiceId} AND i.organizationId = ${organizationId}`);
+    return id;
+  });
+}
