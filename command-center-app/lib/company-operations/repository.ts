@@ -208,3 +208,43 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
     return id;
   });
 }
+
+
+export async function recordInvoicePayment(actor: OperationsActor, input: {
+  organizationId?: string; invoiceId: string; amount: number; paidAt: string; method?: string; reference?: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
+  nonNegativeDecimal(input.amount, "Payment amount", 999999999999.99);
+  if (input.amount <= 0) throw new Error("Payment amount must be greater than zero.");
+  const paidAt = new Date(input.paidAt);
+  if (Number.isNaN(paidAt.getTime())) throw new Error("Invalid payment date.");
+  const method = input.method ? requiredText(input.method, "Payment method", 32) : null;
+  const reference = input.reference ? requiredText(input.reference, "Payment reference", 191) : null;
+
+  return prisma.$transaction(async (tx) => {
+    const invoices = await tx.$queryRaw<Array<{ id: string; totalAmount: Prisma.Decimal; paidAmount: Prisma.Decimal; status: string }>>(Prisma.sql`
+      SELECT id, totalAmount, paidAmount, status FROM OperationsInvoice
+      WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}
+      LIMIT 1 FOR UPDATE`);
+    const invoice = invoices[0];
+    if (!invoice) throw new Error("Invoice is outside your tenant scope.");
+    if (invoice.status === "DRAFT") throw new Error("Draft invoices cannot receive payments.");
+    const totalAmount = Number(invoice.totalAmount);
+    const paidAmount = Number(invoice.paidAmount);
+    const nextPaidAmount = paidAmount + input.amount;
+    if (nextPaidAmount > totalAmount) throw new Error("Payment exceeds the invoice outstanding balance.");
+
+    const id = randomUUID();
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO OperationsPayment
+        (id, organizationId, invoiceId, amount, paidAt, method, reference, createdByUserId, createdAt)
+      VALUES
+        (${id}, ${organizationId}, ${input.invoiceId}, ${input.amount}, ${paidAt}, ${method}, ${reference}, ${actor.id}, NOW(3))`);
+    const nextStatus = nextPaidAmount === totalAmount ? "PAID" : invoice.status;
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE OperationsInvoice SET paidAmount = ${nextPaidAmount}, status = ${nextStatus}, updatedAt = NOW(3)
+      WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}`);
+    return id;
+  });
+}
