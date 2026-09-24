@@ -231,6 +231,18 @@ test("project profitability uses linked labor, expenses and issued invoices", as
 });
 
 
+
+test("client-safe invoice read model is tenant-scoped and excludes internal operations data", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+  const missing = repository();
+  await assert.rejects(() => missing.api.getClientSafeInvoice(admin, { invoiceId: "foreign" }), /outside your tenant scope/);
+  const invoiceQuery = missing.queries.find(query => query.sql.includes("FROM OperationsInvoice i"))!;
+  assert.ok(invoiceQuery.values.includes("foreign"));
+  assert.ok(invoiceQuery.values.includes("org"));
+  assert.doesNotMatch(invoiceQuery.sql, /hourlyPayRate|OperationsExpense|FieldTechnicianProfile/);
+});
+
+
 test("invoice lines require a tenant-owned draft and recalculate totals atomically", async () => {
   const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
 
