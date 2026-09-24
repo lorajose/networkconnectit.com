@@ -58,7 +58,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       ORDER BY p.updatedAt DESC LIMIT 100`),
     // Aggregate independently of the capped detail lists. Drafts are not receivables.
     prisma.$queryRaw<Array<{
-      technicianCount: bigint; upcomingAssignments: bigint; laborHours: Prisma.Decimal;
+      technicianCount: bigint; upcomingAssignments: bigint; laborHours: Prisma.Decimal; scheduledHours: Prisma.Decimal; overdueInvoices: bigint;
       invoiced: Prisma.Decimal; outstanding: Prisma.Decimal; expenses: Prisma.Decimal;
     }>>(Prisma.sql`
       SELECT
@@ -69,6 +69,12 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
            AND entryType = 'ASSIGNMENT' AND endsAt >= NOW()) AS upcomingAssignments,
         (SELECT COALESCE(SUM(regularHours + overtimeHours), 0) FROM OperationsTimeEntry
          WHERE organizationId = ${organizationId} AND status IN ('DRAFT', 'SUBMITTED', 'APPROVED')) AS laborHours,
+        (SELECT COALESCE(SUM(TIMESTAMPDIFF(MINUTE, startsAt, endsAt)) / 60, 0) FROM OperationsScheduleEntry
+         WHERE organizationId = ${organizationId} AND entryType = 'ASSIGNMENT' AND status = 'SCHEDULED'
+           AND startsAt >= DATE_SUB(NOW(), INTERVAL 30 DAY) AND startsAt < DATE_ADD(NOW(), INTERVAL 30 DAY)) AS scheduledHours,
+        (SELECT COUNT(*) FROM OperationsInvoice
+         WHERE organizationId = ${organizationId} AND status IN ('SENT', 'OVERDUE')
+           AND dueDate IS NOT NULL AND dueDate < CURRENT_DATE() AND paidAmount < totalAmount) AS overdueInvoices,
         (SELECT COALESCE(SUM(totalAmount), 0) FROM OperationsInvoice
          WHERE organizationId = ${organizationId} AND status IN ('SENT', 'PAID', 'OVERDUE')) AS invoiced,
         (SELECT COALESCE(SUM(totalAmount - paidAmount), 0) FROM OperationsInvoice
@@ -84,6 +90,9 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
+    scheduledHours: Number(total.scheduledHours),
+    utilizationPercent: Number(total.scheduledHours) > 0 ? Math.min(100, (Number(total.laborHours) / Number(total.scheduledHours)) * 100) : null,
+    overdueInvoices: Number(total.overdueInvoices),
     invoiced: Number(total.invoiced),
     outstanding: Number(total.outstanding),
     expenses: Number(total.expenses)
