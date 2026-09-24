@@ -22,6 +22,7 @@ if (authUrl) {
     if (url.protocol !== "https:" && url.hostname !== "localhost") failures.push("NEXTAUTH_URL must use HTTPS in production");
     const expected = `${basePath}/api/auth`.replace(/\/+/g, "/");
     if (!url.pathname.endsWith(expected)) failures.push(`NEXTAUTH_URL path must end with ${expected}`);
+    if (url.hostname === rootDomain && basePath === legacyBasePath) failures.push(`NEXT_PUBLIC_APP_BASE_PATH must be empty when NEXTAUTH_URL uses ${rootDomain}`);
   } catch {
     failures.push("NEXTAUTH_URL must be a valid URL");
   }
