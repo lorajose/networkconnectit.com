@@ -212,3 +212,30 @@ test("project profitability uses linked labor, expenses and issued invoices", as
   assert.match(query.sql, /projectInstallationId = p\.id/);
   assert.equal((query.sql.match(/status IN \('SENT', 'PAID', 'OVERDUE'\)/g) ?? []).length, 2);
 });
+
+
+test("invoice lines require a tenant-owned draft and recalculate totals atomically", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+
+  const foreign = repository();
+  await assert.rejects(() => foreign.api.addInvoiceLine(admin, {
+    invoiceId: "foreign", lineType: "LABOR", description: "Cable runs", quantity: 2, unitPrice: 150
+  }), /outside your tenant scope/);
+  assert.deepEqual(foreign.events, ["begin", "lock", "rollback"]);
+
+  const sent = repository({ invoice: { totalAmount: 300, paidAmount: 0, status: "SENT" } });
+  await assert.rejects(() => sent.api.addInvoiceLine(admin, {
+    invoiceId: "invoice", lineType: "LABOR", description: "Cable runs", quantity: 2, unitPrice: 150
+  }), /Only draft invoices/);
+  assert.deepEqual(sent.events, ["begin", "lock", "rollback"]);
+
+  const draft = repository({ invoice: { totalAmount: 0, paidAmount: 0, status: "DRAFT" } });
+  await draft.api.addInvoiceLine(admin, {
+    invoiceId: "invoice", lineType: "LABOR", description: "Cable runs", quantity: 2, unitPrice: 150
+  });
+  assert.deepEqual(draft.events, ["begin", "lock", "write", "write", "commit"]);
+  const insert = draft.queries.find(query => query.sql.includes("INSERT INTO OperationsInvoiceLine"))!;
+  assert.ok(insert.values.includes(300));
+  const update = draft.queries.find(query => query.sql.includes("UPDATE OperationsInvoice i"))!;
+  assert.match(update.sql, /SUM\(l\.amount\)/);
+});
