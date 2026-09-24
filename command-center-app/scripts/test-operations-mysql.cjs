@@ -72,13 +72,21 @@ async function main() {
   assert.ok(approved[0].approvedAt);
 
   await repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'CI cable', amount: 100, expenseDate: '2030-01-01', reimbursable: false });
-  const invoiceId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-001', customerName: 'CI Client', totalAmount: 0, dueDate: '2030-01-31' });
+  const invoiceId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-001', customerName: 'CI Client', dueDate: '2030-01-31' });
   await repo.addInvoiceLine(actor, { invoiceId, lineType: 'LABOR', description: 'Install', quantity: 10, unitPrice: 100 });
   const draft = await prisma.$queryRaw`SELECT subtotal, totalAmount, status FROM OperationsInvoice WHERE id = ${invoiceId}`;
   assert.equal(Number(draft[0].subtotal), 1000);
   assert.equal(Number(draft[0].totalAmount), 1000);
   assert.equal(draft[0].status, 'DRAFT');
+  const adjustedTotal = await repo.updateInvoiceAdjustments(actor, { invoiceId, taxAmount: 25, discountAmount: 25 });
+  assert.equal(adjustedTotal, 1000);
+  const adjusted = await prisma.$queryRaw`SELECT subtotal, taxAmount, discountAmount, totalAmount FROM OperationsInvoice WHERE id = ${invoiceId}`;
+  assert.equal(Number(adjusted[0].subtotal), 1000);
+  assert.equal(Number(adjusted[0].taxAmount), 25);
+  assert.equal(Number(adjusted[0].discountAmount), 25);
+  assert.equal(Number(adjusted[0].totalAmount), 1000);
   await repo.sendInvoice(actor, { invoiceId });
+  await assert.rejects(() => repo.updateInvoiceAdjustments(actor, { invoiceId, taxAmount: 50, discountAmount: 0 }), /Only draft invoices/);
   await repo.recordInvoicePayment(actor, { invoiceId, amount: 400, paidAt: '2030-01-10T12:00:00Z', method: 'ACH' });
   await assert.rejects(() => repo.recordInvoicePayment(actor, { invoiceId, amount: 700, paidAt: '2030-01-11T12:00:00Z' }), /exceeds/);
   await repo.recordInvoicePayment(actor, { invoiceId, amount: 600, paidAt: '2030-01-12T12:00:00Z', method: 'ACH' });
@@ -97,6 +105,6 @@ async function main() {
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').laborCost, 550);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 350);
-  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, atomic payments and project profitability.');
+  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, atomic payments and project profitability.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
