@@ -1,6 +1,6 @@
 import { SignInForm } from "@/components/auth/sign-in-form";
 import { Badge } from "@/components/ui/badge";
-import { withAppBasePath } from "@/lib/app-paths";
+import { normalizeAppCallbackUrl } from "@/lib/app-paths";
 
 type LoginPageProps = {
   searchParams?: {
@@ -36,7 +36,7 @@ function getNoticeMessage(bootstrap?: string, email?: string) {
 }
 
 export default function LoginPage({ searchParams }: LoginPageProps) {
-  const callbackUrl = searchParams?.callbackUrl || withAppBasePath("/dashboard");
+  const callbackUrl = normalizeAppCallbackUrl(searchParams?.callbackUrl);
 
   return (
     <main className="mx-auto max-w-6xl px-4 py-16 sm:px-6 lg:px-8">
