@@ -145,26 +145,40 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
   requiredText(input.technicianProfileId, "Technician", 191);
   input.title = requiredText(input.title, "Schedule title", 255);
   choice(input.entryType, ["ASSIGNMENT", "AVAILABLE", "UNAVAILABLE", "PTO"], "schedule type");
-  const tech = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-    SELECT id FROM FieldTechnicianProfile
-    WHERE id = ${input.technicianProfileId} AND organizationId = ${organizationId} LIMIT 1`);
-  if (!tech[0]) throw new Error("Technician is outside your tenant scope.");
   const startsAt = new Date(input.startsAt);
   const endsAt = new Date(input.endsAt);
   if (!(startsAt < endsAt)) throw new Error("Schedule end must be after start.");
-  const conflicts = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
-    SELECT id FROM OperationsScheduleEntry
-    WHERE organizationId = ${organizationId}
-      AND technicianProfileId = ${input.technicianProfileId}
-      AND status <> 'CANCELLED'
-      AND startsAt < ${endsAt} AND endsAt > ${startsAt}
-    LIMIT 1`);
-  if (conflicts[0]) throw new Error("Technician already has a conflicting schedule entry.");
-  const id = randomUUID();
-  await prisma.$executeRaw(Prisma.sql`
-    INSERT INTO OperationsScheduleEntry
-      (id, organizationId, technicianProfileId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
-    VALUES
-      (${id}, ${organizationId}, ${input.technicianProfileId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
-  return id;
+
+  // Serialize bookings on the tenant-owned technician row, including the first
+  // booking when there are no schedule rows to lock yet. Every schedule writer
+  // must acquire this lock before checking conflicts or modifying the calendar.
+  return prisma.$transaction(async (tx) => {
+    const tech = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT id FROM FieldTechnicianProfile
+      WHERE id = ${input.technicianProfileId} AND organizationId = ${organizationId}
+        AND status = 'ACTIVE'
+      LIMIT 1 FOR UPDATE`);
+    if (!tech[0]) throw new Error("Technician is inactive or outside your tenant scope.");
+
+    // AVAILABLE is advisory availability, not a reservation. Assignments, PTO
+    // and unavailable periods block each other; adjacent intervals are allowed.
+    if (input.entryType !== "AVAILABLE") {
+      const conflicts = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT id FROM OperationsScheduleEntry
+        WHERE organizationId = ${organizationId}
+          AND technicianProfileId = ${input.technicianProfileId}
+          AND status <> 'CANCELLED'
+          AND entryType <> 'AVAILABLE'
+          AND startsAt < ${endsAt} AND endsAt > ${startsAt}
+        LIMIT 1 FOR UPDATE`);
+      if (conflicts[0]) throw new Error("Technician already has a conflicting schedule entry.");
+    }
+    const id = randomUUID();
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO OperationsScheduleEntry
+        (id, organizationId, technicianProfileId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
+      VALUES
+        (${id}, ${organizationId}, ${input.technicianProfileId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+    return id;
+  });
 }
