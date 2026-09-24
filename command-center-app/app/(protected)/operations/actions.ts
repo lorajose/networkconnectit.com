@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRoles } from "@/lib/auth";
-import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, submitTimeEntry } from "@/lib/company-operations/repository";
+import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, updateInvoiceAdjustments, submitTimeEntry } from "@/lib/company-operations/repository";
 import { routeAccess } from "@/lib/rbac";
 
 function text(formData: FormData, key: string) {
@@ -70,7 +70,6 @@ export async function createInvoiceAction(formData: FormData) {
     projectInstallationId: text(formData, "projectInstallationId") || undefined,
     invoiceNumber: text(formData, "invoiceNumber"),
     customerName: text(formData, "customerName"),
-    totalAmount: number(formData, "totalAmount"),
     dueDate: text(formData, "dueDate") || undefined
   });
   refresh();
@@ -109,6 +108,18 @@ export async function recordInvoicePaymentAction(formData: FormData) {
   refresh();
 }
 
+
+
+export async function updateInvoiceAdjustmentsAction(formData: FormData) {
+  const user = await actor();
+  await updateInvoiceAdjustments(user, {
+    organizationId: org(formData),
+    invoiceId: text(formData, "invoiceId"),
+    taxAmount: number(formData, "taxAmount"),
+    discountAmount: number(formData, "discountAmount")
+  });
+  refresh();
+}
 
 export async function addInvoiceLineAction(formData: FormData) {
   const user = await actor();
