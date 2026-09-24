@@ -95,6 +95,11 @@ export async function createInvoice(actor: OperationsActor, input: {
   input.customerName = requiredText(input.customerName, "Customer name", 255);
   nonNegativeDecimal(input.totalAmount, "Invoice total", 999999999999.99);
   const dueDate = input.dueDate ? calendarDate(input.dueDate, "due date") : null;
+  const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
+  if (projectInstallationId) {
+    const project = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM ProjectInstallation WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
+    if (!project[0]) throw new Error("Project is outside your tenant scope.");
+  }
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsInvoice
