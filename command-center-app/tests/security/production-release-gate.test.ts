@@ -19,6 +19,25 @@ test("production gate supports the root command domain and legacy path deploymen
   assert.match(source, /NEXTAUTH_URL path must end with/);
 });
 
+test("root command domain accepts root auth URL with an empty app base path", () => {
+  const result = spawnSync(process.execPath, [gatePath], {
+    encoding: "utf8",
+    env: {
+      ...process.env,
+      NODE_ENV: "production",
+      NEXTAUTH_URL: "https://command.networkconnectit.com/api/auth",
+      NEXTAUTH_SECRET: "0123456789abcdefghijklmnopqrstuvwxyzABCDEF",
+      NEXT_PUBLIC_APP_BASE_PATH: "",
+      DB_HOST: "10.0.0.10",
+      DB_NAME: "command_center",
+      DB_USER: "command_center",
+      BID_STORAGE_DRIVER: "filesystem",
+      BID_PRIVATE_STORAGE_ROOT: "/tmp/command-center-private"
+    }
+  });
+  assert.equal(result.status, 0, result.stderr || result.stdout);
+});
+
 test("production gate fails closed on bootstrap and recovery hazards", () => {
   assert.match(source, /NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP/);
   assert.match(source, /ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present/);
