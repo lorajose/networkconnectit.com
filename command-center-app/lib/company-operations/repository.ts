@@ -8,7 +8,7 @@ export type { OperationsActor } from "./policy";
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
-  const [technicians, projects, schedule, timeEntries, invoices, expenses, totals] = await Promise.all([
+  const [technicians, projects, schedule, timeEntries, invoices, expenses, projectProfitability, totals] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
@@ -37,6 +37,25 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       SELECT id, category, description, amount, expenseDate, reimbursable
       FROM OperationsExpense WHERE organizationId = ${organizationId}
       ORDER BY expenseDate DESC, createdAt DESC LIMIT 50`),
+    prisma.$queryRaw<Array<{
+      id: string; name: string; projectCode: string | null; laborCost: Prisma.Decimal;
+      expenses: Prisma.Decimal; revenue: Prisma.Decimal; outstanding: Prisma.Decimal;
+    }>>(Prisma.sql`
+      SELECT p.id, p.name, p.projectCode,
+        COALESCE((SELECT SUM((t.regularHours + (t.overtimeHours * 1.5)) * COALESCE(t.hourlyPayRateSnapshot, 0))
+          FROM OperationsTimeEntry t WHERE t.organizationId = p.organizationId
+            AND t.projectInstallationId = p.id AND t.status IN ('DRAFT', 'SUBMITTED', 'APPROVED')), 0) AS laborCost,
+        COALESCE((SELECT SUM(e.amount) FROM OperationsExpense e
+          WHERE e.organizationId = p.organizationId AND e.projectInstallationId = p.id), 0) AS expenses,
+        COALESCE((SELECT SUM(i.totalAmount) FROM OperationsInvoice i
+          WHERE i.organizationId = p.organizationId AND i.projectInstallationId = p.id
+            AND i.status IN ('SENT', 'PAID', 'OVERDUE')), 0) AS revenue,
+        COALESCE((SELECT SUM(i.totalAmount - i.paidAmount) FROM OperationsInvoice i
+          WHERE i.organizationId = p.organizationId AND i.projectInstallationId = p.id
+            AND i.status IN ('SENT', 'PAID', 'OVERDUE')), 0) AS outstanding
+      FROM ProjectInstallation p
+      WHERE p.organizationId = ${organizationId}
+      ORDER BY p.updatedAt DESC LIMIT 100`),
     // Aggregate independently of the capped detail lists. Drafts are not receivables.
     prisma.$queryRaw<Array<{
       technicianCount: bigint; upcomingAssignments: bigint; laborHours: Prisma.Decimal;
@@ -60,7 +79,8 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
 
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
-  return { organizationId, technicians, projects, schedule, timeEntries, invoices, expenses, metrics: {
+  const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
+  return { organizationId, technicians, projects, schedule, timeEntries, invoices, expenses, projectProfitability: profitability, metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
