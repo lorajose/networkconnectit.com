@@ -15,6 +15,7 @@ function repository(options: { technician?: boolean; project?: boolean; conflict
       events.push(query.sql.includes("FOR UPDATE") ? "lock" : "read");
       if (query.sql.includes("OperationsInvoice") && query.sql.includes("FOR UPDATE")) return options.invoice ? [{ id: "invoice", ...options.invoice }] : [];
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
+      if (query.sql.includes("FROM FieldTechnicianProfile") && query.sql.includes("WHERE id =")) return options.technician ? [{ id: "tech", hourlyPayRate: 50 }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
       if (query.sql.includes("AS laborCost") && query.sql.includes("FROM ProjectInstallation p")) return options.profitability ?? [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 90, scheduledHours: 120, overdueInvoices: BigInt(3), invoiced: 10000, outstanding: 4000, expenses: 2500 }];
@@ -66,7 +67,7 @@ test("dashboard uses organization aggregates rather than capped detail rows", as
   const { api, queries } = repository();
   const result = await api.getOperationsSnapshot({ id: "a", role: "CLIENT_ADMIN", organizationId: "org" }) as { metrics: Record<string, number>; invoices: unknown[] };
   assert.equal(result.invoices.length, 0);
-  assert.deepEqual(result.metrics, { technicianCount: 120, upcomingAssignments: 80, laborHours: 900, invoiced: 10000, outstanding: 4000, expenses: 2500 });
+  assert.deepEqual(result.metrics, { technicianCount: 120, upcomingAssignments: 80, laborHours: 90, scheduledHours: 120, utilizationPercent: 75, overdueInvoices: 3, invoiced: 10000, outstanding: 4000, expenses: 2500 });
   const aggregate = queries.find(query => query.sql.includes("AS technicianCount"))!;
   assert.deepEqual(aggregate.values, Array(6).fill("org"));
   assert.doesNotMatch(aggregate.sql, /LIMIT/);
