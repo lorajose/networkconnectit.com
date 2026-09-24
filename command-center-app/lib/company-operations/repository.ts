@@ -8,11 +8,15 @@ export type { OperationsActor } from "./policy";
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
-  const [technicians, schedule, timeEntries, invoices, expenses, totals] = await Promise.all([
+  const [technicians, projects, schedule, timeEntries, invoices, expenses, totals] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
       ORDER BY displayName ASC LIMIT 100`),
+    prisma.$queryRaw<Array<{ id: string; name: string; projectCode: string | null }>>(Prisma.sql`
+      SELECT id, name, projectCode FROM ProjectInstallation
+      WHERE organizationId = ${organizationId} AND status NOT IN ('COMPLETE', 'ARCHIVED')
+      ORDER BY updatedAt DESC LIMIT 100`),
     prisma.$queryRaw<Array<{ id: string; title: string; technicianName: string; startsAt: Date; endsAt: Date; status: string }>>(Prisma.sql`
       SELECT s.id, s.title, t.displayName AS technicianName, s.startsAt, s.endsAt, s.status
       FROM OperationsScheduleEntry s
@@ -56,7 +60,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
 
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
-  return { organizationId, technicians, schedule, timeEntries, invoices, expenses, metrics: {
+  return { organizationId, technicians, projects, schedule, timeEntries, invoices, expenses, metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
@@ -139,11 +143,12 @@ export async function createTimeEntry(actor: OperationsActor, input: {
 }
 
 export async function createScheduleEntry(actor: OperationsActor, input: {
-  organizationId?: string; technicianProfileId: string; title: string; startsAt: string; endsAt: string; entryType: string;
+  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; title: string; startsAt: string; endsAt: string; entryType: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   requiredText(input.technicianProfileId, "Technician", 191);
   input.title = requiredText(input.title, "Schedule title", 255);
+  const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
   choice(input.entryType, ["ASSIGNMENT", "AVAILABLE", "UNAVAILABLE", "PTO"], "schedule type");
   const startsAt = new Date(input.startsAt);
   const endsAt = new Date(input.endsAt);
@@ -159,6 +164,12 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
         AND status = 'ACTIVE'
       LIMIT 1 FOR UPDATE`);
     if (!tech[0]) throw new Error("Technician is inactive or outside your tenant scope.");
+    if (projectInstallationId) {
+      const project = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+        SELECT id FROM ProjectInstallation
+        WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
+      if (!project[0]) throw new Error("Project is outside your tenant scope.");
+    }
 
     // AVAILABLE is advisory availability, not a reservation. Assignments, PTO
     // and unavailable periods block each other; adjacent intervals are allowed.
@@ -176,9 +187,9 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
     const id = randomUUID();
     await tx.$executeRaw(Prisma.sql`
       INSERT INTO OperationsScheduleEntry
-        (id, organizationId, technicianProfileId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
+        (id, organizationId, technicianProfileId, projectInstallationId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
       VALUES
-        (${id}, ${organizationId}, ${input.technicianProfileId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
     return id;
   });
 }
