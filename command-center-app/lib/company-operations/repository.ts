@@ -88,7 +88,7 @@ export async function createTechnician(actor: OperationsActor, input: {
 }
 
 export async function createInvoice(actor: OperationsActor, input: {
-  organizationId?: string; invoiceNumber: string; customerName: string; totalAmount: number; dueDate?: string;
+  organizationId?: string; projectInstallationId?: string; invoiceNumber: string; customerName: string; totalAmount: number; dueDate?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   input.invoiceNumber = requiredText(input.invoiceNumber, "Invoice number", 64);
