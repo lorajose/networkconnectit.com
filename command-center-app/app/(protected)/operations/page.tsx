@@ -46,6 +46,13 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
 
     <p className="text-sm text-muted-foreground">Totals cover all records for this organization. Issued invoices and outstanding balances exclude drafts; recorded hours include draft, submitted and approved entries. Lists below show recent records.</p>
 
+    <Card><CardHeader><CardTitle>Project profitability</CardTitle></CardHeader><CardContent className="space-y-3">
+      {snapshot.projectProfitability.length ? snapshot.projectProfitability.map(p => <div key={p.id} className="rounded-xl border p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-semibold">{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</p><p className="text-xs text-muted-foreground">Issued revenue excludes draft invoices. Labor uses the historical pay-rate snapshot; overtime is costed at 1.5×.</p></div><div className="text-right"><p className="font-semibold">{money(p.grossProfit)} gross profit</p><p className="text-xs text-muted-foreground">{p.marginPercent === null ? "Margin unavailable until revenue is issued" : `${p.marginPercent.toFixed(1)}% margin`}</p></div></div>
+        <div className="mt-3 grid gap-2 sm:grid-cols-4"><div><p className="text-xs text-muted-foreground">Revenue</p><p>{money(p.revenue)}</p></div><div><p className="text-xs text-muted-foreground">Labor cost</p><p>{money(p.laborCost)}</p></div><div><p className="text-xs text-muted-foreground">Expenses</p><p>{money(p.expenses)}</p></div><div><p className="text-xs text-muted-foreground">Outstanding</p><p>{money(p.outstanding)}</p></div></div>
+      </div>) : <p className="text-sm text-muted-foreground">No project profitability data yet.</p>}
+    </CardContent></Card>
+
     <Card><CardHeader><CardTitle>{org?.name ?? "Organization"} operational controls</CardTitle></CardHeader><CardContent className="grid gap-6 xl:grid-cols-2">
       <form action={createTechnicianAction} className="space-y-3 rounded-2xl border p-4">
         <h3 className="font-semibold">Technicians / Team</h3><input type="hidden" name="organizationId" value={organizationId} />
