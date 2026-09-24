@@ -119,3 +119,31 @@ export async function createTimeEntry(actor: OperationsActor, input: {
       (${id}, ${organizationId}, ${input.technicianProfileId}, ${new Date(input.workDate)}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
+
+export async function createScheduleEntry(actor: OperationsActor, input: {
+  organizationId?: string; technicianProfileId: string; title: string; startsAt: string; endsAt: string; entryType: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  const tech = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id FROM FieldTechnicianProfile
+    WHERE id = ${input.technicianProfileId} AND organizationId = ${organizationId} LIMIT 1`);
+  if (!tech[0]) throw new Error("Technician is outside your tenant scope.");
+  const startsAt = new Date(input.startsAt);
+  const endsAt = new Date(input.endsAt);
+  if (!(startsAt < endsAt)) throw new Error("Schedule end must be after start.");
+  const conflicts = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id FROM OperationsScheduleEntry
+    WHERE organizationId = ${organizationId}
+      AND technicianProfileId = ${input.technicianProfileId}
+      AND status <> 'CANCELLED'
+      AND startsAt < ${endsAt} AND endsAt > ${startsAt}
+    LIMIT 1`);
+  if (conflicts[0]) throw new Error("Technician already has a conflicting schedule entry.");
+  const id = randomUUID();
+  await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO OperationsScheduleEntry
+      (id, organizationId, technicianProfileId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
+    VALUES
+      (${id}, ${organizationId}, ${input.technicianProfileId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+  return id;
+}
