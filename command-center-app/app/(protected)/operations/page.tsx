@@ -33,18 +33,20 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
       {organizations.map((item) => <Link key={item.id} href={`/operations?organizationId=${item.id}`} className={`rounded-xl border px-3 py-2 text-sm ${item.id === organizationId ? "border-primary bg-primary/10" : "border-border"}`}>{item.name}</Link>)}
     </CardContent></Card> : null}
 
-    <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
+    <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-4">
       {[
         ["Active technicians", snapshot.metrics.technicianCount],
         ["Upcoming", snapshot.metrics.upcomingAssignments],
         ["Recorded hours", snapshot.metrics.laborHours.toFixed(2)],
         ["Issued invoices", money(snapshot.metrics.invoiced)],
         ["Outstanding", money(snapshot.metrics.outstanding)],
-        ["Expenses", money(snapshot.metrics.expenses)]
+        ["Expenses", money(snapshot.metrics.expenses)],
+        ["Utilization", snapshot.metrics.utilizationPercent === null ? "—" : `${snapshot.metrics.utilizationPercent.toFixed(1)}%`],
+        ["Overdue invoices", snapshot.metrics.overdueInvoices]
       ].map(([label, value]) => <Card key={String(label)}><CardContent className="p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></CardContent></Card>)}
     </div>
 
-    <p className="text-sm text-muted-foreground">Totals cover all records for this organization. Issued invoices and outstanding balances exclude drafts; recorded hours include draft, submitted and approved entries. Lists below show recent records.</p>
+    <p className="text-sm text-muted-foreground">Totals cover organization records rather than the capped detail lists. Issued invoices and outstanding exclude drafts. Utilization compares recorded hours with scheduled assignment hours; overdue counts unpaid issued invoices past due. Lists below show recent records.</p>
 
     <Card><CardHeader><CardTitle>Project profitability</CardTitle></CardHeader><CardContent className="space-y-3">
       {snapshot.projectProfitability.length ? snapshot.projectProfitability.map(p => <div key={p.id} className="rounded-xl border p-4">
