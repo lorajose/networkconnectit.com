@@ -121,9 +121,9 @@ export async function createExpense(actor: OperationsActor, input: {
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsExpense
-      (id, organizationId, category, description, amount, expenseDate, reimbursable, createdByUserId, createdAt, updatedAt)
+      (id, organizationId, projectInstallationId, category, description, amount, expenseDate, reimbursable, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable}, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${projectInstallationId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable}, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
