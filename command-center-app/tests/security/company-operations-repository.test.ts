@@ -17,7 +17,7 @@ function repository(options: { technician?: boolean; project?: boolean; conflict
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
       if (query.sql.includes("AS laborCost") && query.sql.includes("FROM ProjectInstallation p")) return options.profitability ?? [];
-      if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 900, invoiced: 10000, outstanding: 4000, expenses: 2500 }];
+      if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 90, scheduledHours: 120, overdueInvoices: BigInt(3), invoiced: 10000, outstanding: 4000, expenses: 2500 }];
       return [];
     },
     $executeRaw: async (query: { sql: string; values: unknown[] }) => { queries.push(query); events.push("write"); return 1; }
@@ -195,6 +195,18 @@ test("payments lock invoice, reject drafts and overpayment, and atomically updat
   assert.ok(update.values.includes("PAID"));
 });
 
+
+test("dashboard derives utilization and overdue alerts from organization aggregates", async () => {
+  const { api, queries } = repository();
+  const result = await api.getOperationsSnapshot({ id: "admin", role: "CLIENT_ADMIN", organizationId: "org" }) as { metrics: Record<string, number | null> };
+  assert.equal(result.metrics.scheduledHours, 120);
+  assert.equal(result.metrics.utilizationPercent, 75);
+  assert.equal(result.metrics.overdueInvoices, 3);
+  const aggregate = queries.find(query => query.sql.includes("AS technicianCount"))!;
+  assert.match(aggregate.sql, /TIMESTAMPDIFF/);
+  assert.match(aggregate.sql, /dueDate < CURRENT_DATE\(\)/);
+  assert.match(aggregate.sql, /paidAmount < totalAmount/);
+});
 
 test("project profitability uses linked labor, expenses and issued invoices", async () => {
   const { api, queries } = repository({ profitability: [{
