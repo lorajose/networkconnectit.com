@@ -14,7 +14,7 @@ test("production gate script is syntactically valid JavaScript", () => {
 
 test("production gate supports the root command domain and legacy path deployment", () => {
   assert.match(source, /legacyBasePath = "\/tools\/command-center"/);
-  assert.match(source, /rootDomain = "command\\.networkconnectit\\.com"/);
+  assert.ok(source.includes('const rootDomain = "command.networkconnectit.com";'));
   assert.match(source, /NEXT_PUBLIC_APP_BASE_PATH must be empty when NEXTAUTH_URL uses/);
   assert.match(source, /NEXTAUTH_URL path must end with/);
 });

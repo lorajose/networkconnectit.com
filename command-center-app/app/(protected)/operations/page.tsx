@@ -35,14 +35,16 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
 
     <div className="grid gap-3 md:grid-cols-3 xl:grid-cols-6">
       {[
-        ["Technicians", snapshot.metrics.technicianCount],
+        ["Active technicians", snapshot.metrics.technicianCount],
         ["Upcoming", snapshot.metrics.upcomingAssignments],
-        ["Labor hours", snapshot.metrics.laborHours.toFixed(2)],
-        ["Invoiced", money(snapshot.metrics.invoiced)],
+        ["Recorded hours", snapshot.metrics.laborHours.toFixed(2)],
+        ["Issued invoices", money(snapshot.metrics.invoiced)],
         ["Outstanding", money(snapshot.metrics.outstanding)],
         ["Expenses", money(snapshot.metrics.expenses)]
       ].map(([label, value]) => <Card key={String(label)}><CardContent className="p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">{label}</p><p className="mt-2 text-2xl font-semibold">{value}</p></CardContent></Card>)}
     </div>
+
+    <p className="text-sm text-muted-foreground">Totals cover all records for this organization. Issued invoices and outstanding balances exclude drafts; recorded hours include draft, submitted and approved entries. Lists below show recent records.</p>
 
     <Card><CardHeader><CardTitle>{org?.name ?? "Organization"} operational controls</CardTitle></CardHeader><CardContent className="grid gap-6 xl:grid-cols-2">
       <form action={createTechnicianAction} className="space-y-3 rounded-2xl border p-4">
@@ -81,7 +83,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
     </CardContent></Card>
 
     <div className="grid gap-6 xl:grid-cols-2">
-      <Card><CardHeader><CardTitle>Team</CardTitle></CardHeader><CardContent className="space-y-2">{snapshot.technicians.length ? snapshot.technicians.map(t => <div key={t.id} className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">{t.displayName}</p><p className="text-xs text-muted-foreground">{t.workerType} · {t.availabilityStatus}</p></div><span className="text-sm">{t.hourlyPayRate ? money(Number(t.hourlyPayRate)) + "/hr" : "Rate not set"}</span></div>) : <p className="text-sm text-muted-foreground">No technicians yet.</p>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>Team</CardTitle></CardHeader><CardContent className="space-y-2">{snapshot.technicians.length ? snapshot.technicians.map(t => <div key={t.id} className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">{t.displayName}</p><p className="text-xs text-muted-foreground">{t.workerType} · {t.availabilityStatus}</p></div><span className="text-sm">{t.hourlyPayRate !== null ? money(Number(t.hourlyPayRate)) + "/hr" : "Rate not set"}</span></div>) : <p className="text-sm text-muted-foreground">No technicians yet.</p>}</CardContent></Card>
       <Card><CardHeader><CardTitle>Upcoming schedule</CardTitle></CardHeader><CardContent className="space-y-2">{snapshot.schedule.length ? snapshot.schedule.map(s => <div key={s.id} className="rounded-xl border p-3"><p className="font-medium">{s.title}</p><p className="text-xs text-muted-foreground">{s.technicianName} · {new Date(s.startsAt).toLocaleString()} → {new Date(s.endsAt).toLocaleString()}</p></div>) : <p className="text-sm text-muted-foreground">No upcoming assignments.</p>}</CardContent></Card>
       <Card><CardHeader><CardTitle>Invoices</CardTitle></CardHeader><CardContent className="space-y-2">{snapshot.invoices.length ? snapshot.invoices.map(i => <div key={i.id} className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">{i.invoiceNumber} · {i.customerName}</p><p className="text-xs text-muted-foreground">{i.status} · due {date(i.dueDate)}</p></div><span className="text-sm">{money(Number(i.totalAmount) - Number(i.paidAmount))} due</span></div>) : <p className="text-sm text-muted-foreground">No invoices yet.</p>}</CardContent></Card>
       <Card><CardHeader><CardTitle>Recent expenses</CardTitle></CardHeader><CardContent className="space-y-2">{snapshot.expenses.length ? snapshot.expenses.map(e => <div key={e.id} className="flex items-center justify-between rounded-xl border p-3"><div><p className="font-medium">{e.description}</p><p className="text-xs text-muted-foreground">{e.category} · {date(e.expenseDate)}</p></div><span className="text-sm">{money(Number(e.amount))}</span></div>) : <p className="text-sm text-muted-foreground">No expenses yet.</p>}</CardContent></Card>

@@ -31,7 +31,7 @@ export async function createTechnicianAction(formData: FormData) {
     organizationId: org(formData), displayName,
     workerType: text(formData, "workerType") || "1099",
     email: text(formData, "email") || undefined,
-    hourlyPayRate: number(formData, "hourlyPayRate") || undefined
+    hourlyPayRate: text(formData, "hourlyPayRate") ? number(formData, "hourlyPayRate") : undefined
   });
   refresh();
 }

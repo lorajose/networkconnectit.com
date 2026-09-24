@@ -2,27 +2,13 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import type { AppRole } from "@/lib/rbac";
-
-export type OperationsActor = {
-  id: string;
-  role: AppRole;
-  organizationId: string | null;
-};
-
-function scopedOrganizationId(actor: OperationsActor, requested?: string) {
-  if (actor.role === "SUPER_ADMIN" || actor.role === "INTERNAL_ADMIN") {
-    if (!requested) throw new Error("Select an organization for Company Operations.");
-    return requested;
-  }
-  if (!actor.organizationId) throw new Error("Your account is not assigned to an organization.");
-  if (requested && requested !== actor.organizationId) throw new Error("Organization is outside your tenant scope.");
-  return actor.organizationId;
-}
+import { calendarDate, choice, nonNegativeDecimal, optionalEmail, requiredText, scopedOrganizationId, validateHours } from "./policy";
+import type { OperationsActor } from "./policy";
+export type { OperationsActor } from "./policy";
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
-  const [technicians, schedule, timeEntries, invoices, expenses] = await Promise.all([
+  const [technicians, schedule, timeEntries, invoices, expenses, totals] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
@@ -46,21 +32,37 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
     prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean }>>(Prisma.sql`
       SELECT id, category, description, amount, expenseDate, reimbursable
       FROM OperationsExpense WHERE organizationId = ${organizationId}
-      ORDER BY expenseDate DESC, createdAt DESC LIMIT 50`)
+      ORDER BY expenseDate DESC, createdAt DESC LIMIT 50`),
+    // Aggregate independently of the capped detail lists. Drafts are not receivables.
+    prisma.$queryRaw<Array<{
+      technicianCount: bigint; upcomingAssignments: bigint; laborHours: Prisma.Decimal;
+      invoiced: Prisma.Decimal; outstanding: Prisma.Decimal; expenses: Prisma.Decimal;
+    }>>(Prisma.sql`
+      SELECT
+        (SELECT COUNT(*) FROM FieldTechnicianProfile
+         WHERE organizationId = ${organizationId} AND status = 'ACTIVE') AS technicianCount,
+        (SELECT COUNT(*) FROM OperationsScheduleEntry
+         WHERE organizationId = ${organizationId} AND status = 'SCHEDULED'
+           AND entryType = 'ASSIGNMENT' AND endsAt >= NOW()) AS upcomingAssignments,
+        (SELECT COALESCE(SUM(regularHours + overtimeHours), 0) FROM OperationsTimeEntry
+         WHERE organizationId = ${organizationId} AND status IN ('DRAFT', 'SUBMITTED', 'APPROVED')) AS laborHours,
+        (SELECT COALESCE(SUM(totalAmount), 0) FROM OperationsInvoice
+         WHERE organizationId = ${organizationId} AND status IN ('SENT', 'PAID', 'OVERDUE')) AS invoiced,
+        (SELECT COALESCE(SUM(totalAmount - paidAmount), 0) FROM OperationsInvoice
+         WHERE organizationId = ${organizationId} AND status IN ('SENT', 'PAID', 'OVERDUE')) AS outstanding,
+        (SELECT COALESCE(SUM(amount), 0) FROM OperationsExpense
+         WHERE organizationId = ${organizationId}) AS expenses`)
   ]);
 
-  const invoiceTotal = invoices.reduce((sum, row) => sum + Number(row.totalAmount), 0);
-  const paidTotal = invoices.reduce((sum, row) => sum + Number(row.paidAmount), 0);
-  const expenseTotal = expenses.reduce((sum, row) => sum + Number(row.amount), 0);
-  const laborHours = timeEntries.reduce((sum, row) => sum + Number(row.regularHours) + Number(row.overtimeHours), 0);
-
+  const total = totals[0];
+  if (!total) throw new Error("Operations totals are unavailable.");
   return { organizationId, technicians, schedule, timeEntries, invoices, expenses, metrics: {
-    technicianCount: technicians.length,
-    upcomingAssignments: schedule.length,
-    laborHours,
-    invoiced: invoiceTotal,
-    outstanding: invoiceTotal - paidTotal,
-    expenses: expenseTotal
+    technicianCount: Number(total.technicianCount),
+    upcomingAssignments: Number(total.upcomingAssignments),
+    laborHours: Number(total.laborHours),
+    invoiced: Number(total.invoiced),
+    outstanding: Number(total.outstanding),
+    expenses: Number(total.expenses)
   }};
 }
 
@@ -68,12 +70,16 @@ export async function createTechnician(actor: OperationsActor, input: {
   organizationId?: string; displayName: string; workerType: string; email?: string; hourlyPayRate?: number;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.displayName = requiredText(input.displayName, "Technician name", 191);
+  choice(input.workerType, ["1099", "W2"], "worker type");
+  const email = optionalEmail(input.email);
+  if (input.hourlyPayRate !== undefined) nonNegativeDecimal(input.hourlyPayRate, "Hourly rate", 9999999999.99);
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO FieldTechnicianProfile
       (id, organizationId, userId, displayName, status, workerType, email, hourlyPayRate, availabilityStatus, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${"ops:" + id}, ${input.displayName}, 'ACTIVE', ${input.workerType}, ${input.email || null}, ${input.hourlyPayRate ?? null}, 'AVAILABLE', NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${"ops:" + id}, ${input.displayName}, 'ACTIVE', ${input.workerType}, ${email}, ${input.hourlyPayRate ?? null}, 'AVAILABLE', NOW(3), NOW(3))`);
   return id;
 }
 
@@ -81,12 +87,16 @@ export async function createInvoice(actor: OperationsActor, input: {
   organizationId?: string; invoiceNumber: string; customerName: string; totalAmount: number; dueDate?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.invoiceNumber = requiredText(input.invoiceNumber, "Invoice number", 64);
+  input.customerName = requiredText(input.customerName, "Customer name", 255);
+  nonNegativeDecimal(input.totalAmount, "Invoice total", 999999999999.99);
+  const dueDate = input.dueDate ? calendarDate(input.dueDate, "due date") : null;
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsInvoice
       (id, organizationId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${input.dueDate ? new Date(input.dueDate) : null}, ${input.totalAmount}, ${input.totalAmount}, 0, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, ${input.totalAmount}, ${input.totalAmount}, 0, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
@@ -94,12 +104,17 @@ export async function createExpense(actor: OperationsActor, input: {
   organizationId?: string; category: string; description: string; amount: number; expenseDate: string; reimbursable: boolean;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  choice(input.category, ["MATERIALS", "TRAVEL", "TOOLS", "SUBCONTRACTOR", "OTHER"], "expense category");
+  input.description = requiredText(input.description, "Expense description", 512);
+  nonNegativeDecimal(input.amount, "Expense amount", 999999999999.99);
+  const expenseDate = calendarDate(input.expenseDate, "expense date");
+  if (typeof input.reimbursable !== "boolean") throw new Error("Invalid reimbursable flag.");
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsExpense
       (id, organizationId, category, description, amount, expenseDate, reimbursable, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.category}, ${input.description}, ${input.amount}, ${new Date(input.expenseDate)}, ${input.reimbursable}, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable}, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
@@ -107,6 +122,9 @@ export async function createTimeEntry(actor: OperationsActor, input: {
   organizationId?: string; technicianProfileId: string; workDate: string; regularHours: number; overtimeHours: number;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  validateHours(input.regularHours, input.overtimeHours);
+  const workDate = calendarDate(input.workDate, "work date");
+  requiredText(input.technicianProfileId, "Technician", 191);
   const tech = await prisma.$queryRaw<Array<{ id: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
     SELECT id, hourlyPayRate FROM FieldTechnicianProfile
     WHERE id = ${input.technicianProfileId} AND organizationId = ${organizationId} LIMIT 1`);
@@ -116,7 +134,7 @@ export async function createTimeEntry(actor: OperationsActor, input: {
     INSERT INTO OperationsTimeEntry
       (id, organizationId, technicianProfileId, workDate, regularHours, overtimeHours, hourlyPayRateSnapshot, status, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.technicianProfileId}, ${new Date(input.workDate)}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${input.technicianProfileId}, ${workDate}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
@@ -124,6 +142,9 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
   organizationId?: string; technicianProfileId: string; title: string; startsAt: string; endsAt: string; entryType: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  requiredText(input.technicianProfileId, "Technician", 191);
+  input.title = requiredText(input.title, "Schedule title", 255);
+  choice(input.entryType, ["ASSIGNMENT", "AVAILABLE", "UNAVAILABLE", "PTO"], "schedule type");
   const tech = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
     SELECT id FROM FieldTechnicianProfile
     WHERE id = ${input.technicianProfileId} AND organizationId = ${organizationId} LIMIT 1`);
