@@ -248,3 +248,14 @@ export async function recordInvoicePayment(actor: OperationsActor, input: {
     return id;
   });
 }
+
+
+export async function sendInvoice(actor: OperationsActor, input: { organizationId?: string; invoiceId: string }) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
+  const updated = await prisma.$executeRaw(Prisma.sql`
+    UPDATE OperationsInvoice
+    SET status = 'SENT', issueDate = COALESCE(issueDate, CURRENT_DATE()), updatedAt = NOW(3)
+    WHERE id = ${input.invoiceId} AND organizationId = ${organizationId} AND status = 'DRAFT'`);
+  if (updated !== 1) throw new Error("Invoice is outside your tenant scope or is not a draft.");
+}
