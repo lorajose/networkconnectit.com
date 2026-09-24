@@ -4,7 +4,7 @@ import { spawnSync } from "node:child_process";
 const base = {
   ...process.env,
   NODE_ENV: "production",
-  NEXTAUTH_SECRET: "ci-release-gate-secret-value-1234567890",
+  NEXTAUTH_SECRET: "ci-production-auth-key-8f4c2a7d91b6e305",
   NEXTAUTH_URL: "https://command.networkconnectit.com/api/auth",
   NEXT_PUBLIC_APP_BASE_PATH: "",
   DATABASE_URL: "mysql://ci:ci@db.example.internal:3306/command_center",
