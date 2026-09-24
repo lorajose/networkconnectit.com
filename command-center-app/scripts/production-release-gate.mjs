@@ -20,6 +20,7 @@ if (authUrl) {
   try {
     const url = new URL(authUrl);
     if (url.protocol !== "https:" && url.hostname !== "localhost") failures.push("NEXTAUTH_URL must use HTTPS in production");
+    if (nodeEnv === "production" && url.hostname !== rootDomain) failures.push(`NEXTAUTH_URL production host must be ${rootDomain}`);
     const expected = `${basePath}/api/auth`.replace(/\/+/g, "/");
     if (!url.pathname.endsWith(expected)) failures.push(`NEXTAUTH_URL path must end with ${expected}`);
     if (url.hostname === rootDomain && basePath === legacyBasePath) failures.push(`NEXT_PUBLIC_APP_BASE_PATH must be empty when NEXTAUTH_URL uses ${rootDomain}`);
