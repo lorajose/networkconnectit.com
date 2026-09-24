@@ -127,12 +127,11 @@ export async function createTechnician(actor: OperationsActor, input: {
 }
 
 export async function createInvoice(actor: OperationsActor, input: {
-  organizationId?: string; projectInstallationId?: string; invoiceNumber: string; customerName: string; totalAmount: number; dueDate?: string;
+  organizationId?: string; projectInstallationId?: string; invoiceNumber: string; customerName: string; dueDate?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   input.invoiceNumber = requiredText(input.invoiceNumber, "Invoice number", 64);
   input.customerName = requiredText(input.customerName, "Customer name", 255);
-  nonNegativeDecimal(input.totalAmount, "Invoice total", 999999999999.99);
   const dueDate = input.dueDate ? calendarDate(input.dueDate, "due date") : null;
   const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
   if (projectInstallationId) {
@@ -144,7 +143,7 @@ export async function createInvoice(actor: OperationsActor, input: {
     INSERT INTO OperationsInvoice
       (id, organizationId, projectInstallationId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${projectInstallationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, ${input.totalAmount}, ${input.totalAmount}, 0, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${projectInstallationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, 0, 0, 0, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
@@ -299,6 +298,33 @@ export async function sendInvoice(actor: OperationsActor, input: { organizationI
   if (updated !== 1) throw new Error("Invoice is outside your tenant scope or is not a draft.");
 }
 
+
+
+export async function updateInvoiceAdjustments(actor: OperationsActor, input: {
+  organizationId?: string; invoiceId: string; taxAmount: number; discountAmount: number;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
+  nonNegativeDecimal(input.taxAmount, "Tax amount", 999999999999.99);
+  nonNegativeDecimal(input.discountAmount, "Discount amount", 999999999999.99);
+
+  return prisma.$transaction(async (tx) => {
+    const invoices = await tx.$queryRaw<Array<{ id: string; status: string; subtotal: Prisma.Decimal }>>(Prisma.sql`
+      SELECT id, status, subtotal FROM OperationsInvoice
+      WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}
+      LIMIT 1 FOR UPDATE`);
+    const invoice = invoices[0];
+    if (!invoice) throw new Error("Invoice is outside your tenant scope.");
+    if (invoice.status !== "DRAFT") throw new Error("Only draft invoices can be edited.");
+    const subtotal = Number(invoice.subtotal);
+    const totalAmount = Math.max(0, Math.round((subtotal + input.taxAmount - input.discountAmount) * 100) / 100);
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE OperationsInvoice SET taxAmount = ${input.taxAmount}, discountAmount = ${input.discountAmount},
+        totalAmount = ${totalAmount}, updatedAt = NOW(3)
+      WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}`);
+    return totalAmount;
+  });
+}
 
 export async function addInvoiceLine(actor: OperationsActor, input: {
   organizationId?: string; invoiceId: string; lineType: string; description: string; quantity: number; unitPrice: number;
