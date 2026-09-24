@@ -123,7 +123,7 @@ export async function createExpense(actor: OperationsActor, input: {
 }
 
 export async function createTimeEntry(actor: OperationsActor, input: {
-  organizationId?: string; technicianProfileId: string; workDate: string; regularHours: number; overtimeHours: number;
+  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workDate: string; regularHours: number; overtimeHours: number;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   validateHours(input.regularHours, input.overtimeHours);
