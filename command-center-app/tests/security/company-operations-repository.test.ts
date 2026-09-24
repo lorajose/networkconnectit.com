@@ -123,3 +123,31 @@ test("project-linked assignments require a project from the same tenant", async 
   const insert = owned.queries.find(query => query.sql.includes("INSERT INTO OperationsScheduleEntry"))!;
   assert.ok(insert.values.includes("project"));
 });
+
+
+test("time and expense project links reject foreign projects and persist owned projects", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+  const foreignTime = repository({ technician: true });
+  await assert.rejects(() => foreignTime.api.createTimeEntry(admin, {
+    technicianProfileId: "tech", projectInstallationId: "foreign", workDate: "2026-09-24", regularHours: 8, overtimeHours: 0
+  }), /Project is outside your tenant scope/);
+  assert.equal(foreignTime.queries.some(query => query.sql.includes("INSERT INTO OperationsTimeEntry")), false);
+
+  const ownedTime = repository({ technician: true, project: true });
+  await ownedTime.api.createTimeEntry(admin, {
+    technicianProfileId: "tech", projectInstallationId: "project", workDate: "2026-09-24", regularHours: 8, overtimeHours: 0
+  });
+  assert.ok(ownedTime.queries.find(query => query.sql.includes("INSERT INTO OperationsTimeEntry"))!.values.includes("project"));
+
+  const foreignExpense = repository();
+  await assert.rejects(() => foreignExpense.api.createExpense(admin, {
+    projectInstallationId: "foreign", category: "MATERIALS", description: "Cable", amount: 100, expenseDate: "2026-09-24", reimbursable: false
+  }), /Project is outside your tenant scope/);
+  assert.equal(foreignExpense.queries.some(query => query.sql.includes("INSERT INTO OperationsExpense")), false);
+
+  const ownedExpense = repository({ project: true });
+  await ownedExpense.api.createExpense(admin, {
+    projectInstallationId: "project", category: "MATERIALS", description: "Cable", amount: 100, expenseDate: "2026-09-24", reimbursable: false
+  });
+  assert.ok(ownedExpense.queries.find(query => query.sql.includes("INSERT INTO OperationsExpense"))!.values.includes("project"));
+});
