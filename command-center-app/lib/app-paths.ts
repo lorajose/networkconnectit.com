@@ -37,3 +37,19 @@ export function withMarketingSiteUrl(path: string) {
 
   return `${marketingSiteUrl}${path}`;
 }
+
+const legacyCommandCenterBasePath = "/tools/command-center";
+
+export function normalizeAppCallbackUrl(callbackUrl: string | undefined, fallback = "/dashboard") {
+  const value = callbackUrl?.trim();
+  if (!value || !value.startsWith("/") || value.startsWith("//")) {
+    return withAppBasePath(fallback);
+  }
+
+  if (!appBasePath && (value === legacyCommandCenterBasePath || value.startsWith(`${legacyCommandCenterBasePath}/`))) {
+    const stripped = value.slice(legacyCommandCenterBasePath.length) || "/";
+    return stripped;
+  }
+
+  return value;
+}
