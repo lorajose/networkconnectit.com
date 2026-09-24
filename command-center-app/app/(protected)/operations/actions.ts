@@ -41,6 +41,7 @@ export async function createScheduleAction(formData: FormData) {
   await createScheduleEntry(user, {
     organizationId: org(formData),
     technicianProfileId: text(formData, "technicianProfileId"),
+    projectInstallationId: text(formData, "projectInstallationId") || undefined,
     title: text(formData, "title"),
     startsAt: text(formData, "startsAt"),
     endsAt: text(formData, "endsAt"),
