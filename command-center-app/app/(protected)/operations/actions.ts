@@ -55,6 +55,7 @@ export async function createTimeEntryAction(formData: FormData) {
   await createTimeEntry(user, {
     organizationId: org(formData),
     technicianProfileId: text(formData, "technicianProfileId"),
+    projectInstallationId: text(formData, "projectInstallationId") || undefined,
     workDate: text(formData, "workDate"),
     regularHours: number(formData, "regularHours"),
     overtimeHours: number(formData, "overtimeHours")
@@ -78,6 +79,7 @@ export async function createExpenseAction(formData: FormData) {
   const user = await actor();
   await createExpense(user, {
     organizationId: org(formData),
+    projectInstallationId: text(formData, "projectInstallationId") || undefined,
     category: text(formData, "category") || "OTHER",
     description: text(formData, "description"),
     amount: number(formData, "amount"),
