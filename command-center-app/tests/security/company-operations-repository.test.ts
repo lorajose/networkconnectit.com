@@ -6,7 +6,7 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string } } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string }; profitability?: Array<Record<string, unknown>> } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
@@ -16,6 +16,7 @@ function repository(options: { technician?: boolean; project?: boolean; conflict
       if (query.sql.includes("OperationsInvoice") && query.sql.includes("FOR UPDATE")) return options.invoice ? [{ id: "invoice", ...options.invoice }] : [];
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
+      if (query.sql.includes("AS laborCost") && query.sql.includes("FROM ProjectInstallation p")) return options.profitability ?? [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 900, invoiced: 10000, outstanding: 4000, expenses: 2500 }];
       return [];
     },
@@ -192,4 +193,22 @@ test("payments lock invoice, reject drafts and overpayment, and atomically updat
   const update = paid.queries.find(query => query.sql.includes("UPDATE OperationsInvoice"))!;
   assert.ok(update.values.includes(100));
   assert.ok(update.values.includes("PAID"));
+});
+
+
+test("project profitability uses linked labor, expenses and issued invoices", async () => {
+  const { api, queries } = repository({ profitability: [{
+    id: "project", name: "Bronx Cabling", projectCode: "WO-001",
+    laborCost: 1200, expenses: 330, revenue: 4980, outstanding: 4980
+  }] });
+  const result = await api.getOperationsSnapshot({ id: "admin", role: "CLIENT_ADMIN", organizationId: "org" }) as {
+    projectProfitability: Array<{ laborCost: number; expenses: number; revenue: number; outstanding: number; grossProfit: number; marginPercent: number | null }>;
+  };
+  assert.equal(result.projectProfitability[0].grossProfit, 3450);
+  assert.ok(Math.abs((result.projectProfitability[0].marginPercent ?? 0) - 69.2771084337) < 0.0001);
+  const query = queries.find(item => item.sql.includes("AS laborCost") && item.sql.includes("FROM ProjectInstallation p"))!;
+  assert.match(query.sql, /overtimeHours \* 1\.5/);
+  assert.match(query.sql, /hourlyPayRateSnapshot/);
+  assert.match(query.sql, /projectInstallationId = p\.id/);
+  assert.equal((query.sql.match(/status IN \('SENT', 'PAID', 'OVERDUE'\)/g) ?? []).length, 2);
 });
