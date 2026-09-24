@@ -320,3 +320,23 @@ export async function addInvoiceLine(actor: OperationsActor, input: {
     return id;
   });
 }
+
+
+export async function submitTimeEntry(actor: OperationsActor, input: { organizationId?: string; timeEntryId: string }) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.timeEntryId = requiredText(input.timeEntryId, "Time entry", 191);
+  const updated = await prisma.$executeRaw(Prisma.sql`
+    UPDATE OperationsTimeEntry SET status = 'SUBMITTED', updatedAt = NOW(3)
+    WHERE id = ${input.timeEntryId} AND organizationId = ${organizationId} AND status = 'DRAFT'`);
+  if (updated !== 1) throw new Error("Time entry is outside your tenant scope or is not a draft.");
+}
+
+export async function approveTimeEntry(actor: OperationsActor, input: { organizationId?: string; timeEntryId: string }) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.timeEntryId = requiredText(input.timeEntryId, "Time entry", 191);
+  const updated = await prisma.$executeRaw(Prisma.sql`
+    UPDATE OperationsTimeEntry
+    SET status = 'APPROVED', approvedByUserId = ${actor.id}, approvedAt = NOW(3), updatedAt = NOW(3)
+    WHERE id = ${input.timeEntryId} AND organizationId = ${organizationId} AND status = 'SUBMITTED'`);
+  if (updated !== 1) throw new Error("Time entry is outside your tenant scope or is not submitted.");
+}
