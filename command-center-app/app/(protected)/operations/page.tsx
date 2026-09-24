@@ -66,6 +66,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
       <form action={createTimeEntryAction} className="space-y-3 rounded-2xl border p-4">
         <h3 className="font-semibold">Time & Pay</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="technicianProfileId" required><option value="">Select technician</option>{snapshot.technicians.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}</select>
+        <select className={field} name="projectInstallationId"><option value="">General / no project</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
         <div className="grid gap-3 sm:grid-cols-3"><input className={field} name="workDate" type="date" required /><input className={field} name="regularHours" type="number" min="0" step="0.25" placeholder="Regular" required /><input className={field} name="overtimeHours" type="number" min="0" step="0.25" placeholder="OT" /></div>
         <p className="text-xs text-muted-foreground">Operational labor control only; this does not replace payroll processing.</p><button className={button}>Add time</button>
       </form>
@@ -78,6 +79,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
 
       <form action={createExpenseAction} className="space-y-3 rounded-2xl border p-4 xl:col-span-2">
         <h3 className="font-semibold">Expenses & Materials</h3><input type="hidden" name="organizationId" value={organizationId} />
+        <select className={field} name="projectInstallationId"><option value="">General / no project</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
         <div className="grid gap-3 md:grid-cols-4"><select className={field} name="category"><option>MATERIALS</option><option>TRAVEL</option><option>TOOLS</option><option>SUBCONTRACTOR</option><option>OTHER</option></select><input className={field} name="description" placeholder="Description" required /><input className={field} name="amount" type="number" min="0" step="0.01" placeholder="Amount" required /><input className={field} name="expenseDate" type="date" required /></div>
         <label className="flex items-center gap-2 text-sm"><input name="reimbursable" type="checkbox" /> Reimbursable</label><button className={button}>Add expense</button>
       </form>
