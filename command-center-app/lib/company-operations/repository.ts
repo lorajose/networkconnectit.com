@@ -133,6 +133,11 @@ export async function createTimeEntry(actor: OperationsActor, input: {
     SELECT id, hourlyPayRate FROM FieldTechnicianProfile
     WHERE id = ${input.technicianProfileId} AND organizationId = ${organizationId} LIMIT 1`);
   if (!tech[0]) throw new Error("Technician is outside your tenant scope.");
+  const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
+  if (projectInstallationId) {
+    const project = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM ProjectInstallation WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
+    if (!project[0]) throw new Error("Project is outside your tenant scope.");
+  }
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsTimeEntry
