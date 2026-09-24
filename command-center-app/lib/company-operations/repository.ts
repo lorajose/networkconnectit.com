@@ -8,7 +8,7 @@ export type { OperationsActor } from "./policy";
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
-  const [technicians, projects, schedule, timeEntries, invoices, expenses, projectProfitability, totals] = await Promise.all([
+  const [technicians, projects, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
@@ -33,7 +33,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       SELECT id, invoiceNumber, customerName, status, totalAmount, paidAmount, dueDate
       FROM OperationsInvoice WHERE organizationId = ${organizationId}
       ORDER BY createdAt DESC LIMIT 50`),
-    prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean }>>(Prisma.sql`
+    prisma.$queryRaw<Array<{ id: string; invoiceId: string; lineType: string; description: string; quantity: Prisma.Decimal; unitPrice: Prisma.Decimal; amount: Prisma.Decimal }>>(Prisma.sql`\n      SELECT id, invoiceId, lineType, description, quantity, unitPrice, amount FROM OperationsInvoiceLine\n      WHERE organizationId = ${organizationId} ORDER BY invoiceId, sortOrder ASC LIMIT 250`),\n    prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean }>>(Prisma.sql`
       SELECT id, category, description, amount, expenseDate, reimbursable
       FROM OperationsExpense WHERE organizationId = ${organizationId}
       ORDER BY expenseDate DESC, createdAt DESC LIMIT 50`),
@@ -80,7 +80,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
   const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
-  return { organizationId, technicians, projects, schedule, timeEntries, invoices, expenses, projectProfitability: profitability, metrics: {
+  return { organizationId, technicians, projects, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
