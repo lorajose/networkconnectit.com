@@ -33,7 +33,12 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       SELECT id, invoiceNumber, customerName, status, totalAmount, paidAmount, dueDate
       FROM OperationsInvoice WHERE organizationId = ${organizationId}
       ORDER BY createdAt DESC LIMIT 50`),
-    prisma.$queryRaw<Array<{ id: string; invoiceId: string; lineType: string; description: string; quantity: Prisma.Decimal; unitPrice: Prisma.Decimal; amount: Prisma.Decimal }>>(Prisma.sql`\n      SELECT id, invoiceId, lineType, description, quantity, unitPrice, amount FROM OperationsInvoiceLine\n      WHERE organizationId = ${organizationId} ORDER BY invoiceId, sortOrder ASC LIMIT 250`),\n    prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean }>>(Prisma.sql`
+    prisma.$queryRaw<Array<{ id: string; invoiceId: string; lineType: string; description: string; quantity: Prisma.Decimal; unitPrice: Prisma.Decimal; amount: Prisma.Decimal }>>(Prisma.sql`
+      SELECT id, invoiceId, lineType, description, quantity, unitPrice, amount
+      FROM OperationsInvoiceLine
+      WHERE organizationId = ${organizationId}
+      ORDER BY invoiceId, sortOrder ASC LIMIT 250`),
+    prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean }>>(Prisma.sql`
       SELECT id, category, description, amount, expenseDate, reimbursable
       FROM OperationsExpense WHERE organizationId = ${organizationId}
       ORDER BY expenseDate DESC, createdAt DESC LIMIT 50`),
