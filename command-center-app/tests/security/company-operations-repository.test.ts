@@ -6,13 +6,14 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string } } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
     $queryRaw: async (query: { sql: string; values: unknown[] }) => {
       queries.push(query);
       events.push(query.sql.includes("FOR UPDATE") ? "lock" : "read");
+      if (query.sql.includes("OperationsInvoice") && query.sql.includes("FOR UPDATE")) return options.invoice ? [{ id: "invoice", ...options.invoice }] : [];
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 900, invoiced: 10000, outstanding: 4000, expenses: 2500 }];
@@ -150,4 +151,45 @@ test("time and expense project links reject foreign projects and persist owned p
     projectInstallationId: "project", category: "MATERIALS", description: "Cable", amount: 100, expenseDate: "2026-09-24", reimbursable: false
   });
   assert.ok(ownedExpense.queries.find(query => query.sql.includes("INSERT INTO OperationsExpense"))!.values.includes("project"));
+});
+
+
+test("invoice project links are tenant-scoped", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+  const foreign = repository();
+  await assert.rejects(() => foreign.api.createInvoice(admin, {
+    projectInstallationId: "foreign", invoiceNumber: "INV-1", customerName: "Client", totalAmount: 100
+  }), /Project is outside your tenant scope/);
+  assert.equal(foreign.queries.some(query => query.sql.includes("INSERT INTO OperationsInvoice")), false);
+
+  const owned = repository({ project: true });
+  await owned.api.createInvoice(admin, {
+    projectInstallationId: "project", invoiceNumber: "INV-1", customerName: "Client", totalAmount: 100
+  });
+  assert.ok(owned.queries.find(query => query.sql.includes("INSERT INTO OperationsInvoice"))!.values.includes("project"));
+});
+
+test("payments lock invoice, reject drafts and overpayment, and atomically update paid amount", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+
+  const draft = repository({ invoice: { totalAmount: 100, paidAmount: 0, status: "DRAFT" } });
+  await assert.rejects(() => draft.api.recordInvoicePayment(admin, {
+    invoiceId: "invoice", amount: 10, paidAt: "2026-09-24T12:00:00Z"
+  }), /Draft invoices/);
+  assert.deepEqual(draft.events, ["begin", "lock", "rollback"]);
+
+  const over = repository({ invoice: { totalAmount: 100, paidAmount: 80, status: "SENT" } });
+  await assert.rejects(() => over.api.recordInvoicePayment(admin, {
+    invoiceId: "invoice", amount: 30, paidAt: "2026-09-24T12:00:00Z"
+  }), /exceeds/);
+  assert.deepEqual(over.events, ["begin", "lock", "rollback"]);
+
+  const paid = repository({ invoice: { totalAmount: 100, paidAmount: 80, status: "SENT" } });
+  await paid.api.recordInvoicePayment(admin, {
+    invoiceId: "invoice", amount: 20, paidAt: "2026-09-24T12:00:00Z", method: "ACH"
+  });
+  assert.deepEqual(paid.events, ["begin", "lock", "write", "write", "commit"]);
+  const update = paid.queries.find(query => query.sql.includes("UPDATE OperationsInvoice"))!;
+  assert.ok(update.values.includes(100));
+  assert.ok(update.values.includes("PAID"));
 });
