@@ -18,6 +18,10 @@ export function withAppBasePath(path: string) {
     return path;
   }
 
+  if (path === appBasePath || path.startsWith(`${appBasePath}/`)) {
+    return path;
+  }
+
   return path === "/" ? appBasePath : `${appBasePath}${path}`;
 }
 
