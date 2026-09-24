@@ -24,7 +24,7 @@ async function main() {
   await prisma.$executeRawUnsafe(`CREATE TABLE FieldTechnicianProfile (
     id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
     userId VARCHAR(191) NOT NULL, displayName VARCHAR(255) NOT NULL,
-    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE', hourlyPayRate DECIMAL(12,2) NULL,
+    status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
     createdAt DATETIME(3) NOT NULL, updatedAt DATETIME(3) NOT NULL,
     UNIQUE INDEX FieldTechnicianProfile_user_key (organizationId,userId)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
