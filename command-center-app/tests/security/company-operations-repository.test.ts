@@ -239,3 +239,22 @@ test("invoice lines require a tenant-owned draft and recalculate totals atomical
   const update = draft.queries.find(query => query.sql.includes("UPDATE OperationsInvoice i"))!;
   assert.match(update.sql, /SUM\(l\.amount\)/);
 });
+
+
+test("time approval lifecycle is tenant-scoped and state constrained", async () => {
+  const admin = { id: "approver", role: "CLIENT_ADMIN", organizationId: "org" };
+
+  const submitted = repository();
+  await submitted.api.submitTimeEntry(admin, { timeEntryId: "time" });
+  const submit = submitted.queries.find(query => query.sql.includes("UPDATE OperationsTimeEntry"))!;
+  assert.match(submit.sql, /status = 'DRAFT'/);
+  assert.ok(submit.values.includes("org"));
+
+  const approved = repository();
+  await approved.api.approveTimeEntry(admin, { timeEntryId: "time" });
+  const approve = approved.queries.find(query => query.sql.includes("UPDATE OperationsTimeEntry"))!;
+  assert.match(approve.sql, /status = 'SUBMITTED'/);
+  assert.match(approve.sql, /approvedByUserId/);
+  assert.ok(approve.values.includes("approver"));
+  assert.ok(approve.values.includes("org"));
+});
