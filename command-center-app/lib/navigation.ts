@@ -16,7 +16,8 @@ import {
   Radar,
   Ruler,
   Settings,
-  Users2
+  Users2,
+  Workflow
 } from "lucide-react";
 
 import type { AppRole } from "@/lib/rbac";
@@ -35,7 +36,8 @@ export const appNavigation: AppNavigationItem[] = [
   { group: "workspace", title: "Dashboard", href: "/dashboard", description: "Operational overview and deployment summary.", icon: LayoutDashboard, allowedRoles: routeAccess.dashboard },
   { group: "workspace", title: "Organizations", href: "/organizations", description: "Tenant and customer account structure.", icon: Building2, allowedRoles: routeAccess.organizations },
   { group: "workspace", title: "Command Map", href: "/command-map", description: "Global NOC visibility across clients, projects, and site health.", icon: Radar, allowedRoles: routeAccess.commandMap },
-  { group: "workspace", title: "Projects", href: "/projects", description: "Installed projects, rollouts, and managed handoffs.", icon: BriefcaseBusiness, allowedRoles: routeAccess.projects },\n  { group: "workspace", title: "Company Operations", href: "/operations", description: "Technicians, scheduling, time, invoices, expenses and job profitability.", icon: Workflow, allowedRoles: routeAccess.companyOperations },
+  { group: "workspace", title: "Projects", href: "/projects", description: "Installed projects, rollouts, and managed handoffs.", icon: BriefcaseBusiness, allowedRoles: routeAccess.projects },
+  { group: "workspace", title: "Company Operations", href: "/operations", description: "Technicians, scheduling, time, invoices, expenses and job profitability.", icon: Workflow, allowedRoles: routeAccess.companyOperations },
   { group: "workspace", title: "Bids", href: "/bids", description: "Organize bid packages, revisions, due dates, and source documents.", icon: ClipboardList, allowedRoles: routeAccess.bids },
   { group: "workspace", title: "Site Surveys", href: "/site-surveys", description: "Guide technicians through multi-discipline field surveys, photos and site points.", icon: ClipboardCheck, allowedRoles: routeAccess.siteSurveys },
   { group: "workspace", title: "Design Studio", href: "/design-studio", description: "Lay out CCTV, access, network and cable paths on an interactive plan.", icon: Ruler, allowedRoles: routeAccess.designStudio },
