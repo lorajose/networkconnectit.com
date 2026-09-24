@@ -1,5 +1,6 @@
 const required = ["NEXTAUTH_URL", "NEXTAUTH_SECRET"];
-const expectedBasePath = "/tools/command-center";
+const legacyBasePath = "/tools/command-center";
+const rootDomain = "command.networkconnectit.com";
 const failures = [];
 const warnings = [];
 
@@ -15,7 +16,6 @@ if (secret && (secret.length < 32 || /replace-with|changeme|example|secret/i.tes
 
 const authUrl = process.env.NEXTAUTH_URL?.trim() ?? "";
 const basePath = process.env.NEXT_PUBLIC_APP_BASE_PATH?.trim() ?? "";
-if (basePath !== expectedBasePath) failures.push(`NEXT_PUBLIC_APP_BASE_PATH must be ${expectedBasePath} for Production Release Gate 1`);
 if (authUrl) {
   try {
     const url = new URL(authUrl);
