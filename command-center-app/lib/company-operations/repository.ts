@@ -6,6 +6,41 @@ import { calendarDate, choice, nonNegativeDecimal, optionalEmail, requiredText, 
 import type { OperationsActor } from "./policy";
 export type { OperationsActor } from "./policy";
 
+
+export async function getClientSafeInvoice(actor: OperationsActor, input: { organizationId?: string; invoiceId: string }) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
+  const invoices = await prisma.$queryRaw<Array<{
+    id: string; invoiceNumber: string; customerName: string; status: string; issueDate: Date | null; dueDate: Date | null;
+    subtotal: Prisma.Decimal; taxAmount: Prisma.Decimal; discountAmount: Prisma.Decimal; totalAmount: Prisma.Decimal; paidAmount: Prisma.Decimal;
+    projectName: string | null; projectCode: string | null;
+  }>>(Prisma.sql`
+    SELECT i.id, i.invoiceNumber, i.customerName, i.status, i.issueDate, i.dueDate,
+      i.subtotal, i.taxAmount, i.discountAmount, i.totalAmount, i.paidAmount,
+      p.name AS projectName, p.projectCode
+    FROM OperationsInvoice i
+    LEFT JOIN ProjectInstallation p ON p.id = i.projectInstallationId AND p.organizationId = i.organizationId
+    WHERE i.id = ${input.invoiceId} AND i.organizationId = ${organizationId}
+    LIMIT 1`);
+  const invoice = invoices[0];
+  if (!invoice) throw new Error("Invoice is outside your tenant scope.");
+  const lines = await prisma.$queryRaw<Array<{
+    id: string; lineType: string; description: string; quantity: Prisma.Decimal; unitPrice: Prisma.Decimal; amount: Prisma.Decimal;
+  }>>(Prisma.sql`
+    SELECT id, lineType, description, quantity, unitPrice, amount
+    FROM OperationsInvoiceLine
+    WHERE invoiceId = ${input.invoiceId} AND organizationId = ${organizationId}
+    ORDER BY sortOrder ASC`);
+  const payments = await prisma.$queryRaw<Array<{
+    id: string; amount: Prisma.Decimal; paidAt: Date; method: string | null; reference: string | null;
+  }>>(Prisma.sql`
+    SELECT id, amount, paidAt, method, reference
+    FROM OperationsPayment
+    WHERE invoiceId = ${input.invoiceId} AND organizationId = ${organizationId}
+    ORDER BY paidAt ASC, createdAt ASC`);
+  return { ...invoice, lines, payments, balanceDue: Math.max(0, Number(invoice.totalAmount) - Number(invoice.paidAmount)) };
+}
+
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
   const [technicians, projects, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals] = await Promise.all([
