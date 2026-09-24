@@ -103,9 +103,9 @@ export async function createInvoice(actor: OperationsActor, input: {
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsInvoice
-      (id, organizationId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
+      (id, organizationId, projectInstallationId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, ${input.totalAmount}, ${input.totalAmount}, 0, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${projectInstallationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, ${input.totalAmount}, ${input.totalAmount}, 0, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
