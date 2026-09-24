@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRoles } from "@/lib/auth";
-import { createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry } from "@/lib/company-operations/repository";
+import { createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice } from "@/lib/company-operations/repository";
 import { routeAccess } from "@/lib/rbac";
 
 function text(formData: FormData, key: string) {
@@ -67,6 +67,7 @@ export async function createInvoiceAction(formData: FormData) {
   const user = await actor();
   await createInvoice(user, {
     organizationId: org(formData),
+    projectInstallationId: text(formData, "projectInstallationId") || undefined,
     invoiceNumber: text(formData, "invoiceNumber"),
     customerName: text(formData, "customerName"),
     totalAmount: number(formData, "totalAmount"),
@@ -85,6 +86,25 @@ export async function createExpenseAction(formData: FormData) {
     amount: number(formData, "amount"),
     expenseDate: text(formData, "expenseDate"),
     reimbursable: formData.get("reimbursable") === "on"
+  });
+  refresh();
+}
+
+export async function sendInvoiceAction(formData: FormData) {
+  const user = await actor();
+  await sendInvoice(user, { organizationId: org(formData), invoiceId: text(formData, "invoiceId") });
+  refresh();
+}
+
+export async function recordInvoicePaymentAction(formData: FormData) {
+  const user = await actor();
+  await recordInvoicePayment(user, {
+    organizationId: org(formData),
+    invoiceId: text(formData, "invoiceId"),
+    amount: number(formData, "amount"),
+    paidAt: text(formData, "paidAt"),
+    method: text(formData, "method") || undefined,
+    reference: text(formData, "reference") || undefined
   });
   refresh();
 }
