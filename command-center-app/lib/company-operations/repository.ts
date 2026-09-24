@@ -141,9 +141,9 @@ export async function createTimeEntry(actor: OperationsActor, input: {
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsTimeEntry
-      (id, organizationId, technicianProfileId, workDate, regularHours, overtimeHours, hourlyPayRateSnapshot, status, createdByUserId, createdAt, updatedAt)
+      (id, organizationId, technicianProfileId, projectInstallationId, workDate, regularHours, overtimeHours, hourlyPayRateSnapshot, status, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.technicianProfileId}, ${workDate}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workDate}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
