@@ -205,6 +205,10 @@ test("dashboard derives utilization and overdue alerts from organization aggrega
   assert.equal(result.metrics.overdueInvoices, 3);
   const aggregate = queries.find(query => query.sql.includes("AS technicianCount"))!;
   assert.match(aggregate.sql, /TIMESTAMPDIFF/);
+  assert.match(aggregate.sql, /workDate >= DATE_SUB\(CURRENT_DATE\(\), INTERVAL 30 DAY\)/);
+  assert.match(aggregate.sql, /endsAt > DATE_SUB\(CURRENT_DATE\(\), INTERVAL 30 DAY\)/);
+  assert.match(aggregate.sql, /startsAt < DATE_ADD\(CURRENT_DATE\(\), INTERVAL 1 DAY\)/);
+  assert.doesNotMatch(aggregate.sql, /DATE_ADD\(NOW\(\), INTERVAL 30 DAY\)/);
   assert.match(aggregate.sql, /dueDate < CURRENT_DATE\(\)/);
   assert.match(aggregate.sql, /paidAmount < totalAmount/);
 });
