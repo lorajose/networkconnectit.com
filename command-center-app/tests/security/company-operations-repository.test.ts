@@ -6,7 +6,7 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; conflict?: boolean } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
@@ -14,6 +14,7 @@ function repository(options: { technician?: boolean; conflict?: boolean } = {}) 
       queries.push(query);
       events.push(query.sql.includes("FOR UPDATE") ? "lock" : "read");
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
+      if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 900, invoiced: 10000, outstanding: 4000, expenses: 2500 }];
       return [];
     },
@@ -105,4 +106,20 @@ test("invalid schedule intervals are rejected before starting a transaction", as
     await assert.rejects(() => api.createScheduleEntry(scheduleActor, { ...scheduleInput, endsAt }), /after start/);
     assert.deepEqual(events, []);
   }
+});
+
+
+test("project-linked assignments require a project from the same tenant", async () => {
+  const foreign = repository({ technician: true });
+  await assert.rejects(
+    () => foreign.api.createScheduleEntry(scheduleActor, { ...scheduleInput, projectInstallationId: "foreign-project" }),
+    /Project is outside your tenant scope/
+  );
+  assert.deepEqual(foreign.events, ["begin", "lock", "read", "rollback"]);
+
+  const owned = repository({ technician: true, project: true });
+  await owned.api.createScheduleEntry(scheduleActor, { ...scheduleInput, projectInstallationId: "project" });
+  assert.deepEqual(owned.events, ["begin", "lock", "read", "lock", "write", "commit"]);
+  const insert = owned.queries.find(query => query.sql.includes("INSERT INTO OperationsScheduleEntry"))!;
+  assert.ok(insert.values.includes("project"));
 });
