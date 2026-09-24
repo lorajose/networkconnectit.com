@@ -73,3 +73,37 @@ jobs:
         run: |
           test -f command-center-app/.next/build-manifest.json
           test -f command-center-app/.next/standalone/server.js
+
+  operations-mysql:
+    runs-on: ubuntu-latest
+    services:
+      mysql:
+        image: mysql:8.0
+        env:
+          MYSQL_ROOT_PASSWORD: disposable-ci-root
+          MYSQL_DATABASE: operations_ci_test
+          MYSQL_USER: operations_ci
+          MYSQL_PASSWORD: disposable-ci-password
+        ports:
+          - 3306:3306
+        options: >-
+          --health-cmd="mysqladmin ping -h 127.0.0.1"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=10
+    defaults:
+      run:
+        working-directory: command-center-app
+    env:
+      CI: 'true'
+      DATABASE_URL: mysql://operations_ci:disposable-ci-password@127.0.0.1:3306/operations_ci_test
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: command-center-app/package-lock.json
+      - run: npm ci
+      - name: Verify real MySQL operations concurrency and tenant isolation
+        run: node scripts/test-operations-mysql.cjs
