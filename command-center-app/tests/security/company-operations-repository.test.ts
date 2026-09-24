@@ -69,7 +69,7 @@ test("dashboard uses organization aggregates rather than capped detail rows", as
   assert.equal(result.invoices.length, 0);
   assert.deepEqual(result.metrics, { technicianCount: 120, upcomingAssignments: 80, laborHours: 90, scheduledHours: 120, utilizationPercent: 75, overdueInvoices: 3, invoiced: 10000, outstanding: 4000, expenses: 2500 });
   const aggregate = queries.find(query => query.sql.includes("AS technicianCount"))!;
-  assert.deepEqual(aggregate.values, Array(6).fill("org"));
+  assert.deepEqual(aggregate.values, Array(8).fill("org"));
   assert.doesNotMatch(aggregate.sql, /LIMIT/);
   assert.equal((aggregate.sql.match(/status IN \('SENT', 'PAID', 'OVERDUE'\)/g) ?? []).length, 2);
 });
