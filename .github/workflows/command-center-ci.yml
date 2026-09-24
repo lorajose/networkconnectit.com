@@ -105,5 +105,5 @@ jobs:
           cache: npm
           cache-dependency-path: command-center-app/package-lock.json
       - run: npm ci
-      - name: Verify real MySQL operations concurrency and tenant isolation
+      - name: Verify real MySQL operations lifecycle, concurrency and profitability
         run: node scripts/test-operations-mysql.cjs
