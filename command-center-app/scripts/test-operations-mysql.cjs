@@ -54,11 +54,49 @@ async function main() {
   await repo.createScheduleEntry(actor, input); // cancelled and advisory entries do not block
   await prisma.$executeRaw`UPDATE FieldTechnicianProfile SET status = 'INACTIVE' WHERE id = ${technician}`;
   await assert.rejects(() => repo.createScheduleEntry(actor, { ...input, entryType: 'AVAILABLE' }), /inactive/);
+  await prisma.$executeRawUnsafe(`CREATE TABLE ProjectInstallation (
+    id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
+    name VARCHAR(191) NOT NULL, projectCode VARCHAR(191) NULL, status VARCHAR(32) NOT NULL DEFAULT 'ACTIVE',
+    updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3)
+  ) ENGINE=InnoDB`);
+  await prisma.$executeRaw`INSERT INTO ProjectInstallation (id, organizationId, name, projectCode, status, updatedAt)
+    VALUES ('project-a', 'a', 'CI Project', 'CI-001', 'ACTIVE', NOW(3))`;
+
+  await prisma.$executeRaw`UPDATE FieldTechnicianProfile SET status = 'ACTIVE', hourlyPayRate = 50 WHERE id = ${technician}`;
+  const timeId = await repo.createTimeEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workDate: '2030-01-01', regularHours: 8, overtimeHours: 2 });
+  await repo.submitTimeEntry(actor, { timeEntryId: timeId });
+  await repo.approveTimeEntry(actor, { timeEntryId: timeId });
+  const approved = await prisma.$queryRaw`SELECT status, approvedByUserId, approvedAt FROM OperationsTimeEntry WHERE id = ${timeId}`;
+  assert.equal(approved[0].status, 'APPROVED');
+  assert.equal(approved[0].approvedByUserId, actor.id);
+  assert.ok(approved[0].approvedAt);
+
+  await repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'CI cable', amount: 100, expenseDate: '2030-01-01', reimbursable: false });
+  const invoiceId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-001', customerName: 'CI Client', totalAmount: 0, dueDate: '2030-01-31' });
+  await repo.addInvoiceLine(actor, { invoiceId, lineType: 'LABOR', description: 'Install', quantity: 10, unitPrice: 100 });
+  const draft = await prisma.$queryRaw`SELECT subtotal, totalAmount, status FROM OperationsInvoice WHERE id = ${invoiceId}`;
+  assert.equal(Number(draft[0].subtotal), 1000);
+  assert.equal(Number(draft[0].totalAmount), 1000);
+  assert.equal(draft[0].status, 'DRAFT');
+  await repo.sendInvoice(actor, { invoiceId });
+  await repo.recordInvoicePayment(actor, { invoiceId, amount: 400, paidAt: '2030-01-10T12:00:00Z', method: 'ACH' });
+  await assert.rejects(() => repo.recordInvoicePayment(actor, { invoiceId, amount: 700, paidAt: '2030-01-11T12:00:00Z' }), /exceeds/);
+  await repo.recordInvoicePayment(actor, { invoiceId, amount: 600, paidAt: '2030-01-12T12:00:00Z', method: 'ACH' });
+  const paid = await prisma.$queryRaw`SELECT totalAmount, paidAmount, status FROM OperationsInvoice WHERE id = ${invoiceId}`;
+  assert.equal(Number(paid[0].paidAmount), 1000);
+  assert.equal(paid[0].status, 'PAID');
+  const payments = await prisma.$queryRaw`SELECT COUNT(*) AS total FROM OperationsPayment WHERE invoiceId = ${invoiceId}`;
+  assert.equal(Number(payments[0].total), 2);
+
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
   assert.equal(result.metrics.technicianCount, 0);
   assert.equal(result.metrics.upcomingAssignments, 1);
   assert.equal(foreign.schedule.length, 0);
-  console.log('PASS MySQL 8: concurrent first booking, adjacent intervals, advisory availability, PTO conflict, cancelled slots, inactive technician, viewer and tenant isolation.');
+  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').revenue, 1000);
+  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
+  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').laborCost, 550);
+  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 350);
+  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, atomic payments and project profitability.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
