@@ -14,7 +14,7 @@ test("production gate script is syntactically valid JavaScript", () => {
 
 test("production gate supports the root command domain and legacy path deployment", () => {
   assert.match(source, /legacyBasePath = "\/tools\/command-center"/);
-  assert.match(source, /rootDomain = "command\\.networkconnectit\\.com"/);
+  assert.match(source, /rootDomain = "command\.networkconnectit\.com"/);
   assert.match(source, /NEXT_PUBLIC_APP_BASE_PATH must be empty when NEXTAUTH_URL uses/);
   assert.match(source, /NEXTAUTH_URL path must end with/);
 });
@@ -24,6 +24,7 @@ test("root command domain accepts root auth URL with an empty app base path", ()
     encoding: "utf8",
     env: {
       ...process.env,
+      DATABASE_URL: "",
       NODE_ENV: "production",
       NEXTAUTH_URL: "https://command.networkconnectit.com/api/auth",
       NEXTAUTH_SECRET: "0123456789abcdefghijklmnopqrstuvwxyzABCDEF",
