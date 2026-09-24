@@ -6,7 +6,7 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string }; profitability?: Array<Record<string, unknown>> } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number }; profitability?: Array<Record<string, unknown>> } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
@@ -54,7 +54,7 @@ test("every operations repository entry point denies viewers before database acc
 test("invalid inputs fail before any write and zero hourly rate is persisted", async () => {
   const { api, queries } = repository();
   const admin = { id: "a", role: "CLIENT_ADMIN", organizationId: "org" };
-  await assert.rejects(() => api.createInvoice(admin, { invoiceNumber: "INV", customerName: "Test", totalAmount: Infinity }));
+  await assert.rejects(() => api.updateInvoiceAdjustments(admin, { invoiceId: "invoice", taxAmount: Infinity, discountAmount: 0 }));
   await assert.rejects(() => api.createTimeEntry(admin, { technicianProfileId: "t", workDate: "2026-09-24", regularHours: 23, overtimeHours: 2 }));
   await assert.rejects(() => api.createTechnician(admin, { organizationId: "other", displayName: "Test", workerType: "W2" }), /tenant/);
   assert.equal(queries.length, 0);
@@ -255,6 +255,35 @@ test("invoice lines require a tenant-owned draft and recalculate totals atomical
   assert.ok(insert.values.includes(300));
   const update = draft.queries.find(query => query.sql.includes("UPDATE OperationsInvoice i"))!;
   assert.match(update.sql, /SUM\(l\.amount\)/);
+});
+
+
+
+test("invoice tax and discount adjustments are draft-only, tenant-scoped and derived from subtotal", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+
+  const foreign = repository();
+  await assert.rejects(() => foreign.api.updateInvoiceAdjustments(admin, {
+    invoiceId: "foreign", taxAmount: 25, discountAmount: 10
+  }), /outside your tenant scope/);
+  assert.deepEqual(foreign.events, ["begin", "lock", "rollback"]);
+
+  const sent = repository({ invoice: { totalAmount: 300, paidAmount: 0, status: "SENT", subtotal: 300 } });
+  await assert.rejects(() => sent.api.updateInvoiceAdjustments(admin, {
+    invoiceId: "invoice", taxAmount: 25, discountAmount: 10
+  }), /Only draft invoices/);
+  assert.deepEqual(sent.events, ["begin", "lock", "rollback"]);
+
+  const draft = repository({ invoice: { totalAmount: 300, paidAmount: 0, status: "DRAFT", subtotal: 300 } });
+  const total = await draft.api.updateInvoiceAdjustments(admin, {
+    invoiceId: "invoice", taxAmount: 25, discountAmount: 10
+  });
+  assert.equal(total, 315);
+  assert.deepEqual(draft.events, ["begin", "lock", "write", "commit"]);
+  const update = draft.queries.find(query => query.sql.includes("taxAmount ="))!;
+  assert.ok(update.values.includes(25));
+  assert.ok(update.values.includes(10));
+  assert.ok(update.values.includes(315));
 });
 
 
