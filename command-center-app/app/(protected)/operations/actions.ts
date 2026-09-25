@@ -46,6 +46,7 @@ export async function createScheduleAction(formData: FormData) {
     title: text(formData, "title"),
     startsAt: text(formData, "startsAt"),
     endsAt: text(formData, "endsAt"),
+    timeZone: text(formData, "timeZone"),
     entryType: text(formData, "entryType") || "ASSIGNMENT"
   });
   refresh();
