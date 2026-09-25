@@ -151,6 +151,49 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   }};
 }
 
+
+export async function getPayPeriodSummary(actor: OperationsActor, input: {
+  organizationId?: string; startDate: string; endDate: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  const startDate = calendarDate(input.startDate, "pay period start");
+  const endDate = calendarDate(input.endDate, "pay period end");
+  if (startDate > endDate) throw new Error("Pay period start must be on or before end.");
+
+  const entries = await prisma.$queryRaw<Array<{
+    id: string; technicianProfileId: string; technicianName: string; workerType: string;
+    projectInstallationId: string | null; workOrderId: string | null; workDate: Date;
+    regularHours: Prisma.Decimal; overtimeHours: Prisma.Decimal; hourlyPayRateSnapshot: Prisma.Decimal | null;
+  }>>(Prisma.sql\`
+    SELECT e.id, e.technicianProfileId, t.displayName AS technicianName, t.workerType,
+      e.projectInstallationId, e.workOrderId, e.workDate, e.regularHours, e.overtimeHours, e.hourlyPayRateSnapshot
+    FROM OperationsTimeEntry e
+    JOIN FieldTechnicianProfile t ON t.id = e.technicianProfileId AND t.organizationId = e.organizationId
+    WHERE e.organizationId = \${organizationId}
+      AND e.status = 'APPROVED'
+      AND e.workDate >= \${startDate}
+      AND e.workDate <= \${endDate}
+    ORDER BY t.displayName ASC, e.workDate ASC, e.createdAt ASC\`);
+
+  const rows = entries.map((entry) => {
+    const regularHours = Number(entry.regularHours);
+    const overtimeHours = Number(entry.overtimeHours);
+    const hourlyRate = Number(entry.hourlyPayRateSnapshot ?? 0);
+    const regularCost = regularHours * hourlyRate;
+    const overtimeCost = overtimeHours * hourlyRate * 1.5;
+    return { ...entry, regularHours, overtimeHours, hourlyRate, regularCost, overtimeCost, totalCost: regularCost + overtimeCost };
+  });
+  const totals = rows.reduce((sum, row) => ({
+    regularHours: sum.regularHours + row.regularHours,
+    overtimeHours: sum.overtimeHours + row.overtimeHours,
+    regularCost: sum.regularCost + row.regularCost,
+    overtimeCost: sum.overtimeCost + row.overtimeCost,
+    totalCost: sum.totalCost + row.totalCost
+  }), { regularHours: 0, overtimeHours: 0, regularCost: 0, overtimeCost: 0, totalCost: 0 });
+
+  return { organizationId, startDate: input.startDate, endDate: input.endDate, rows, totals };
+}
+
 export async function createTechnician(actor: OperationsActor, input: {
   organizationId?: string; displayName: string; workerType: string; email?: string; hourlyPayRate?: number;
 }) {
