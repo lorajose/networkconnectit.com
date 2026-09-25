@@ -54,3 +54,19 @@ test("field evidence is explicitly categorized for before after tester and work-
  assert.match(repository,/evidenceType\?:"BEFORE"\|"AFTER"\|"TESTER"\|"WORK_AREA"\|"PHOTO"/);
  assert.match(repository,/SELECT id,workOrderItemId,evidenceType,originalName/);
 });
+
+
+test("closeout requirements are persisted per work order and remain configurable",()=>{
+ const repo=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/closeout-requirements.ts"),"utf8");
+ const page=fs.readFileSync(path.resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(repo,/ProjectWorkOrderCloseoutRequirement/);
+ assert.match(repo,/requireCommercialWriteAccess/);
+ assert.match(repo,/requireDailyClose/);
+ assert.match(repo,/requireMaterialReturnAcknowledgement/);
+ assert.match(repo,/warrantyStartDate/);
+ assert.match(repo,/technicianSignOffAt/);
+ assert.match(page,/Configure delivery requirements per customer \/ work order/);
+ assert.match(page,/Tools \/ ladders removed/);
+ assert.match(page,/Building secured/);
+ assert.match(page,/Warranty required/);
+});
