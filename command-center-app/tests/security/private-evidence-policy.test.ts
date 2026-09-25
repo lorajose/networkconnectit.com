@@ -21,8 +21,8 @@ test("receipt policy accepts private evidence formats and creates tenant-bound k
     contentType: "application/pdf", size: 1024
   }));
   assert.equal(api.receiptStorageKey({
-    organizationId: "org_1", expenseId: "expense_1", objectId: "obj_1"
-  }), "organizations/org_1/expenses/expense_1/obj_1");
+    organizationId: "org_1", expenseId: "expense_1", objectId: "obj_1", fileName: "receipt.pdf"
+  }), "organizations/org_1/expenses/expense_1/obj_1--receipt.pdf");
 });
 
 test("receipt policy rejects dangerous names, types and sizes", () => {
@@ -31,5 +31,5 @@ test("receipt policy rejects dangerous names, types and sizes", () => {
   assert.throws(() => api.validateReceiptUpload({ ...base, fileName: "../receipt.pdf" }), /file name/);
   assert.throws(() => api.validateReceiptUpload({ ...base, fileName: "receipt.exe", contentType: "application/octet-stream" }), /type/);
   assert.throws(() => api.validateReceiptUpload({ ...base, fileName: "receipt.pdf", size: 10 * 1024 * 1024 + 1 }), /size/);
-  assert.throws(() => api.receiptStorageKey({ organizationId: "../other", expenseId: "expense", objectId: "obj" }), /Organization/);
+  assert.throws(() => api.receiptStorageKey({ organizationId: "../other", expenseId: "expense", objectId: "obj", fileName: "receipt.pdf" }), /Organization/);
 });
