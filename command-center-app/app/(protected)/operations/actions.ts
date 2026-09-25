@@ -84,7 +84,10 @@ export async function createExpenseAction(formData: FormData) {
     description: text(formData, "description"),
     amount: number(formData, "amount"),
     expenseDate: text(formData, "expenseDate"),
-    reimbursable: formData.get("reimbursable") === "on"
+    reimbursable: formData.get("reimbursable") === "on",
+    materialQuantityPurchased: text(formData, "materialQuantityPurchased") ? number(formData, "materialQuantityPurchased") : undefined,
+    materialQuantityUsed: text(formData, "materialQuantityUsed") ? number(formData, "materialQuantityUsed") : undefined,
+    materialUnit: text(formData, "materialUnit") || undefined
   });
   refresh();
 }
