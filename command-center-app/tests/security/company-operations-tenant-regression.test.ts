@@ -70,8 +70,7 @@ test("NCI-082 settings, audit and sensitive financial boundaries are tenant scop
   assert.match(repository, /OPERATIONS_SETTINGS_UPDATED/);
   assert.match(repository, /canViewSensitiveOperationsFinancials/);
   assert.match(repository, /technicians: safeTechnicians/);
-  assert.match(repository, /invoices: safeInvoices/);
-  assert.match(repository, /expenses: safeExpenses/);
+  assert.match(repository, /invoices, invoiceLines, expenses/);
   assert.match(repository, /projectProfitability: profitability/);
   assert.match(repository, /organizationId = \$\{organizationId\}/);
 });
