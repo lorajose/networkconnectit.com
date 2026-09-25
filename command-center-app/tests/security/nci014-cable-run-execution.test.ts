@@ -35,3 +35,17 @@ test("NCI-014 provides reusable floor closeout checks",()=>{
  assert.match(migration,/ProjectWorkOrderFloorCloseout/);
  for(const field of ["cableSupportPassed","racewayConduitPassed","firestopPassed","labelReconciliationPassed","cleanupPassed","workAreaPhotosSaved"]) assert.match(migration,new RegExp(field));
 });
+
+
+test("NCI-014 mobile UI and project summary are wired to the cable execution model",()=>{
+ const actions=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/actions.ts"),"utf8");
+ const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(actions,/updateCableRunExecutionAction/);
+ assert.match(actions,/updateCableRunExecution/);
+ assert.match(page,/Cable run execution/);
+ assert.match(page,/wiremapStatus/);
+ assert.match(page,/gigabitLinkStatus/);
+ assert.match(page,/evidenceSaved/);
+ assert.match(source,/getCableRunProjectSummary/);
+ assert.match(source,/Cross-tenant cable summary read denied/);
+});
