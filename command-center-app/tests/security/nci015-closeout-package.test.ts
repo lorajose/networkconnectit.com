@@ -40,3 +40,17 @@ test("client-safe closeout report uses tenant branding and excludes commercial p
  assert.doesNotMatch(report,/acceptedUnitRate/);
  assert.doesNotMatch(report,/acceptedValue/);
 });
+
+
+test("field evidence is explicitly categorized for before after tester and work-area closeout",()=>{
+ const actions=fs.readFileSync(path.resolve(process.cwd(),"app/(protected)/site-surveys/actions.ts"),"utf8");
+ const page=fs.readFileSync(path.resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ assert.match(actions,/BEFORE","AFTER","TESTER","WORK_AREA/);
+ assert.match(actions,/evidenceType/);
+ assert.match(page,/Before work/);
+ assert.match(page,/Tester result/);
+ assert.match(page,/Work-area \/ cleanup/);
+ assert.match(repository,/evidenceType\?:"BEFORE"\|"AFTER"\|"TESTER"\|"WORK_AREA"\|"PHOTO"/);
+ assert.match(repository,/SELECT id,workOrderItemId,evidenceType,originalName/);
+});
