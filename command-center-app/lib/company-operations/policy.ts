@@ -63,3 +63,17 @@ export function requireSensitiveOperationsFinancials(actor: OperationsActor) {
     throw new Error("Sensitive operations financial data requires an internal administrator role.");
   }
 }
+
+
+export function scopedOperationsReadOrganizationId(actor: OperationsActor, requested?: string) {
+  if (!actor.id || !["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN", "VIEWER"].includes(actor.role)) {
+    throw new Error("Company Operations read access requires an authenticated role.");
+  }
+  if (actor.role === "SUPER_ADMIN" || actor.role === "INTERNAL_ADMIN") {
+    if (!requested) throw new Error("Organization is required for internal operations access.");
+    return requested;
+  }
+  if (!actor.organizationId) throw new Error("Your account is not assigned to an organization.");
+  if (requested && requested !== actor.organizationId) throw new Error("Organization is outside your tenant scope.");
+  return actor.organizationId;
+}
