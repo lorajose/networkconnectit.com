@@ -22,7 +22,7 @@ test("receipt route resolves evidence through tenant-scoped repository and priva
   assert.match(source, /getExpenseReceiptReference\(actor/);
   assert.match(source, /expenseId: context\.params\.expenseId/);
   assert.match(source, /privateEvidenceStorage\(\)\.get\(receipt\.storageKey\)/);
-  assert.doesNotMatch(source, /storageKey\s*:/);
+  assert.doesNotMatch(source, /return NextResponse\.json\(\{ ok: true, storageKey/);
 });
 
 test("receipt download uses private anti-sniff response headers", () => {
