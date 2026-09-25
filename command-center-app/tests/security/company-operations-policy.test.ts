@@ -1,6 +1,6 @@
 import assert from "node:assert/strict";
 import test from "node:test";
-import { calendarDate, choice, nonNegativeDecimal, optionalEmail, requiredText, scopedOrganizationId, validateHours } from "../../lib/company-operations/policy";
+import { calendarDate, choice, nonNegativeDecimal, optionalEmail, requiredText, scopedOperationsReadOrganizationId, scopedOrganizationId, validateHours } from "../../lib/company-operations/policy";
 
 test("operations rejects viewers and unknown roles, including same-tenant requests", () => {
   for (const role of ["VIEWER", "UNKNOWN"] as const) {
@@ -47,4 +47,12 @@ test("text, enum and email validation reject malformed persisted values", () => 
   assert.equal(optionalEmail(""), null);
   assert.equal(optionalEmail(" a@example.com "), "a@example.com");
   assert.throws(() => optionalEmail("bad@email"));
+});
+
+
+test("viewer gets tenant-scoped read access but not write scope", () => {
+  const viewer = { id: "viewer-a", role: "VIEWER" as const, organizationId: "a" };
+  assert.equal(scopedOperationsReadOrganizationId(viewer), "a");
+  assert.throws(() => scopedOperationsReadOrganizationId(viewer, "b"), /outside your tenant/);
+  assert.throws(() => scopedOrganizationId(viewer, "a"), /administrator/);
 });
