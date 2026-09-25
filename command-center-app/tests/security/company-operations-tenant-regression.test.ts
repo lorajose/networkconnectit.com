@@ -29,3 +29,14 @@ test("time entry snapshots technician pay rate instead of recalculating history"
   assert.match(migration, /hourlyPayRateSnapshot DECIMAL\(12,2\)/);
   assert.match(repository, /hourlyPayRateSnapshot/);
 });
+
+
+test("pay period export boundary is tenant-scoped and approved-only", () => {
+  assert.match(repository, /export async function getPayPeriodSummary/);
+  assert.match(repository, /e\.organizationId = \$\{organizationId\}/);
+  assert.match(repository, /e\.status = 'APPROVED'/);
+  assert.match(repository, /e\.workDate >= \$\{startDate\}/);
+  assert.match(repository, /e\.workDate <= \$\{endDate\}/);
+  assert.match(repository, /hourlyPayRateSnapshot/);
+  assert.match(repository, /overtimeHours \* hourlyRate \* 1\.5/);
+});
