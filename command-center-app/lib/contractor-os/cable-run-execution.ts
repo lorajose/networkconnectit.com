@@ -119,3 +119,45 @@ export async function getCableRunProjectSummary(actor:CommercialActor,input:{org
   const r=rows[0];
   return {total:Number(r?.total??0),newRuns:Number(r?.newRuns??0),existingRuns:Number(r?.existingRuns??0),ready:Number(r?.ready??0),accepted:Number(r?.accepted??0),rejected:Number(r?.rejected??0),failed:Number(r?.failed??0),tested:Number(r?.tested??0),totalLength:Number(r?.totalLength??0)};
 }
+
+
+export type FloorCloseoutInput={
+  organizationId:string;workOrderId:string;floorLevel:string;
+  cableSupportPassed:boolean;racewayConduitPassed:boolean;firestopPassed:boolean;
+  labelReconciliationPassed:boolean;cleanupPassed:boolean;workAreaPhotosSaved:boolean;
+  notes?:string|null;userId:string;
+};
+
+export async function listWorkOrderFloorCloseouts(actor:CommercialActor,input:{organizationId:string;workOrderId:string}){
+  const organizationId=input.organizationId.trim();
+  if((actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER")&&actor.organizationId!==organizationId)throw new Error("Cross-tenant floor closeout read denied");
+  return prisma.$queryRaw<Array<{id:string;floorLevel:string;cableSupportPassed:boolean;racewayConduitPassed:boolean;firestopPassed:boolean;labelReconciliationPassed:boolean;cleanupPassed:boolean;workAreaPhotosSaved:boolean;notes:string|null;completedByUserId:string|null;completedAt:Date|null}>>(Prisma.sql`
+    SELECT id,floorLevel,cableSupportPassed,racewayConduitPassed,firestopPassed,labelReconciliationPassed,
+      cleanupPassed,workAreaPhotosSaved,notes,completedByUserId,completedAt
+    FROM ProjectWorkOrderFloorCloseout
+    WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId}
+    ORDER BY floorLevel`);
+}
+
+export async function saveWorkOrderFloorCloseout(actor:CommercialActor & {id:string},input:FloorCloseoutInput){
+  const organizationId=input.organizationId.trim();
+  const wo=(await prisma.$queryRaw<Array<{surveySessionId:string}>>(Prisma.sql`
+    SELECT surveySessionId FROM ProjectWorkOrder WHERE id=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
+  if(!wo)throw new Error("Work order not found");
+  await requireFieldWorkOrderWriteAccess(actor,{organizationId,sessionId:wo.surveySessionId,workOrderId:input.workOrderId});
+  const floorLevel=input.floorLevel.trim();if(!floorLevel)throw new Error("Floor / area is required");
+  const complete=input.cableSupportPassed&&input.racewayConduitPassed&&input.firestopPassed&&input.labelReconciliationPassed&&input.cleanupPassed&&input.workAreaPhotosSaved;
+  const existing=(await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`
+    SELECT id FROM ProjectWorkOrderFloorCloseout
+    WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId} AND floorLevel=${floorLevel} LIMIT 1`))[0];
+  const id=existing?.id??randomUUID();
+  await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO ProjectWorkOrderFloorCloseout
+      (id,organizationId,workOrderId,floorLevel,cableSupportPassed,racewayConduitPassed,firestopPassed,labelReconciliationPassed,cleanupPassed,workAreaPhotosSaved,notes,completedByUserId,completedAt,createdAt,updatedAt)
+    VALUES (${id},${organizationId},${input.workOrderId},${floorLevel},${input.cableSupportPassed},${input.racewayConduitPassed},${input.firestopPassed},${input.labelReconciliationPassed},${input.cleanupPassed},${input.workAreaPhotosSaved},${clean(input.notes)},${complete?input.userId:null},${complete?new Date():null},NOW(3),NOW(3))
+    ON DUPLICATE KEY UPDATE cableSupportPassed=VALUES(cableSupportPassed),racewayConduitPassed=VALUES(racewayConduitPassed),
+      firestopPassed=VALUES(firestopPassed),labelReconciliationPassed=VALUES(labelReconciliationPassed),cleanupPassed=VALUES(cleanupPassed),
+      workAreaPhotosSaved=VALUES(workAreaPhotosSaved),notes=VALUES(notes),completedByUserId=VALUES(completedByUserId),
+      completedAt=VALUES(completedAt),updatedAt=NOW(3)`);
+  return {id,floorLevel,complete};
+}
