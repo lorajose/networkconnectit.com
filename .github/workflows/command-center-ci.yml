@@ -8,7 +8,7 @@ on:
       - 'command-center-app/**'
       - '.github/workflows/command-center-ci.yml'
   push:
-    branches: [main]
+    branches: [dev, qa, uat, main]
     paths:
       - 'package.json'
       - 'package-lock.json'
