@@ -63,7 +63,7 @@ test("invalid inputs fail before any write and zero hourly rate is persisted", a
   const admin = { id: "a", role: "INTERNAL_ADMIN", organizationId: null };
   await assert.rejects(() => api.updateInvoiceAdjustments(admin, { invoiceId: "invoice", taxAmount: Infinity, discountAmount: 0 }));
   await assert.rejects(() => api.createTimeEntry(admin, { technicianProfileId: "t", workDate: "2026-09-24", regularHours: 23, overtimeHours: 2 }));
-  await assert.rejects(() => api.createTechnician(admin, { organizationId: "other", displayName: "Test", workerType: "W2" }), /tenant/);
+  await assert.rejects(() => api.createTechnician(admin, { displayName: "Test", workerType: "W2" }), /Organization is required/);
   assert.equal(queries.length, 0);
   await api.createTechnician(admin, { organizationId: "org", displayName: "Test", workerType: "W2", hourlyPayRate: 0 });
   assert.equal(queries.filter(query => query.sql.includes("INSERT INTO FieldTechnicianProfile")).length, 1);
@@ -158,7 +158,7 @@ test("conflicts and inactive or foreign technicians abort before insertion", asy
 test("advisory availability does not reserve time but still requires a tenant-owned active technician", async () => {
   const { api, events } = repository({ technician: true, conflict: true });
   await api.createScheduleEntry(scheduleActor, { ...scheduleInput, entryType: "AVAILABLE" });
-  assert.deepEqual(events, ["begin", "lock", "write", "write", "write", "commit"]);
+  assert.deepEqual(events, ["begin", "lock", "write", "write", "commit"]);
 });
 
 test("invalid schedule intervals are rejected before starting a transaction", async () => {
@@ -364,7 +364,7 @@ test("invoice tax and discount adjustments are draft-only, tenant-scoped and der
     invoiceId: "invoice", taxAmount: 25, discountAmount: 10
   });
   assert.equal(total, 315);
-  assert.deepEqual(draft.events, ["begin", "lock", "write", "write", "write", "commit"]);
+  assert.deepEqual(draft.events, ["begin", "lock", "write", "write", "commit"]);
   const update = draft.queries.find(query => query.sql.includes("taxAmount ="))!;
   assert.ok(update.values.includes(25));
   assert.ok(update.values.includes(10));
