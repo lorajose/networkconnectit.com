@@ -42,3 +42,25 @@ test("receipt route remains fail closed without a physical storage backend", () 
   assert.match(source, /Receipt not found/);
   assert.match(source, /"Cache-Control": "no-store"/);
 });
+
+
+test("receipt POST validates tenant, file policy, storage and database attachment order", () => {
+  const source = route();
+  assert.match(source, /export async function POST/);
+  assert.match(source, /request\.formData\(\)/);
+  assert.match(source, /getExpenseReceiptReference\(actor/);
+  assert.match(source, /validateReceiptUpload\(/);
+  assert.match(source, /receiptStorageKey\(/);
+  assert.match(source, /storage\.put\(storageKey/);
+  assert.match(source, /attachExpenseReceipt\(actor/);
+  assert.match(source, /storage\.remove\(storageKey\)\.catch/);
+  assert.match(source, /expense\.storageKey && expense\.storageKey !== storageKey/);
+  assert.doesNotMatch(source, /return NextResponse\.json\(\{ ok: true, storageKey/);
+});
+
+test("privileged receipt GET and POST require an explicit tenant when user has no tenant", () => {
+  const source = route();
+  assert.match(source, /searchParams\.get\("organizationId"\)/);
+  assert.match(source, /form\?\.get\("organizationId"\)/);
+  assert.match(source, /user\.organizationId\?\.trim\(\)/);
+});
