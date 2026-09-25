@@ -7,7 +7,7 @@ const base = {
   NEXTAUTH_SECRET: "ci-production-auth-key-8f4c2a7d91b6e305",
   NEXTAUTH_URL: "https://command.networkconnectit.com/api/auth",
   NEXT_PUBLIC_APP_BASE_PATH: "",
-  DATABASE_URL: "mysql://ci:ci@db.example.internal:3306/command_center",
+  DATABASE_URL: "mysql://ci:ci@db.example.internal:3306/command_center?sslaccept=strict",
   BID_STORAGE_DRIVER: "filesystem",
   BID_PRIVATE_STORAGE_ROOT: "/tmp/nci-private",
   ENABLE_FIRST_ADMIN_BOOTSTRAP: "false",
@@ -47,6 +47,13 @@ assert.match(demoSeed.stderr, /DEMO_SEED must be disabled/);
 const missingTls = gate({ NCI_DATABASE_TLS_MODE: "" });
 assert.notEqual(missingTls.status, 0);
 assert.match(missingTls.stderr, /DATABASE_TLS_MODE must explicitly require TLS/);
+
+const declaredVerifiedTlsWithoutUrlTls = gate({
+  DATABASE_URL: "mysql://ci:ci@db.example.internal:3306/command_center",
+  NCI_DATABASE_TLS_MODE: "verify-identity"
+});
+assert.notEqual(declaredVerifiedTlsWithoutUrlTls.status, 0);
+assert.match(declaredVerifiedTlsWithoutUrlTls.stderr, /sslaccept=strict/);
 
 const loopbackDb = gate({ DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/command_center" });
 assert.notEqual(loopbackDb.status, 0);
