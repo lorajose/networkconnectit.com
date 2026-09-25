@@ -30,8 +30,8 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
   if(input.scopeType==="NEW"&&input.overallTestStatus==="PASS"&&(!input.measuredLength||!input.evidenceSaved))throw new Error("New runs require measured length and tester evidence before PASS");
 
   return prisma.$transaction(async tx=>{
-    const current=(await tx.$queryRaw<Array<{id:string;acceptanceStatus:string|null}>>(Prisma.sql`
-      SELECT id,acceptanceStatus FROM ProjectWorkOrderItem
+    const current=(await tx.$queryRaw<Array<{id:string;acceptanceStatus:string|null;pulledInstalled:boolean;isTerminated:boolean;labeled:boolean;wiremapStatus:string|null;gigabitLinkStatus:string|null;testStatus:string|null;evidenceSaved:boolean;status:string}>>(Prisma.sql`
+      SELECT id,acceptanceStatus,pulledInstalled,isTerminated,labeled,wiremapStatus,gigabitLinkStatus,testStatus,evidenceSaved,status FROM ProjectWorkOrderItem
       WHERE id=${input.itemId} AND workOrderId=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
     if(!current)throw new Error("Work order item not found");
     const failed=[input.wiremapStatus,input.gigabitLinkStatus,input.overallTestStatus].includes("FAIL");
@@ -50,12 +50,22 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
       status=${status},completedByUserId=${ready?input.userId:null},completedAt=${ready?new Date():null},updatedAt=NOW(3)
       WHERE id=${input.itemId} AND workOrderId=${input.workOrderId} AND organizationId=${organizationId}`);
 
-    const stages=[["PULLED",input.pulledInstalled],["TERMINATED",input.terminated],["LABELED",input.labeled],
-      ["WIREMAP",input.wiremapStatus],["GIGABIT_LINK",input.gigabitLinkStatus],["TESTED",input.overallTestStatus],
-      ["EVIDENCE_SAVED",input.evidenceSaved],["READY",ready]] as const;
-    for(const [stage,result] of stages)await tx.$executeRaw(Prisma.sql`INSERT INTO ProjectWorkOrderItemEvent
-      (id,organizationId,workOrderId,workOrderItemId,stage,result,actorUserId,note,occurredAt)
-      VALUES (${randomUUID()},${organizationId},${input.workOrderId},${input.itemId},${stage},${String(result??"")},${input.userId},${clean(input.technicianNote)},NOW(3))`);
+    const stages=[
+      ["PULLED",current.pulledInstalled,input.pulledInstalled],
+      ["TERMINATED",current.isTerminated,input.terminated],
+      ["LABELED",current.labeled,input.labeled],
+      ["WIREMAP",current.wiremapStatus,input.wiremapStatus??null],
+      ["GIGABIT_LINK",current.gigabitLinkStatus,input.gigabitLinkStatus??null],
+      ["TESTED",current.testStatus,input.overallTestStatus??null],
+      ["EVIDENCE_SAVED",current.evidenceSaved,input.evidenceSaved],
+      ["READY",current.status==="COMPLETED",ready],
+    ] as const;
+    for(const [stage,before,result] of stages){
+      if(String(before??"")===String(result??""))continue;
+      await tx.$executeRaw(Prisma.sql`INSERT INTO ProjectWorkOrderItemEvent
+        (id,organizationId,workOrderId,workOrderItemId,stage,result,actorUserId,note,occurredAt)
+        VALUES (${randomUUID()},${organizationId},${input.workOrderId},${input.itemId},${stage},${String(result??"")},${input.userId},${clean(input.technicianNote)},NOW(3))`);
+    }
 
     if(failed){
       const existing=await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM ProjectPunchListItem
@@ -79,9 +89,13 @@ export async function recordCableRunAcceptance(actor:CommercialActor,input:{orga
     await tx.$executeRaw(Prisma.sql`UPDATE ProjectWorkOrderItem SET acceptanceStatus=${decision},updatedAt=NOW(3) WHERE id=${input.itemId} AND organizationId=${organizationId}`);
     await tx.$executeRaw(Prisma.sql`INSERT INTO ProjectWorkOrderItemEvent (id,organizationId,workOrderId,workOrderItemId,stage,result,actorUserId,note,occurredAt)
       VALUES (${randomUUID()},${organizationId},${input.workOrderId},${input.itemId},'CUSTOMER_ACCEPTANCE',${decision},${input.userId},${clean(input.note)},NOW(3))`);
-    if(!input.accepted)await tx.$executeRaw(Prisma.sql`INSERT INTO ProjectPunchListItem
-      (id,organizationId,workOrderId,workOrderItemId,title,description,severity,status,createdByUserId,createdAt,updatedAt)
-      VALUES (${randomUUID()},${organizationId},${input.workOrderId},${input.itemId},${`Rejected cable run ${item.runIdentifier??input.itemId}`},${clean(input.note)},'HIGH','OPEN',${input.userId},NOW(3),NOW(3))`);
+    if(!input.accepted){
+      const existing=await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`SELECT id FROM ProjectPunchListItem
+        WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId} AND workOrderItemId=${input.itemId} AND status='OPEN' LIMIT 1`);
+      if(!existing[0])await tx.$executeRaw(Prisma.sql`INSERT INTO ProjectPunchListItem
+        (id,organizationId,workOrderId,workOrderItemId,title,description,severity,status,createdByUserId,createdAt,updatedAt)
+        VALUES (${randomUUID()},${organizationId},${input.workOrderId},${input.itemId},${`Rejected cable run ${item.runIdentifier??input.itemId}`},${clean(input.note)},'HIGH','OPEN',${input.userId},NOW(3),NOW(3))`);
+    }
     return decision;
   });
 }
