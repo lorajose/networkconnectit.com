@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRoles } from "@/lib/auth";
-import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, updateInvoiceAdjustments, submitTimeEntry } from "@/lib/company-operations/repository";
+import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, updateInvoiceAdjustments, updateOperationsSettings, submitTimeEntry } from "@/lib/company-operations/repository";
 import { routeAccess } from "@/lib/rbac";
 
 function text(formData: FormData, key: string) {
@@ -152,5 +152,17 @@ export async function submitTimeEntryAction(formData: FormData) {
 export async function approveTimeEntryAction(formData: FormData) {
   const user = await actor();
   await approveTimeEntry(user, { organizationId: org(formData), timeEntryId: text(formData, "timeEntryId") });
+  refresh();
+}
+
+
+export async function updateOperationsSettingsAction(formData: FormData) {
+  const user = await actor();
+  await updateOperationsSettings(user, {
+    organizationId: org(formData),
+    defaultTimeZone: text(formData, "defaultTimeZone") || "America/New_York",
+    overtimeMultiplier: number(formData, "overtimeMultiplier"),
+    payPeriod: text(formData, "payPeriod") || "BIWEEKLY"
+  });
   refresh();
 }
