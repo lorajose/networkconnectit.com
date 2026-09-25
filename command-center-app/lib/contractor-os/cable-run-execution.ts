@@ -9,7 +9,7 @@ export type CableRunExecutionInput = {
   organizationId:string; workOrderId:string; itemId:string; runIdentifier:string; scopeType:"NEW"|"EXISTING";
   fromLocation?:string|null; toLocation?:string|null; cableType?:string|null; measuredLength?:number|null; lengthUnit?:"FT"|"M"|null;
   floorLevel?:string|null; terminationPoint?:string|null; deviceLocation?:string|null; deviceType?:string|null;
-  pulledInstalled:boolean; terminated:boolean; labeled:boolean; wiremapStatus?:"PASS"|"FAIL"|"NA"|null;
+  pulledInstalled:boolean; terminatedEndA:boolean; terminatedEndB:boolean; labeled:boolean; wiremapStatus?:"PASS"|"FAIL"|"NA"|null;
   gigabitLinkStatus?:"PASS"|"FAIL"|"NA"|null; overallTestStatus?:"PASS"|"FAIL"|"NA"|null;
   technicianNote?:string|null; userId:string;
 };
@@ -28,8 +28,8 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
   if(input.measuredLength!=null&&(!Number.isFinite(input.measuredLength)||input.measuredLength<0))throw new Error("Measured length must be positive");
   if(!validResult(input.wiremapStatus)||!validResult(input.gigabitLinkStatus)||!validResult(input.overallTestStatus))throw new Error("Invalid cable test result");
   return prisma.$transaction(async tx=>{
-    const current=(await tx.$queryRaw<Array<{id:string;acceptanceStatus:string|null;pulledInstalled:boolean;isTerminated:boolean;labeled:boolean;wiremapStatus:string|null;gigabitLinkStatus:string|null;testStatus:string|null;evidenceSaved:boolean;status:string}>>(Prisma.sql`
-      SELECT id,acceptanceStatus,pulledInstalled,isTerminated,labeled,wiremapStatus,gigabitLinkStatus,testStatus,evidenceSaved,status FROM ProjectWorkOrderItem
+    const current=(await tx.$queryRaw<Array<{id:string;acceptanceStatus:string|null;pulledInstalled:boolean;isTerminated:boolean;terminatedEndA:boolean;terminatedEndB:boolean;labeled:boolean;wiremapStatus:string|null;gigabitLinkStatus:string|null;testStatus:string|null;evidenceSaved:boolean;status:string}>>(Prisma.sql`
+      SELECT id,acceptanceStatus,pulledInstalled,isTerminated,terminatedEndA,terminatedEndB,labeled,wiremapStatus,gigabitLinkStatus,testStatus,evidenceSaved,status FROM ProjectWorkOrderItem
       WHERE id=${input.itemId} AND workOrderId=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
     if(!current)throw new Error("Work order item not found");
     const testerEvidence=(await tx.$queryRaw<Array<{count:bigint}>>(Prisma.sql`
@@ -38,9 +38,10 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
         AND workOrderItemId=${input.itemId} AND evidenceType='TESTER'`))[0];
     const evidenceSaved=Number(testerEvidence?.count??0)>0;
     if(input.scopeType==="NEW"&&input.overallTestStatus==="PASS"&&(!input.measuredLength||!evidenceSaved))throw new Error("New runs require measured length and tester evidence before PASS");
+    const terminated=input.terminatedEndA&&input.terminatedEndB;
     const failed=[input.wiremapStatus,input.gigabitLinkStatus,input.overallTestStatus].includes("FAIL");
-    const ready=input.pulledInstalled&&input.terminated&&input.labeled&&input.overallTestStatus==="PASS"&&evidenceSaved;
-    const status=failed?"ISSUE":ready?"COMPLETED":input.pulledInstalled||input.terminated||input.labeled||input.overallTestStatus?"IN_PROGRESS":"PENDING";
+    const ready=input.pulledInstalled&&terminated&&input.labeled&&input.overallTestStatus==="PASS"&&evidenceSaved;
+    const status=failed?"ISSUE":ready?"COMPLETED":input.pulledInstalled||input.terminatedEndA||input.terminatedEndB||input.labeled||input.overallTestStatus?"IN_PROGRESS":"PENDING";
     const acceptanceStatus=failed?"REJECTED":ready?(current.acceptanceStatus==="ACCEPTED"?"ACCEPTED":"READY"):null;
 
     await tx.$executeRaw(Prisma.sql`UPDATE ProjectWorkOrderItem SET
@@ -48,7 +49,7 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
       toLocation=${clean(input.toLocation)},cableType=${clean(input.cableType)},measuredLength=${input.measuredLength??null},
       lengthUnit=${input.lengthUnit??null},floorLevel=${clean(input.floorLevel)},terminationPoint=${clean(input.terminationPoint)},
       deviceLocation=${clean(input.deviceLocation)},deviceType=${clean(input.deviceType)},pulledInstalled=${input.pulledInstalled},
-      isTerminated=${input.terminated},labeled=${input.labeled},wiremapStatus=${input.wiremapStatus??null},
+      terminatedEndA=${input.terminatedEndA},terminatedEndB=${input.terminatedEndB},isTerminated=${terminated},labeled=${input.labeled},wiremapStatus=${input.wiremapStatus??null},
       gigabitLinkStatus=${input.gigabitLinkStatus??null},testStatus=${input.overallTestStatus??null},
       evidenceSaved=${evidenceSaved},acceptanceStatus=${acceptanceStatus},technicianNote=${clean(input.technicianNote)},
       status=${status},completedByUserId=${ready?input.userId:null},completedAt=${ready?new Date():null},updatedAt=NOW(3)
@@ -56,7 +57,9 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
 
     const stages=[
       ["PULLED",current.pulledInstalled,input.pulledInstalled],
-      ["TERMINATED",current.isTerminated,input.terminated],
+      ["TERMINATED_END_A",current.terminatedEndA,input.terminatedEndA],
+      ["TERMINATED_END_B",current.terminatedEndB,input.terminatedEndB],
+      ["TERMINATED",current.isTerminated,terminated],
       ["LABELED",current.labeled,input.labeled],
       ["WIREMAP",current.wiremapStatus,input.wiremapStatus??null],
       ["GIGABIT_LINK",current.gigabitLinkStatus,input.gigabitLinkStatus??null],
