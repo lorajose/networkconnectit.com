@@ -69,13 +69,13 @@ async function main() {
     VALUES ('project-a', 'a', 'CI Project', 'CI-001', 'ACTIVE', NOW(3))`;
   await prisma.$executeRawUnsafe(`CREATE TABLE ProjectWorkOrder (
     id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
-    projectInstallationId VARCHAR(191) NOT NULL, surveySessionId VARCHAR(191) NOT NULL, workOrderNumber VARCHAR(191) NOT NULL,
-    title VARCHAR(255) NOT NULL, status VARCHAR(32) NOT NULL DEFAULT 'READY',
+    projectInstallationId VARCHAR(191) NOT NULL, surveySessionId VARCHAR(191) NOT NULL,
+    title VARCHAR(255) NOT NULL, status VARCHAR(32) NOT NULL DEFAULT 'READY', assignedToUserId VARCHAR(191) NULL,
     updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     INDEX ProjectWorkOrder_org_project_idx (organizationId, projectInstallationId)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-  await prisma.$executeRaw`INSERT INTO ProjectWorkOrder (id, organizationId, projectInstallationId, surveySessionId, workOrderNumber, title, status, updatedAt)
-    VALUES ('work-order-a', 'a', 'project-a', 'survey-a', 'WO-CI-001', 'CI Work Order', 'CLOSED', NOW(3))`;
+  await prisma.$executeRaw`INSERT INTO ProjectWorkOrder (id, organizationId, projectInstallationId, surveySessionId, title, status, assignedToUserId, updatedAt)
+    VALUES ('work-order-a', 'a', 'project-a', 'survey-a', 'CI Work Order', 'CLOSED', 'admin-a', NOW(3))`;
   await prisma.$executeRawUnsafe(`CREATE TABLE ProjectCloseoutPackage (
     id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
     projectInstallationId VARCHAR(191) NOT NULL, workOrderId VARCHAR(191) NOT NULL,
@@ -175,9 +175,13 @@ async function main() {
   assert.equal(foreignCalendar.length, 0);
   await assert.rejects(() => repo.createScheduleEntry(actor, { ...input, timeZone: 'Not/AZone' }), /Invalid IANA time zone/);
 
+  await prisma.$executeRaw`INSERT INTO ProjectWorkOrder (id, organizationId, projectInstallationId, surveySessionId, title, status, assignedToUserId, updatedAt)
+    VALUES ('work-order-alert', 'a', 'project-a', 'survey-alert', 'Needs dispatch', 'READY', NULL, NOW(3))`;
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
   assert.equal(result.metrics.technicianCount, 1);
+  assert.ok(result.operationalAlerts.some(a => a.alertType === 'UNASSIGNED_WORK_ORDER' && a.entityId === 'work-order-alert'));
+  assert.equal(result.operationalAlerts.some(a => a.entityId === 'work-order-a' && a.alertType === 'UNASSIGNED_WORK_ORDER'), false);
   assert.equal(result.metrics.upcomingAssignments, 2);
   assert.equal(result.workOrders.length, 1);
   assert.equal(result.workOrders[0].id, 'work-order-a');
