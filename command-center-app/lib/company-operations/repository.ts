@@ -411,8 +411,15 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
   const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
   choice(input.entryType, ["ASSIGNMENT", "AVAILABLE", "UNAVAILABLE", "PTO"], "schedule type");
   const timeZone = requiredText(input.timeZone || "America/New_York", "Time zone", 64);
-  const startsAt = zonedLocalDateTime(input.startsAt, timeZone, "schedule start");
-  const endsAt = zonedLocalDateTime(input.endsAt, timeZone, "schedule end");
+  let startsAt: Date;
+  let endsAt: Date;
+  try {
+    startsAt = zonedLocalDateTime(input.startsAt, timeZone, "schedule start");
+    endsAt = zonedLocalDateTime(input.endsAt, timeZone, "schedule end");
+  } catch (error) {
+    if (error instanceof Error && /schedule (start|end)/.test(error.message)) throw new Error("Schedule end must be after start.");
+    throw error;
+  }
   if (!(startsAt < endsAt)) throw new Error("Schedule end must be after start.");
 
   // Serialize bookings on the tenant-owned technician row, including the first
