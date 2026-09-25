@@ -47,6 +47,13 @@ export async function POST(request: Request, context: { params: { technicianId: 
       await storage.remove(storageKey).catch(() => undefined);
       throw error;
     }
+    const acceptsHtml = request.headers.get("accept")?.includes("text/html");
+    if (acceptsHtml) {
+      const destination = new URL("/operations", request.url);
+      destination.searchParams.set("organizationId", validated.organizationId);
+      destination.searchParams.set("technicianDocumentUploaded", "1");
+      return NextResponse.redirect(destination, 303);
+    }
     return NextResponse.json({ ok: true, documentId }, { status: 201 });
   } catch (error) {
     if (storage && storageKey) await storage.remove(storageKey).catch(() => undefined);
