@@ -27,7 +27,7 @@ test("NCI-014 records independent low-voltage test outcomes and evidence",()=>{
 });
 
 test("NCI-014 preserves the field stage history and rejection punch workflow",()=>{
- for(const stage of ["PULLED","TERMINATED","LABELED","WIREMAP","GIGABIT_LINK","TESTED","EVIDENCE_SAVED","READY"]) assert.match(source,new RegExp(stage));
+ for(const stage of ["PULLED","TERMINATED_END_A","TERMINATED_END_B","TERMINATED","LABELED","WIREMAP","GIGABIT_LINK","TESTED","EVIDENCE_SAVED","READY"]) assert.match(source,new RegExp(stage));
  assert.match(source,/ProjectWorkOrderItemEvent/);
  assert.match(source,/ProjectPunchListItem/);
  assert.match(source,/REJECTED/);
@@ -68,4 +68,18 @@ test("NCI-014 server action cannot spoof tester evidence with a client checkbox"
  assert.doesNotMatch(cableAction,/formData\.get\("evidenceSaved"\)/);
  assert.match(source,/ProjectWorkOrderEvidence/);
  assert.match(source,/evidenceType='TESTER'/);
+});
+
+
+test("NCI-014 tracks both cable termination ends and derives legacy terminated state",()=>{
+ const endMigration=readFileSync(resolve(process.cwd(),"prisma/migrations/20260925230000_nci014_termination_ends/migration.sql"),"utf8");
+ assert.match(endMigration,/terminatedEndA/);
+ assert.match(endMigration,/terminatedEndB/);
+ assert.match(endMigration,/SET terminatedEndA=isTerminated, terminatedEndB=isTerminated/);
+ assert.match(source,/terminated=input\.terminatedEndA&&input\.terminatedEndB/);
+ assert.match(source,/isTerminated=\$\{terminated\}/);
+ const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(page,/name="terminatedEndA"/);
+ assert.match(page,/name="terminatedEndB"/);
+ assert.doesNotMatch(page,/name="evidenceSaved"/);
 });
