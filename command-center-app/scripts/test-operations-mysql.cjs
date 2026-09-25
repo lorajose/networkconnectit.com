@@ -183,9 +183,9 @@ async function main() {
   assert.ok(result.operationalAlerts.some(a => a.alertType === 'UNASSIGNED_WORK_ORDER' && a.entityId === 'work-order-alert'));
   assert.equal(result.operationalAlerts.some(a => a.entityId === 'work-order-a' && a.alertType === 'UNASSIGNED_WORK_ORDER'), false);
   assert.equal(result.metrics.upcomingAssignments, 2);
-  assert.equal(result.workOrders.length, 1);
-  assert.equal(result.workOrders[0].id, 'work-order-a');
-  assert.equal(result.workOrders[0].projectInstallationId, 'project-a');
+  assert.equal(result.workOrders.length, 2);
+  assert.ok(result.workOrders.some(w => w.id === 'work-order-a' && w.projectInstallationId === 'project-a'));
+  assert.ok(result.workOrders.some(w => w.id === 'work-order-alert' && w.projectInstallationId === 'project-a'));
   assert.equal(foreign.schedule.length, 0);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').revenue, 1200);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
