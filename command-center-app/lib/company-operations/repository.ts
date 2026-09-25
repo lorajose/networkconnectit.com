@@ -45,7 +45,7 @@ export async function getClientSafeInvoice(actor: OperationsActor, input: { orga
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
   await syncOverdueInvoices(actor, organizationId);
-  const [technicians, projects, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals] = await Promise.all([
+  const [technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
@@ -54,6 +54,11 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       SELECT id, name, projectCode FROM ProjectInstallation
       WHERE organizationId = ${organizationId} AND status NOT IN ('COMPLETE', 'ARCHIVED')
       ORDER BY updatedAt DESC LIMIT 100`),
+    prisma.$queryRaw<Array<{ id: string; projectInstallationId: string; workOrderNumber: string; title: string; status: string }>>(Prisma.sql`
+      SELECT id, projectInstallationId, workOrderNumber, title, status
+      FROM ProjectWorkOrder
+      WHERE organizationId = ${organizationId} AND status <> 'CANCELLED'
+      ORDER BY updatedAt DESC LIMIT 200`),
     prisma.$queryRaw<Array<{ id: string; title: string; technicianName: string; startsAt: Date; endsAt: Date; status: string }>>(Prisma.sql`
       SELECT s.id, s.title, t.displayName AS technicianName, s.startsAt, s.endsAt, s.status
       FROM OperationsScheduleEntry s
@@ -133,7 +138,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
   const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
-  return { organizationId, technicians, projects, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, metrics: {
+  return { organizationId, technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
