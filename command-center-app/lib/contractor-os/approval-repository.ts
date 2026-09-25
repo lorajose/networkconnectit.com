@@ -21,8 +21,15 @@ export type PersistProposalApprovalInput = {
 
 type ProposalRow = {
   id: string;
+  estimateId: string;
+  projectInstallationId: string | null;
   status: CommercialDocumentStatus;
   currentVersion: number;
+};
+
+type EstimateProjectRow = {
+  id: string;
+  projectInstallationId: string | null;
 };
 
 type ProposalVersionRow = {
@@ -39,7 +46,7 @@ export async function persistProposalApproval(input: PersistProposalApprovalInpu
 
   return prisma.$transaction(async (tx) => {
     const proposals = await tx.$queryRaw<ProposalRow[]>(Prisma.sql`
-      SELECT id, status, currentVersion
+      SELECT id, estimateId, projectInstallationId, status, currentVersion
       FROM Proposal
       WHERE id = ${proposalId} AND organizationId = ${organizationId}
       LIMIT 1
@@ -50,6 +57,29 @@ export async function persistProposalApproval(input: PersistProposalApprovalInpu
     if (!proposal) throw new Error("Proposal not found for organization");
 
     assertProposalCanBeApproved(proposal.status, proposal.currentVersion, input.proposalVersion);
+
+    const estimates = await tx.$queryRaw<EstimateProjectRow[]>(Prisma.sql`
+      SELECT id, projectInstallationId
+      FROM Estimate
+      WHERE id = ${proposal.estimateId} AND organizationId = ${organizationId}
+      LIMIT 1
+      FOR UPDATE
+    `);
+    const estimate = estimates[0];
+    if (!estimate) throw new Error("Proposal estimate not found for organization");
+
+    if (proposal.projectInstallationId && estimate.projectInstallationId && proposal.projectInstallationId !== estimate.projectInstallationId) {
+      throw new Error("Proposal and Estimate project links do not match");
+    }
+    const projectInstallationId = proposal.projectInstallationId ?? estimate.projectInstallationId;
+    if (!projectInstallationId) throw new Error("Link the Estimate or Proposal to a ProjectInstallation before approval");
+
+    const projects = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT id FROM ProjectInstallation
+      WHERE id = ${projectInstallationId} AND organizationId = ${organizationId}
+      LIMIT 1
+    `);
+    if (!projects[0]) throw new Error("Linked ProjectInstallation not found for organization");
 
     const versions = await tx.$queryRaw<ProposalVersionRow[]>(Prisma.sql`
       SELECT id, customerTotal
@@ -96,14 +126,21 @@ export async function persistProposalApproval(input: PersistProposalApprovalInpu
 
     await tx.$executeRaw(Prisma.sql`
       UPDATE Proposal
-      SET status = 'APPROVED', approvedAt = ${approvedAt}, updatedAt = ${approvedAt}
+      SET status = 'APPROVED', projectInstallationId = ${projectInstallationId}, approvedAt = ${approvedAt}, updatedAt = ${approvedAt}
       WHERE id = ${proposalId} AND organizationId = ${organizationId}
+    `);
+
+    await tx.$executeRaw(Prisma.sql`
+      UPDATE Estimate
+      SET status = 'ACCEPTED', projectInstallationId = ${projectInstallationId}, updatedAt = ${approvedAt}
+      WHERE id = ${estimate.id} AND organizationId = ${organizationId}
     `);
 
     return {
       receiptId,
       proposalId,
       proposalVersion: input.proposalVersion,
+      projectInstallationId,
       approvedAmount: version.customerTotal.toString(),
       approvedAtIso: approvedAt.toISOString(),
       signerName: normalized.signerName,
