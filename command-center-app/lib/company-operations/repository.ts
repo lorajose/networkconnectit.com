@@ -469,6 +469,80 @@ export async function createTimeEntry(actor: OperationsActor, input: {
   return id;
 }
 
+
+
+function stringList(value: unknown, label: string) {
+  if (!Array.isArray(value)) throw new Error(`${label} must be a list.`);
+  return value.map((item) => requiredText(String(item), label, 120)).slice(0, 50);
+}
+
+export async function updateTechnicianProfile(actor: OperationsActor, input: {
+  organizationId?: string;
+  technicianProfileId: string;
+  skills?: string[];
+  certifications?: Array<{ name: string; expiresOn?: string | null }>;
+  employmentStatus?: string;
+  availabilityStatus?: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  const technicianProfileId = requiredText(input.technicianProfileId, "Technician", 191);
+  const skills = input.skills === undefined ? undefined : stringList(input.skills, "Skill");
+  const certifications = input.certifications === undefined ? undefined : input.certifications.slice(0, 50).map((certification) => ({
+    name: requiredText(certification.name, "Certification", 120),
+    expiresOn: certification.expiresOn ? calendarDate(certification.expiresOn, "certification expiration") : null,
+  }));
+  const employmentStatus = input.employmentStatus === undefined ? undefined : choice(input.employmentStatus, "Employment status", ["ACTIVE", "INACTIVE"]);
+  const availabilityStatus = input.availabilityStatus === undefined ? undefined : choice(input.availabilityStatus, "Availability status", ["AVAILABLE", "UNAVAILABLE", "PTO"]);
+
+  const updated = await prisma.$executeRaw(Prisma.sql`
+    UPDATE FieldTechnicianProfile
+    SET skillsJson = COALESCE(${skills === undefined ? null : JSON.stringify(skills)}, skillsJson),
+        certificationsJson = COALESCE(${certifications === undefined ? null : JSON.stringify(certifications)}, certificationsJson),
+        employmentStatus = COALESCE(${employmentStatus ?? null}, employmentStatus),
+        availabilityStatus = COALESCE(${availabilityStatus ?? null}, availabilityStatus),
+        updatedAt = NOW(3)
+    WHERE id = ${technicianProfileId} AND organizationId = ${organizationId}`);
+  if (updated !== 1) throw new Error("Technician is outside your tenant scope.");
+  await appendOperationsAuditEvent(organizationId, actor.id, "TECHNICIAN_PROFILE_UPDATED", "TECHNICIAN", technicianProfileId, {
+    skillsChanged: skills !== undefined,
+    certificationsChanged: certifications !== undefined,
+    employmentStatus,
+    availabilityStatus,
+  });
+}
+
+export async function getTechnicianDocumentReference(actor: OperationsActor, input: {
+  organizationId?: string; technicianProfileId: string; documentId: string;
+}) {
+  const organizationId = scopedOperationsReadOrganizationId(actor, input.organizationId);
+  const rows = await prisma.$queryRaw<Array<{ id: string; technicianProfileId: string; storageKey: string; title: string; documentType: string; expiresOn: Date | null }>>(Prisma.sql`
+    SELECT id, technicianProfileId, storageKey, title, documentType, expiresOn
+    FROM OperationsTechnicianDocument
+    WHERE id = ${input.documentId} AND technicianProfileId = ${input.technicianProfileId} AND organizationId = ${organizationId}
+    LIMIT 1`);
+  if (!rows[0]) throw new Error("Technician document is outside your tenant scope.");
+  return rows[0];
+}
+
+export async function attachTechnicianDocument(actor: OperationsActor, input: {
+  organizationId?: string; technicianProfileId: string; documentId: string; documentType: string; title: string; expiresOn?: string | null; storageKey: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  const technicianProfileId = requiredText(input.technicianProfileId, "Technician", 191);
+  const documentId = requiredText(input.documentId, "Document", 191);
+  const documentType = requiredText(input.documentType, "Document type", 64);
+  const title = requiredText(input.title, "Document title", 255);
+  const expiresOn = input.expiresOn ? calendarDate(input.expiresOn, "document expiration") : null;
+  const technicians = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM FieldTechnicianProfile WHERE id = ${technicianProfileId} AND organizationId = ${organizationId} LIMIT 1`);
+  if (!technicians[0]) throw new Error("Technician is outside your tenant scope.");
+  await prisma.$executeRaw(Prisma.sql`
+    INSERT INTO OperationsTechnicianDocument
+      (id, organizationId, technicianProfileId, documentType, title, expiresOn, storageKey, uploadedByUserId, createdAt, updatedAt)
+    VALUES
+      (${documentId}, ${organizationId}, ${technicianProfileId}, ${documentType}, ${title}, ${expiresOn}, ${input.storageKey}, ${actor.id}, NOW(3), NOW(3))`);
+  await appendOperationsAuditEvent(organizationId, actor.id, "TECHNICIAN_DOCUMENT_ATTACHED", "TECHNICIAN", technicianProfileId, { documentId, documentType, expiresOn });
+}
+
 export async function createScheduleEntry(actor: OperationsActor, input: {
   organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; title: string; startsAt: string; endsAt: string; timeZone?: string; entryType: string;
 }) {
