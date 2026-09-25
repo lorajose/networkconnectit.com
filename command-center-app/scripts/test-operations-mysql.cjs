@@ -71,7 +71,12 @@ async function main() {
   assert.equal(approved[0].approvedByUserId, actor.id);
   assert.ok(approved[0].approvedAt);
 
-  await repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'CI cable', amount: 100, expenseDate: '2030-01-01', reimbursable: false });
+  const materialExpenseId = await repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'CI cable', amount: 100, expenseDate: '2030-01-01', reimbursable: false, materialQuantityPurchased: 1000, materialQuantityUsed: 750, materialUnit: 'ft' });
+  const materialExpense = await prisma.$queryRaw`SELECT materialQuantityPurchased, materialQuantityUsed, materialUnit FROM OperationsExpense WHERE id = ${materialExpenseId}`;
+  assert.equal(Number(materialExpense[0].materialQuantityPurchased), 1000);
+  assert.equal(Number(materialExpense[0].materialQuantityUsed), 750);
+  assert.equal(materialExpense[0].materialUnit, 'ft');
+  await assert.rejects(() => repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'Invalid cable', amount: 20, expenseDate: '2030-01-01', reimbursable: false, materialQuantityPurchased: 100, materialQuantityUsed: 101, materialUnit: 'ft' }), /cannot exceed/);
   const invoiceId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-001', customerName: 'CI Client', dueDate: '2030-01-31' });
   await repo.addInvoiceLine(actor, { invoiceId, lineType: 'LABOR', description: 'Install', quantity: 10, unitPrice: 100 });
   const draft = await prisma.$queryRaw`SELECT subtotal, totalAmount, status FROM OperationsInvoice WHERE id = ${invoiceId}`;
@@ -121,6 +126,6 @@ async function main() {
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').laborCost, 550);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 550);
-  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, SENT/OVERDUE/PAID lifecycle, atomic payments and project profitability.');
+  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, SENT/OVERDUE/PAID lifecycle, material purchased/used tracking, atomic payments and project profitability.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
