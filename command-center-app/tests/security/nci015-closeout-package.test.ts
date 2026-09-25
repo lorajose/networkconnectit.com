@@ -23,3 +23,20 @@ test("immutable closeout manifest snapshots cable execution and real stored evid
  assert.match(source,/acceptanceCounts/);
  assert.match(source,/cableSchedule:cableRuns/);
 });
+
+
+test("client-safe closeout report uses tenant branding and excludes commercial pricing",()=>{
+ const report=fs.readFileSync(path.resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/closeout/page.tsx"),"utf8");
+ assert.match(report,/requireSiteSurveyPageAccess/);
+ assert.match(report,/logoUrl/);
+ assert.match(report,/brandPrimaryColor/);
+ assert.match(report,/Final cable schedule/);
+ assert.match(report,/wiremapStatus/);
+ assert.match(report,/gigabitLinkStatus/);
+ assert.match(report,/Test & photo evidence index/);
+ assert.match(report,/Punch list/);
+ assert.match(report,/Customer acceptance/);
+ assert.match(report,/Commercial pricing is intentionally excluded/);
+ assert.doesNotMatch(report,/acceptedUnitRate/);
+ assert.doesNotMatch(report,/acceptedValue/);
+});
