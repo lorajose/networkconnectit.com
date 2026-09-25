@@ -46,6 +46,31 @@ async function main() {
   const internalActor = { id: 'internal-a', role: 'INTERNAL_ADMIN', organizationId: null };
   await assert.rejects(() => repo.createTechnician(actor, { displayName: 'Blocked pay technician', workerType: 'W2', hourlyPayRate: 25 }), /sensitive operations financial/i);
   const technician = await repo.createTechnician(internalActor, { organizationId: 'a', displayName: 'QA technician', workerType: 'W2', hourlyPayRate: 0 });
+  await repo.updateTechnicianProfile(actor, {
+    technicianProfileId: technician,
+    skills: ['CAT6', 'CCTV'],
+    certifications: [{ name: 'CCNA', expiresOn: '2031-12-31' }],
+    employmentStatus: 'ACTIVE',
+    availabilityStatus: 'AVAILABLE',
+  });
+  const lifecycleRows = await prisma.$queryRawUnsafe('SELECT skillsJson, certificationsJson, employmentStatus, availabilityStatus FROM FieldTechnicianProfile WHERE id = ?', technician);
+  assert.equal(lifecycleRows[0].employmentStatus, 'ACTIVE');
+  assert.equal(lifecycleRows[0].availabilityStatus, 'AVAILABLE');
+  assert.match(lifecycleRows[0].skillsJson, /CAT6/);
+  assert.match(lifecycleRows[0].certificationsJson, /2031-12-31/);
+  await assert.rejects(() => repo.updateTechnicianProfile(other, { technicianProfileId: technician, employmentStatus: 'INACTIVE' }), /outside your tenant/);
+
+  await repo.attachTechnicianDocument(actor, {
+    technicianProfileId: technician,
+    documentId: 'tech-doc-a',
+    documentType: 'CERTIFICATION',
+    title: 'CCNA certificate',
+    expiresOn: '2031-12-31',
+    storageKey: 'organizations/a/technicians/test/documents/object--ccna.pdf',
+  });
+  const doc = await repo.getTechnicianDocumentReference(actor, { technicianProfileId: technician, documentId: 'tech-doc-a' });
+  assert.equal(doc.title, 'CCNA certificate');
+  await assert.rejects(() => repo.getTechnicianDocumentReference(other, { technicianProfileId: technician, documentId: 'tech-doc-a' }), /outside your tenant/);
   const input = { technicianProfileId: technician, title: 'Concurrent booking', startsAt: '2030-01-01T10:00:00', endsAt: '2030-01-01T11:00:00', timeZone: 'America/New_York', entryType: 'ASSIGNMENT' };
   // Empty schedule: locking existing bookings alone would not protect this case.
   const attempts = await Promise.allSettled([repo.createScheduleEntry(actor, input), repo.createScheduleEntry(actor, input)]);
