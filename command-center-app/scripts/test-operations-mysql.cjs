@@ -68,13 +68,26 @@ async function main() {
     VALUES ('project-a', 'a', 'CI Project', 'CI-001', 'ACTIVE', NOW(3))`;
   await prisma.$executeRawUnsafe(`CREATE TABLE ProjectWorkOrder (
     id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
-    projectInstallationId VARCHAR(191) NOT NULL, workOrderNumber VARCHAR(191) NOT NULL,
+    projectInstallationId VARCHAR(191) NOT NULL, surveySessionId VARCHAR(191) NOT NULL, workOrderNumber VARCHAR(191) NOT NULL,
     title VARCHAR(255) NOT NULL, status VARCHAR(32) NOT NULL DEFAULT 'READY',
     updatedAt DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     INDEX ProjectWorkOrder_org_project_idx (organizationId, projectInstallationId)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-  await prisma.$executeRaw`INSERT INTO ProjectWorkOrder (id, organizationId, projectInstallationId, workOrderNumber, title, status, updatedAt)
-    VALUES ('work-order-a', 'a', 'project-a', 'WO-CI-001', 'CI Work Order', 'READY', NOW(3))`;
+  await prisma.$executeRaw`INSERT INTO ProjectWorkOrder (id, organizationId, projectInstallationId, surveySessionId, workOrderNumber, title, status, updatedAt)
+    VALUES ('work-order-a', 'a', 'project-a', 'survey-a', 'WO-CI-001', 'CI Work Order', 'CLOSED', NOW(3))`;
+  await prisma.$executeRawUnsafe(`CREATE TABLE ProjectCloseoutPackage (
+    id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
+    projectInstallationId VARCHAR(191) NOT NULL, workOrderId VARCHAR(191) NOT NULL,
+    packageVersion INT NOT NULL DEFAULT 1, status VARCHAR(32) NOT NULL DEFAULT 'DRAFT'
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await prisma.$executeRaw`INSERT INTO ProjectCloseoutPackage (id, organizationId, projectInstallationId, workOrderId, packageVersion, status)
+    VALUES ('closeout-a', 'a', 'project-a', 'work-order-a', 1, 'GENERATED')`;
+  await prisma.$executeRawUnsafe(`CREATE TABLE ProjectActivityEvent (
+    id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
+    projectInstallationId VARCHAR(191) NOT NULL, surveySessionId VARCHAR(191) NULL, workOrderId VARCHAR(191) NULL,
+    eventType VARCHAR(64) NOT NULL, actorUserId VARCHAR(191) NULL, summary VARCHAR(512) NOT NULL,
+    detailsJson LONGTEXT NULL, occurredAt DATETIME(3) NOT NULL
+  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
 
   await prisma.$executeRaw`UPDATE FieldTechnicianProfile SET status = 'ACTIVE', hourlyPayRate = 50 WHERE id = ${technician}`;
   const timeId = await repo.createTimeEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workOrderId: 'work-order-a', workDate: '2030-01-01', regularHours: 8, overtimeHours: 2 });
@@ -117,6 +130,8 @@ async function main() {
   assert.equal(paid[0].status, 'PAID');
   const payments = await prisma.$queryRaw`SELECT COUNT(*) AS total FROM OperationsPayment WHERE invoiceId = ${invoiceId}`;
   assert.equal(Number(payments[0].total), 2);
+  const paymentEvents = await prisma.$queryRaw`SELECT eventType FROM ProjectActivityEvent WHERE workOrderId = 'work-order-a' ORDER BY occurredAt`;
+  assert.deepEqual(paymentEvents.map(row => row.eventType), ['INVOICE_PAYMENT_RECORDED', 'INVOICE_PAID']);
 
   const workOrderScheduleId = await repo.createScheduleEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workOrderId: 'work-order-a', title: 'WO assignment', startsAt: '2030-01-02T10:00:00Z', endsAt: '2030-01-02T11:00:00Z', entryType: 'ASSIGNMENT' });
   const workOrderSchedule = await prisma.$queryRaw`SELECT workOrderId FROM OperationsScheduleEntry WHERE id = ${workOrderScheduleId}`;
