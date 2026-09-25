@@ -195,6 +195,19 @@ export async function createInvoice(actor: OperationsActor, input: {
     if (!project[0]) throw new Error("Project is outside your tenant scope.");
   }
   const workOrderId = await validateProjectWorkOrderLink(organizationId, projectInstallationId, input.workOrderId);
+  if (workOrderId) {
+    const closeout = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+      SELECT c.id FROM ProjectCloseoutPackage c
+      JOIN ProjectWorkOrder w ON w.id = c.workOrderId AND w.organizationId = c.organizationId
+      WHERE c.organizationId = ${organizationId}
+        AND c.workOrderId = ${workOrderId}
+        AND c.projectInstallationId = ${projectInstallationId}
+        AND c.status = 'GENERATED'
+        AND w.status = 'CLOSED'
+      ORDER BY c.packageVersion DESC
+      LIMIT 1`);
+    if (!closeout[0]) throw new Error("Work order invoice requires a closed work order with a generated closeout package.");
+  }
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsInvoice
