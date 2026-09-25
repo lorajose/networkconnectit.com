@@ -40,3 +40,13 @@ test("pay period export boundary is tenant-scoped and approved-only", () => {
   assert.match(repository, /hourlyPayRateSnapshot/);
   assert.match(repository, /overtimeHours \* hourlyRate \* 1\.5/);
 });
+
+
+test("schedule calendar is tenant scoped and timezone explicit", () => {
+  assert.match(repository, /export async function getScheduleCalendar/);
+  assert.match(repository, /s\.organizationId = \$\{organizationId\}/);
+  assert.match(repository, /s\.startsAt < \$\{endsAt\} AND s\.endsAt > \$\{startsAt\}/);
+  assert.match(repository, /zonedLocalDateTime/);
+  assert.match(repository, /Invalid IANA time zone/);
+  assert.match(repository, /timeZone, status, createdByUserId/);
+});
