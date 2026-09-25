@@ -63,6 +63,33 @@ test("invalid inputs fail before any write and zero hourly rate is persisted", a
   assert.ok(queries[0].values.includes(0));
 });
 
+test("material expenses require purchased/used quantities and reject overuse before writing", async () => {
+  const admin = { id: "a", role: "CLIENT_ADMIN", organizationId: "org" };
+  const invalid = repository();
+  await assert.rejects(() => invalid.api.createExpense(admin, {
+    category: "MATERIALS", description: "Cat6", amount: 100, expenseDate: "2026-09-24", reimbursable: false,
+    materialQuantityPurchased: 100, materialQuantityUsed: 101, materialUnit: "ft"
+  }), /cannot exceed/);
+  assert.equal(invalid.queries.length, 0);
+
+  const valid = repository();
+  await valid.api.createExpense(admin, {
+    category: "MATERIALS", description: "Cat6", amount: 100, expenseDate: "2026-09-24", reimbursable: false,
+    materialQuantityPurchased: 100, materialQuantityUsed: 75, materialUnit: "ft"
+  });
+  const write = valid.queries.find(query => query.sql.includes("INSERT INTO OperationsExpense"))!;
+  assert.ok(write.values.includes(100));
+  assert.ok(write.values.includes(75));
+  assert.ok(write.values.includes("ft"));
+
+  const travel = repository();
+  await travel.api.createExpense(admin, {
+    category: "TRAVEL", description: "Parking", amount: 20, expenseDate: "2026-09-24", reimbursable: true
+  });
+  const travelWrite = travel.queries.find(query => query.sql.includes("INSERT INTO OperationsExpense"))!;
+  assert.equal(travelWrite.values.filter(value => value === null).length >= 4, true);
+});
+
 test("dashboard uses organization aggregates rather than capped detail rows", async () => {
   const { api, queries } = repository();
   const result = await api.getOperationsSnapshot({ id: "a", role: "CLIENT_ADMIN", organizationId: "org" }) as { metrics: Record<string, number>; invoices: unknown[] };
