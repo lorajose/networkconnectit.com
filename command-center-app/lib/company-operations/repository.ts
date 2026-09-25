@@ -222,6 +222,36 @@ export async function createExpense(actor: OperationsActor, input: {
   return id;
 }
 
+export async function attachExpenseReceipt(actor: OperationsActor, input: {
+  organizationId?: string; expenseId: string; storageKey: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.expenseId = requiredText(input.expenseId, "Expense", 191);
+  const storageKey = requiredText(input.storageKey, "Receipt storage key", 512);
+  if (!storageKey.startsWith(`organizations/${organizationId}/expenses/${input.expenseId}/`)) {
+    throw new Error("Receipt storage key is outside your tenant scope.");
+  }
+  const updated = await prisma.$executeRaw(Prisma.sql`
+    UPDATE OperationsExpense
+    SET receiptStorageKey = ${storageKey}, updatedAt = NOW(3)
+    WHERE id = ${input.expenseId} AND organizationId = ${organizationId}`);
+  if (updated !== 1) throw new Error("Expense is outside your tenant scope.");
+}
+
+export async function getExpenseReceiptReference(actor: OperationsActor, input: {
+  organizationId?: string; expenseId: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.expenseId = requiredText(input.expenseId, "Expense", 191);
+  const rows = await prisma.$queryRaw<Array<{ id: string; receiptStorageKey: string | null }>>(Prisma.sql`
+    SELECT id, receiptStorageKey
+    FROM OperationsExpense
+    WHERE id = ${input.expenseId} AND organizationId = ${organizationId}
+    LIMIT 1`);
+  if (!rows[0]) throw new Error("Expense is outside your tenant scope.");
+  return { expenseId: rows[0].id, hasReceipt: Boolean(rows[0].receiptStorageKey), storageKey: rows[0].receiptStorageKey };
+}
+
 export async function createTimeEntry(actor: OperationsActor, input: {
   organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workDate: string; regularHours: number; overtimeHours: number;
 }) {
