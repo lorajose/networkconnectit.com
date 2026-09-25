@@ -169,10 +169,10 @@ export async function getPayPeriodSummary(actor: OperationsActor, input: {
       e.projectInstallationId, e.workOrderId, e.workDate, e.regularHours, e.overtimeHours, e.hourlyPayRateSnapshot
     FROM OperationsTimeEntry e
     JOIN FieldTechnicianProfile t ON t.id = e.technicianProfileId AND t.organizationId = e.organizationId
-    WHERE e.organizationId = \${organizationId}
+    WHERE e.organizationId = ${organizationId}
       AND e.status = 'APPROVED'
-      AND e.workDate >= \${startDate}
-      AND e.workDate <= \${endDate}
+      AND e.workDate >= ${startDate}
+      AND e.workDate <= ${endDate}
     ORDER BY t.displayName ASC, e.workDate ASC, e.createdAt ASC`);
 
   const rows = entries.map((entry) => {
