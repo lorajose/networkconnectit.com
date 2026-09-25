@@ -10,6 +10,7 @@ export type { OperationsActor } from "./policy";
 
 function zonedLocalDateTime(value: string, timeZone: string, label: string) {
   requiredText(value, label, 32);
+  if (/Z$|[+-]\\d{2}:\\d{2}$/.test(value)) { const absolute = new Date(value); if (Number.isNaN(absolute.getTime())) throw new Error(`Invalid ${label}.`); return absolute; }
   requiredText(timeZone, "Time zone", 64);
   try { new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date()); } catch { throw new Error("Invalid IANA time zone."); }
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
