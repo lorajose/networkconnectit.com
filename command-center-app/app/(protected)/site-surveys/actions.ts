@@ -228,7 +228,7 @@ export async function updateCableRunExecutionAction(formData:FormData){
   deviceType:value(formData,"deviceType")||null,pulledInstalled:formData.get("pulledInstalled")==="on",
   terminated:formData.get("terminated")==="on",labeled:formData.get("labeled")==="on",wiremapStatus:result("wiremapStatus"),
   gigabitLinkStatus:result("gigabitLinkStatus"),overallTestStatus:result("overallTestStatus"),
-  evidenceSaved:formData.get("evidenceSaved")==="on",technicianNote:value(formData,"technicianNote")||null,userId:user.id
+  technicianNote:value(formData,"technicianNote")||null,userId:user.id
  });
  revalidatePath(`/site-surveys/${sessionId}`);
 }
