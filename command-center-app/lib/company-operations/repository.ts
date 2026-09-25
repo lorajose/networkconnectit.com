@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { calendarDate, canViewSensitiveOperationsFinancials, choice, nonNegativeDecimal, optionalEmail, requiredText, requireSensitiveOperationsFinancials, scopedOrganizationId, validateHours } from "./policy";
+import { calendarDate, canViewSensitiveOperationsFinancials, choice, nonNegativeDecimal, optionalEmail, requiredText, requireSensitiveOperationsFinancials, scopedOperationsReadOrganizationId, scopedOrganizationId, validateHours } from "./policy";
 import type { OperationsActor } from "./policy";
 export type { OperationsActor } from "./policy";
 
@@ -33,8 +33,8 @@ function zonedLocalDateTime(value: string, timeZone: string, label: string) {
 }
 
 export async function getClientSafeInvoice(actor: OperationsActor, input: { organizationId?: string; invoiceId: string }) {
-  const organizationId = scopedOrganizationId(actor, input.organizationId);
-  await syncOverdueInvoices(actor, organizationId);
+  const organizationId = scopedOperationsReadOrganizationId(actor, input.organizationId);
+  if (actor.role !== "VIEWER") await syncOverdueInvoices(actor, organizationId);
   input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
   const invoices = await prisma.$queryRaw<Array<{
     id: string; invoiceNumber: string; customerName: string; status: string; issueDate: Date | null; dueDate: Date | null;
@@ -76,7 +76,7 @@ async function appendOperationsAuditEvent(organizationId: string, actorUserId: s
 }
 
 export async function getOperationsSettings(actor: OperationsActor, requestedOrganizationId?: string) {
-  const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
+  const organizationId = scopedOperationsReadOrganizationId(actor, requestedOrganizationId);
   const rows = await prisma.$queryRaw<Array<{ organizationId: string; defaultTimeZone: string; overtimeMultiplier: Prisma.Decimal; payPeriod: string }>>(Prisma.sql`
     SELECT organizationId, defaultTimeZone, overtimeMultiplier, payPeriod
     FROM OperationsOrganizationSettings WHERE organizationId = ${organizationId} LIMIT 1`);
@@ -99,8 +99,8 @@ export async function updateOperationsSettings(actor: OperationsActor, input: { 
 }
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
-  const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
-  await syncOverdueInvoices(actor, organizationId);
+  const organizationId = scopedOperationsReadOrganizationId(actor, requestedOrganizationId);
+  if (actor.role !== "VIEWER") await syncOverdueInvoices(actor, organizationId);
   const [technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals, operationalAlerts] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
@@ -241,7 +241,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
 export async function getScheduleCalendar(actor: OperationsActor, input: {
   organizationId?: string; startLocal: string; endLocal: string; timeZone: string;
 }) {
-  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  const organizationId = scopedOperationsReadOrganizationId(actor, input.organizationId);
   const startsAt = zonedLocalDateTime(input.startLocal, input.timeZone, "calendar start");
   const endsAt = zonedLocalDateTime(input.endLocal, input.timeZone, "calendar end");
   if (!(startsAt < endsAt)) throw new Error("Calendar end must be after start.");
@@ -263,6 +263,7 @@ export async function getPayPeriodSummary(actor: OperationsActor, input: {
   organizationId?: string; startDate: string; endDate: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  requireSensitiveOperationsFinancials(actor);
   const startDate = calendarDate(input.startDate, "pay period start");
   const endDate = calendarDate(input.endDate, "pay period end");
   if (startDate > endDate) throw new Error("Pay period start must be on or before end.");
