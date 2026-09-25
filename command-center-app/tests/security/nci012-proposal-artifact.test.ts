@@ -5,6 +5,7 @@ import { resolve } from "node:path";
 
 const migration = readFileSync(resolve(process.cwd(), "prisma/migrations/20260925174500_nci012_proposal_artifacts/migration.sql"), "utf8");
 const approval = readFileSync(resolve(process.cwd(), "lib/contractor-os/approval-repository.ts"), "utf8");
+const actions = readFileSync(resolve(process.cwd(), "app/(protected)/proposals/proposal-actions.tsx"), "utf8");
 
 test("proposal artifacts and analytics remain tenant scoped", () => {
   assert.match(migration, /CREATE TABLE `ProposalArtifact`/);
@@ -20,4 +21,10 @@ test("proposal approval emits a version-bound analytics event", () => {
   assert.match(approval, /'APPROVED'/);
   assert.match(approval, /version\.id/);
   assert.match(approval, /organizationId/);
+});
+
+
+test("proposal UI exposes a branded print-to-PDF artifact workflow", () => {
+  assert.match(actions, /window\.print\(\)/);
+  assert.match(actions, /Export \/ Save as PDF/);
 });
