@@ -67,6 +67,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
         <h3 className="font-semibold">Scheduling & Availability</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="technicianProfileId" required><option value="">Select technician</option>{snapshot.technicians.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}</select>
         <select className={field} name="projectInstallationId"><option value="">No project (availability / PTO)</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
+        <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.workOrderNumber} · {w.title}</option>)}</select>
         <input className={field} name="title" placeholder="Assignment / PTO / unavailable" required />
         <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="startsAt" type="datetime-local" required /><input className={field} name="endsAt" type="datetime-local" required /></div>
         <select className={field} name="entryType"><option value="ASSIGNMENT">Assignment</option><option value="AVAILABLE">Available</option><option value="UNAVAILABLE">Unavailable</option><option value="PTO">PTO</option></select><button className={button}>Schedule</button>
@@ -76,6 +77,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
         <h3 className="font-semibold">Time & Pay</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="technicianProfileId" required><option value="">Select technician</option>{snapshot.technicians.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}</select>
         <select className={field} name="projectInstallationId"><option value="">General / no project</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
+        <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.workOrderNumber} · {w.title}</option>)}</select>
         <div className="grid gap-3 sm:grid-cols-3"><input className={field} name="workDate" type="date" required /><input className={field} name="regularHours" type="number" min="0" step="0.25" placeholder="Regular" required /><input className={field} name="overtimeHours" type="number" min="0" step="0.25" placeholder="OT" /></div>
         <p className="text-xs text-muted-foreground">Operational labor control only; this does not replace payroll processing.</p><button className={button}>Add time</button>
       </form>
@@ -83,6 +85,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
       <form action={createInvoiceAction} className="space-y-3 rounded-2xl border p-4">
         <h3 className="font-semibold">Invoices & Payments</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="projectInstallationId"><option value="">General / no project</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
+        <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.workOrderNumber} · {w.title}</option>)}</select>
         <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="invoiceNumber" placeholder="Invoice #" required /><input className={field} name="customerName" placeholder="Customer" required /></div>
         <input className={field} name="dueDate" type="date" /><p className="text-xs text-muted-foreground">Draft starts at $0. Add line items, then apply tax or discount before sending.</p><button className={button}>Create draft invoice</button>
       </form>
@@ -90,6 +93,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
       <form action={createExpenseAction} className="space-y-3 rounded-2xl border p-4 xl:col-span-2">
         <h3 className="font-semibold">Expenses & Materials</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="projectInstallationId"><option value="">General / no project</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
+        <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.workOrderNumber} · {w.title}</option>)}</select>
         <div className="grid gap-3 md:grid-cols-4"><select className={field} name="category"><option>MATERIALS</option><option>TRAVEL</option><option>TOOLS</option><option>SUBCONTRACTOR</option><option>OTHER</option></select><input className={field} name="description" placeholder="Description" required /><input className={field} name="amount" type="number" min="0" step="0.01" placeholder="Amount" required /><input className={field} name="expenseDate" type="date" required /></div>
         <div className="grid gap-3 md:grid-cols-3"><input className={field} name="materialQuantityPurchased" type="number" min="0.001" step="0.001" placeholder="Material qty purchased" /><input className={field} name="materialQuantityUsed" type="number" min="0" step="0.001" placeholder="Material qty used" /><input className={field} name="materialUnit" placeholder="Material unit (ft, ea, box)" /></div>
         <p className="text-xs text-muted-foreground">Material quantity fields are required when category is MATERIALS. Used quantity cannot exceed purchased quantity.</p>
