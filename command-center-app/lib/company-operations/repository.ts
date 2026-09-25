@@ -7,6 +7,30 @@ import type { OperationsActor } from "./policy";
 export type { OperationsActor } from "./policy";
 
 
+
+function zonedLocalDateTime(value: string, timeZone: string, label: string) {
+  requiredText(value, label, 32);
+  requiredText(timeZone, "Time zone", 64);
+  try { new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date()); } catch { throw new Error("Invalid IANA time zone."); }
+  const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
+  if (!match) throw new Error(\`Invalid \${label}.\`);
+  const parts = match.slice(1).map(Number);
+  const targetUtc = Date.UTC(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5] || 0);
+  let guess = targetUtc;
+  const formatter = new Intl.DateTimeFormat("en-US", { timeZone, year:"numeric", month:"2-digit", day:"2-digit", hour:"2-digit", minute:"2-digit", second:"2-digit", hourCycle:"h23" });
+  for (let i = 0; i < 3; i++) {
+    const mapped = Object.fromEntries(formatter.formatToParts(new Date(guess)).filter(p => p.type !== "literal").map(p => [p.type, Number(p.value)]));
+    const observed = Date.UTC(mapped.year, mapped.month - 1, mapped.day, mapped.hour, mapped.minute, mapped.second);
+    const delta = targetUtc - observed;
+    guess += delta;
+    if (delta === 0) break;
+  }
+  const result = new Date(guess);
+  const verify = Object.fromEntries(formatter.formatToParts(result).filter(p => p.type !== "literal").map(p => [p.type, Number(p.value)]));
+  if (Date.UTC(verify.year, verify.month - 1, verify.day, verify.hour, verify.minute, verify.second) !== targetUtc) throw new Error(\`\${label} falls in a daylight-saving time gap.\`);
+  return result;
+}
+
 export async function getClientSafeInvoice(actor: OperationsActor, input: { organizationId?: string; invoiceId: string }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   await syncOverdueInvoices(actor, organizationId);
@@ -59,8 +83,8 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       FROM ProjectWorkOrder
       WHERE organizationId = ${organizationId} AND status <> 'CANCELLED'
       ORDER BY updatedAt DESC LIMIT 200`),
-    prisma.$queryRaw<Array<{ id: string; title: string; technicianName: string; startsAt: Date; endsAt: Date; status: string }>>(Prisma.sql`
-      SELECT s.id, s.title, t.displayName AS technicianName, s.startsAt, s.endsAt, s.status
+    prisma.$queryRaw<Array<{ id: string; title: string; technicianName: string; startsAt: Date; endsAt: Date; timeZone: string; status: string }>>(Prisma.sql`
+      SELECT s.id, s.title, t.displayName AS technicianName, s.startsAt, s.endsAt, s.timeZone, s.status
       FROM OperationsScheduleEntry s
       JOIN FieldTechnicianProfile t ON t.id = s.technicianProfileId AND t.organizationId = s.organizationId
       WHERE s.organizationId = ${organizationId} AND s.endsAt >= NOW()
@@ -356,15 +380,16 @@ export async function createTimeEntry(actor: OperationsActor, input: {
 }
 
 export async function createScheduleEntry(actor: OperationsActor, input: {
-  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; title: string; startsAt: string; endsAt: string; entryType: string;
+  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; title: string; startsAt: string; endsAt: string; timeZone: string; entryType: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   requiredText(input.technicianProfileId, "Technician", 191);
   input.title = requiredText(input.title, "Schedule title", 255);
   const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
   choice(input.entryType, ["ASSIGNMENT", "AVAILABLE", "UNAVAILABLE", "PTO"], "schedule type");
-  const startsAt = new Date(input.startsAt);
-  const endsAt = new Date(input.endsAt);
+  input.timeZone = requiredText(input.timeZone, "Time zone", 64);
+  const startsAt = zonedLocalDateTime(input.startsAt, input.timeZone, "schedule start");
+  const endsAt = zonedLocalDateTime(input.endsAt, input.timeZone, "schedule end");
   if (!(startsAt < endsAt)) throw new Error("Schedule end must be after start.");
 
   // Serialize bookings on the tenant-owned technician row, including the first
@@ -402,9 +427,9 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
     const id = randomUUID();
     await tx.$executeRaw(Prisma.sql`
       INSERT INTO OperationsScheduleEntry
-        (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
+        (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, entryType, title, startsAt, endsAt, timeZone, status, createdByUserId, createdAt, updatedAt)
       VALUES
-        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, ${input.timeZone}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
     return id;
   });
 }
