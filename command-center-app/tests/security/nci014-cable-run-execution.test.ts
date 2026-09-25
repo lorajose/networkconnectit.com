@@ -49,3 +49,11 @@ test("NCI-014 mobile UI and project summary are wired to the cable execution mod
  assert.match(source,/getCableRunProjectSummary/);
  assert.match(source,/Cross-tenant cable summary read denied/);
 });
+
+
+test("NCI-014 repeated saves do not duplicate unchanged stage events or open punch items",()=>{
+ assert.match(source,/String\(before\?\?""\)===String\(result\?\?""\)/);
+ assert.match(source,/current\.status==="COMPLETED"/);
+ const openPunchGuards=source.match(/ProjectPunchListItem[\s\S]{0,240}status='OPEN'/g)??[];
+ assert.ok(openPunchGuards.length>=2,"failure and customer rejection paths must both guard existing OPEN punch items");
+});
