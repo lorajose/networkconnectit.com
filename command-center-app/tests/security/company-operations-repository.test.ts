@@ -90,6 +90,30 @@ test("material expenses require purchased/used quantities and reject overuse bef
   assert.equal(travelWrite.values.filter(value => value === null).length >= 4, true);
 });
 
+test("expense receipt references are tenant-scoped and bind storage keys to the expense", async () => {
+  const admin = { id: "a", role: "CLIENT_ADMIN", organizationId: "org" };
+
+  const invalidKey = repository();
+  await assert.rejects(() => invalidKey.api.attachExpenseReceipt(admin, {
+    expenseId: "expense", storageKey: "organizations/other/expenses/expense/receipt.pdf"
+  }), /outside your tenant scope/);
+  assert.equal(invalidKey.queries.length, 0);
+
+  const owned = repository();
+  await owned.api.attachExpenseReceipt(admin, {
+    expenseId: "expense", storageKey: "organizations/org/expenses/expense/receipt.pdf"
+  });
+  const update = owned.queries.find(query => query.sql.includes("UPDATE OperationsExpense"))!;
+  assert.ok(update.values.includes("expense"));
+  assert.ok(update.values.includes("org"));
+
+  const foreign = repository();
+  await assert.rejects(() => foreign.api.getExpenseReceiptReference(admin, { expenseId: "foreign" }), /outside your tenant scope/);
+  const read = foreign.queries.find(query => query.sql.includes("FROM OperationsExpense"))!;
+  assert.ok(read.values.includes("foreign"));
+  assert.ok(read.values.includes("org"));
+});
+
 test("dashboard uses organization aggregates rather than capped detail rows", async () => {
   const { api, queries } = repository();
   const result = await api.getOperationsSnapshot({ id: "a", role: "CLIENT_ADMIN", organizationId: "org" }) as { metrics: Record<string, number>; invoices: unknown[] };
