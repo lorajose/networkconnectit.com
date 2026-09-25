@@ -154,6 +154,18 @@ async function main() {
   assert.equal(overdue[0].status, 'PAID');
   assert.equal(Number(overdue[0].paidAmount), 200);
 
+  const payPeriod = await repo.getPayPeriodSummary(actor, { startDate: '2030-01-01', endDate: '2030-01-31' });
+  assert.equal(payPeriod.rows.length, 1);
+  assert.equal(payPeriod.rows[0].workOrderId, 'work-order-a');
+  assert.equal(payPeriod.rows[0].regularHours, 8);
+  assert.equal(payPeriod.rows[0].overtimeHours, 2);
+  assert.equal(payPeriod.rows[0].hourlyRate, 50);
+  assert.equal(payPeriod.rows[0].totalCost, 550);
+  assert.equal(payPeriod.totals.totalCost, 550);
+  const foreignPayPeriod = await repo.getPayPeriodSummary(other, { startDate: '2030-01-01', endDate: '2030-01-31' });
+  assert.equal(foreignPayPeriod.rows.length, 0);
+  await assert.rejects(() => repo.getPayPeriodSummary(actor, { startDate: '2030-02-01', endDate: '2030-01-01' }), /start must be on or before end/);
+
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
   assert.equal(result.metrics.technicianCount, 1);
@@ -166,6 +178,6 @@ async function main() {
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').laborCost, 550);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 550);
-  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, SENT/OVERDUE/PAID lifecycle, material purchased/used tracking, atomic payments and project profitability.');
+  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, SENT/OVERDUE/PAID lifecycle, material purchased/used tracking, atomic payments, pay-period export boundary and project profitability.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
