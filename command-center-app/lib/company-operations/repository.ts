@@ -164,7 +164,7 @@ export async function getPayPeriodSummary(actor: OperationsActor, input: {
     id: string; technicianProfileId: string; technicianName: string; workerType: string;
     projectInstallationId: string | null; workOrderId: string | null; workDate: Date;
     regularHours: Prisma.Decimal; overtimeHours: Prisma.Decimal; hourlyPayRateSnapshot: Prisma.Decimal | null;
-  }>>(Prisma.sql\`
+  }>>(Prisma.sql`
     SELECT e.id, e.technicianProfileId, t.displayName AS technicianName, t.workerType,
       e.projectInstallationId, e.workOrderId, e.workDate, e.regularHours, e.overtimeHours, e.hourlyPayRateSnapshot
     FROM OperationsTimeEntry e
@@ -173,7 +173,7 @@ export async function getPayPeriodSummary(actor: OperationsActor, input: {
       AND e.status = 'APPROVED'
       AND e.workDate >= \${startDate}
       AND e.workDate <= \${endDate}
-    ORDER BY t.displayName ASC, e.workDate ASC, e.createdAt ASC\`);
+    ORDER BY t.displayName ASC, e.workDate ASC, e.createdAt ASC`);
 
   const rows = entries.map((entry) => {
     const regularHours = Number(entry.regularHours);
