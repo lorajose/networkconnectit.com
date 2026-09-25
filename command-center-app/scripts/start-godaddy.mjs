@@ -42,9 +42,17 @@ function configureDatabaseUrlFromDiscreteSecrets() {
     process.exit(1);
   }
 
+  const tlsMode = (process.env.NCI_DATABASE_TLS_MODE ?? "").trim().toLowerCase();
+  const tlsQuery =
+    tlsMode === "verify-identity" || tlsMode === "verify-ca"
+      ? "?sslaccept=strict"
+      : tlsMode === "required"
+        ? "?sslaccept=accept_invalid_certs"
+        : "";
+
   process.env.DATABASE_URL =
     `mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
-    `@${host}:${port}/${encodeURIComponent(database)}`;
+    `@${host}:${port}/${encodeURIComponent(database)}${tlsQuery}`;
 
   console.log(`Using DB_* secrets for startup migrations: ${host}:${port}/${database}`);
 }
