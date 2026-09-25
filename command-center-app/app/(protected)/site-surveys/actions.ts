@@ -226,7 +226,7 @@ export async function updateCableRunExecutionAction(formData:FormData){
   lengthUnit:value(formData,"lengthUnit")==="M"?"M":"FT",floorLevel:value(formData,"floorLevel")||null,
   terminationPoint:value(formData,"terminationPoint")||null,deviceLocation:value(formData,"deviceLocation")||null,
   deviceType:value(formData,"deviceType")||null,pulledInstalled:formData.get("pulledInstalled")==="on",
-  terminated:formData.get("terminated")==="on",labeled:formData.get("labeled")==="on",wiremapStatus:result("wiremapStatus"),
+  terminatedEndA:formData.get("terminatedEndA")==="on",terminatedEndB:formData.get("terminatedEndB")==="on",labeled:formData.get("labeled")==="on",wiremapStatus:result("wiremapStatus"),
   gigabitLinkStatus:result("gigabitLinkStatus"),overallTestStatus:result("overallTestStatus"),
   technicianNote:value(formData,"technicianNote")||null,userId:user.id
  });
