@@ -27,7 +27,7 @@ export async function GET(_request: Request, context: { params: { expenseId: str
       return NextResponse.json({ ok: false, error: "Receipt not found." }, { status: 404, headers: noStore });
     }
 
-    return new Response(object.body, {
+    const body = object.body.slice().buffer;\n    return new Response(body, {
       status: 200,
       headers: {
         "Cache-Control": "private, no-store",
