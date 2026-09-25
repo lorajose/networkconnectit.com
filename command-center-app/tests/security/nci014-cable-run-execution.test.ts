@@ -19,7 +19,10 @@ test("NCI-014 records independent low-voltage test outcomes and evidence",()=>{
  assert.match(migration,/wiremapStatus/);
  assert.match(migration,/gigabitLinkStatus/);
  assert.match(source,/overallTestStatus/);
- assert.match(source,/evidenceSaved/);
+ assert.match(source,/ProjectWorkOrderEvidence/);
+ assert.match(source,/evidenceType='TESTER'/);
+ assert.match(source,/const evidenceSaved=Number\(testerEvidence\?\.count\?\?0\)>0/);
+ assert.doesNotMatch(source,/input\.evidenceSaved/);
  assert.match(source,/New runs require measured length and tester evidence before PASS/);
 });
 
@@ -56,4 +59,13 @@ test("NCI-014 repeated saves do not duplicate unchanged stage events or open pun
  assert.match(source,/current\.status==="COMPLETED"/);
  const openPunchGuards=source.match(/ProjectPunchListItem[\s\S]{0,240}status='OPEN'/g)??[];
  assert.ok(openPunchGuards.length>=2,"failure and customer rejection paths must both guard existing OPEN punch items");
+});
+
+
+test("NCI-014 server action cannot spoof tester evidence with a client checkbox",()=>{
+ const actions=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/actions.ts"),"utf8");
+ const cableAction=actions.slice(actions.indexOf("export async function updateCableRunExecutionAction"),actions.indexOf("export async function saveCloseoutRequirementsAction"));
+ assert.doesNotMatch(cableAction,/formData\.get\("evidenceSaved"\)/);
+ assert.match(source,/ProjectWorkOrderEvidence/);
+ assert.match(source,/evidenceType='TESTER'/);
 });
