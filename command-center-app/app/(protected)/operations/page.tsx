@@ -3,14 +3,14 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRoles } from "@/lib/auth";
-import { getOperationsSnapshot, getScheduleCalendar } from "@/lib/company-operations/repository";
+import { getOperationsSettings, getOperationsSnapshot, getScheduleCalendar } from "@/lib/company-operations/repository";
 import { getOrganizationOptions } from "@/lib/management/organizations";
 import { routeAccess } from "@/lib/rbac";
 
-import { addInvoiceLineAction, approveTimeEntryAction, createExpenseAction, createInvoiceAction, createScheduleAction, createTechnicianAction, createTimeEntryAction, recordInvoicePaymentAction, sendInvoiceAction, submitTimeEntryAction, updateInvoiceAdjustmentsAction } from "./actions";
+import { addInvoiceLineAction, approveTimeEntryAction, createExpenseAction, createInvoiceAction, createScheduleAction, createTechnicianAction, createTimeEntryAction, recordInvoicePaymentAction, sendInvoiceAction, submitTimeEntryAction, updateInvoiceAdjustmentsAction, updateOperationsSettingsAction } from "./actions";
 
 type Props = { searchParams?: Record<string, string | string[] | undefined> };
-const money = (value: number) => new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
+const money = (value: number | null) => value === null ? "Restricted" : new Intl.NumberFormat("en-US", { style: "currency", currency: "USD" }).format(value);
 const date = (value: Date | null) => value ? new Intl.DateTimeFormat("en-US", { dateStyle: "medium" }).format(value) : "—";
 const field = "h-10 w-full rounded-xl border border-border bg-background px-3 text-sm";
 const button = "h-10 rounded-xl bg-primary px-4 text-sm font-medium text-primary-foreground";
@@ -23,7 +23,8 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
 
   if (!organizationId) return <PageHeader eyebrow="Company Operations" title="No organization available" description="Create an organization before using the operations workspace." />;
 
-  const snapshot = await getOperationsSnapshot({ id: user.id, role: user.role, organizationId: user.organizationId }, organizationId);
+  const operationsActor = { id: user.id, role: user.role, organizationId: user.organizationId };
+  const [snapshot, settings] = await Promise.all([getOperationsSnapshot(operationsActor, organizationId), getOperationsSettings(operationsActor, organizationId)]);
   const org = organizations.find((item) => item.id === organizationId);
 
   const calendarView = searchParams.view === "day" ? "day" : "week";
@@ -41,7 +42,21 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
   );
   const calendarFormatter = new Intl.DateTimeFormat("en-US", { timeZone: calendarTimeZone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
+  const canViewFinancials = user.role === "SUPER_ADMIN" || user.role === "INTERNAL_ADMIN";
+
   return <div className="space-y-6">
+    <Card><CardHeader><CardTitle>Organization operations settings</CardTitle></CardHeader><CardContent>
+      <form action={updateOperationsSettingsAction} className="grid gap-3 md:grid-cols-4">
+        <input type="hidden" name="organizationId" value={organizationId} />
+        <select className={field} name="defaultTimeZone" defaultValue={settings.defaultTimeZone}><option>America/New_York</option><option>America/Chicago</option><option>America/Denver</option><option>America/Los_Angeles</option><option>America/Phoenix</option><option>Pacific/Honolulu</option></select>
+        <input className={field} name="overtimeMultiplier" type="number" step="0.001" min="0" max="10" defaultValue={Number(settings.overtimeMultiplier)} />
+        <select className={field} name="payPeriod" defaultValue={settings.payPeriod}><option value="WEEKLY">Weekly</option><option value="BIWEEKLY">Biweekly</option><option value="SEMIMONTHLY">Semimonthly</option><option value="MONTHLY">Monthly</option></select>
+        <button className={button}>Save settings</button>
+      </form>
+      <p className="mt-2 text-xs text-muted-foreground">Tenant-scoped defaults. Changes are written to the privileged operations audit trail.</p>
+    </CardContent></Card>
+
+
     <PageHeader eyebrow="Contractor OS" title="Company Operations" description="Run technicians, scheduling, labor, invoices and expenses from one tenant-safe workspace." breadcrumbs={[{ label: "Command Center", href: "/dashboard" }, { label: "Company Operations" }]} />
 
     {organizations.length > 1 ? <Card><CardContent className="flex flex-wrap gap-2 p-4">
