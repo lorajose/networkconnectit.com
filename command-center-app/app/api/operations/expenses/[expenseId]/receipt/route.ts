@@ -12,7 +12,7 @@ export const dynamic = "force-dynamic";
 const noStore = { "Cache-Control": "no-store" };
 
 function actorFor(user: { id: string; role: any; organizationId?: string | null }) {
-  return { id: user.id, role: user.role, organizationId: user.organizationId };
+  return { id: user.id, role: user.role, organizationId: user.organizationId ?? null };
 }
 
 function requestedOrganizationId(user: { organizationId?: string | null }, form?: FormData) {
