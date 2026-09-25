@@ -177,7 +177,8 @@ test("time and expense project links reject foreign projects and persist owned p
 
   const ownedExpense = repository({ project: true });
   await ownedExpense.api.createExpense(admin, {
-    projectInstallationId: "project", category: "MATERIALS", description: "Cable", amount: 100, expenseDate: "2026-09-24", reimbursable: false
+    projectInstallationId: "project", category: "MATERIALS", description: "Cable", amount: 100, expenseDate: "2026-09-24", reimbursable: false,
+    materialQuantityPurchased: 100, materialQuantityUsed: 75, materialUnit: "ft"
   });
   assert.ok(ownedExpense.queries.find(query => query.sql.includes("INSERT INTO OperationsExpense"))!.values.includes("project"));
 });
