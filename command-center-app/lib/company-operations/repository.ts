@@ -102,7 +102,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   const organizationId = scopedOperationsReadOrganizationId(actor, requestedOrganizationId);
   if (actor.role !== "VIEWER") await syncOverdueInvoices(actor, organizationId);
   const [technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals, operationalAlerts] = await Promise.all([
-    prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
+    prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; employmentStatus: string; skillsJson: string | null; certificationsJson: string | null; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
       ORDER BY displayName ASC LIMIT 100`),
@@ -491,8 +491,8 @@ export async function updateTechnicianProfile(actor: OperationsActor, input: {
     name: requiredText(certification.name, "Certification", 120),
     expiresOn: certification.expiresOn ? calendarDate(certification.expiresOn, "certification expiration") : null,
   }));
-  const employmentStatus = input.employmentStatus === undefined ? undefined : choice(input.employmentStatus, "Employment status", ["ACTIVE", "INACTIVE"]);
-  const availabilityStatus = input.availabilityStatus === undefined ? undefined : choice(input.availabilityStatus, "Availability status", ["AVAILABLE", "UNAVAILABLE", "PTO"]);
+  const employmentStatus = input.employmentStatus === undefined ? undefined : choice(input.employmentStatus, ["ACTIVE", "INACTIVE"], "employment status");
+  const availabilityStatus = input.availabilityStatus === undefined ? undefined : choice(input.availabilityStatus, ["AVAILABLE", "UNAVAILABLE", "PTO"], "availability status");
 
   const updated = await prisma.$executeRaw(Prisma.sql`
     UPDATE FieldTechnicianProfile
