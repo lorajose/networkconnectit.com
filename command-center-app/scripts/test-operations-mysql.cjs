@@ -28,8 +28,13 @@ async function main() {
     createdAt DATETIME(3) NOT NULL, updatedAt DATETIME(3) NOT NULL,
     UNIQUE INDEX FieldTechnicianProfile_user_key (organizationId,userId)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
-  const migration = fs.readFileSync('prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql', 'utf8');
-  for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
+  for (const migrationPath of [
+    'prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql',
+    'prisma/migrations/20260925010000_nci079_material_usage/migration.sql'
+  ]) {
+    const migration = fs.readFileSync(migrationPath, 'utf8');
+    for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
+  }
   const engines = await prisma.$queryRaw`SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'operations_ci_test'`;
   assert.ok(engines.every(row => row.ENGINE === 'InnoDB'));
   const policy = load('lib/company-operations/policy.ts', {});
