@@ -77,26 +77,29 @@ async function main() {
     VALUES ('work-order-a', 'a', 'project-a', 'WO-CI-001', 'CI Work Order', 'READY', NOW(3))`;
 
   await prisma.$executeRaw`UPDATE FieldTechnicianProfile SET status = 'ACTIVE', hourlyPayRate = 50 WHERE id = ${technician}`;
-  const timeId = await repo.createTimeEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workDate: '2030-01-01', regularHours: 8, overtimeHours: 2 });
+  const timeId = await repo.createTimeEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workOrderId: 'work-order-a', workDate: '2030-01-01', regularHours: 8, overtimeHours: 2 });
   await repo.submitTimeEntry(actor, { timeEntryId: timeId });
   await repo.approveTimeEntry(actor, { timeEntryId: timeId });
-  const approved = await prisma.$queryRaw`SELECT status, approvedByUserId, approvedAt FROM OperationsTimeEntry WHERE id = ${timeId}`;
+  const approved = await prisma.$queryRaw`SELECT status, approvedByUserId, approvedAt, workOrderId FROM OperationsTimeEntry WHERE id = ${timeId}`;
   assert.equal(approved[0].status, 'APPROVED');
   assert.equal(approved[0].approvedByUserId, actor.id);
   assert.ok(approved[0].approvedAt);
+  assert.equal(approved[0].workOrderId, 'work-order-a');
 
-  const materialExpenseId = await repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'CI cable', amount: 100, expenseDate: '2030-01-01', reimbursable: false, materialQuantityPurchased: 1000, materialQuantityUsed: 750, materialUnit: 'ft' });
-  const materialExpense = await prisma.$queryRaw`SELECT materialQuantityPurchased, materialQuantityUsed, materialUnit FROM OperationsExpense WHERE id = ${materialExpenseId}`;
+  const materialExpenseId = await repo.createExpense(actor, { projectInstallationId: 'project-a', workOrderId: 'work-order-a', category: 'MATERIALS', description: 'CI cable', amount: 100, expenseDate: '2030-01-01', reimbursable: false, materialQuantityPurchased: 1000, materialQuantityUsed: 750, materialUnit: 'ft' });
+  const materialExpense = await prisma.$queryRaw`SELECT materialQuantityPurchased, materialQuantityUsed, materialUnit, workOrderId FROM OperationsExpense WHERE id = ${materialExpenseId}`;
   assert.equal(Number(materialExpense[0].materialQuantityPurchased), 1000);
   assert.equal(Number(materialExpense[0].materialQuantityUsed), 750);
   assert.equal(materialExpense[0].materialUnit, 'ft');
+  assert.equal(materialExpense[0].workOrderId, 'work-order-a');
   await assert.rejects(() => repo.createExpense(actor, { projectInstallationId: 'project-a', category: 'MATERIALS', description: 'Invalid cable', amount: 20, expenseDate: '2030-01-01', reimbursable: false, materialQuantityPurchased: 100, materialQuantityUsed: 101, materialUnit: 'ft' }), /cannot exceed/);
-  const invoiceId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-001', customerName: 'CI Client', dueDate: '2030-01-31' });
+  const invoiceId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', workOrderId: 'work-order-a', invoiceNumber: 'CI-INV-001', customerName: 'CI Client', dueDate: '2030-01-31' });
   await repo.addInvoiceLine(actor, { invoiceId, lineType: 'LABOR', description: 'Install', quantity: 10, unitPrice: 100 });
-  const draft = await prisma.$queryRaw`SELECT subtotal, totalAmount, status FROM OperationsInvoice WHERE id = ${invoiceId}`;
+  const draft = await prisma.$queryRaw`SELECT subtotal, totalAmount, status, workOrderId FROM OperationsInvoice WHERE id = ${invoiceId}`;
   assert.equal(Number(draft[0].subtotal), 1000);
   assert.equal(Number(draft[0].totalAmount), 1000);
   assert.equal(draft[0].status, 'DRAFT');
+  assert.equal(draft[0].workOrderId, 'work-order-a');
   const adjustedTotal = await repo.updateInvoiceAdjustments(actor, { invoiceId, taxAmount: 25, discountAmount: 25 });
   assert.equal(adjustedTotal, 1000);
   const adjusted = await prisma.$queryRaw`SELECT subtotal, taxAmount, discountAmount, totalAmount FROM OperationsInvoice WHERE id = ${invoiceId}`;
@@ -114,6 +117,11 @@ async function main() {
   assert.equal(paid[0].status, 'PAID');
   const payments = await prisma.$queryRaw`SELECT COUNT(*) AS total FROM OperationsPayment WHERE invoiceId = ${invoiceId}`;
   assert.equal(Number(payments[0].total), 2);
+
+  const workOrderScheduleId = await repo.createScheduleEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workOrderId: 'work-order-a', title: 'WO assignment', startsAt: '2030-01-02T10:00:00Z', endsAt: '2030-01-02T11:00:00Z', entryType: 'ASSIGNMENT' });
+  const workOrderSchedule = await prisma.$queryRaw`SELECT workOrderId FROM OperationsScheduleEntry WHERE id = ${workOrderScheduleId}`;
+  assert.equal(workOrderSchedule[0].workOrderId, 'work-order-a');
+  await assert.rejects(() => repo.createInvoice(actor, { projectInstallationId: 'project-a', workOrderId: 'foreign-work-order', invoiceNumber: 'CI-INV-FOREIGN-WO', customerName: 'CI Client' }), /outside your tenant or project scope/);
 
   const overdueId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-OVERDUE', customerName: 'Late Client', dueDate: '2020-01-01' });
   await repo.addInvoiceLine(actor, { invoiceId: overdueId, lineType: 'SERVICE', description: 'Overdue lifecycle', quantity: 1, unitPrice: 200 });
