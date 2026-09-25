@@ -42,6 +42,19 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
   );
   const calendarFormatter = new Intl.DateTimeFormat("en-US", { timeZone: calendarTimeZone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
+  if (user.role === "VIEWER") {
+    return <div className="space-y-6">
+      <PageHeader eyebrow="Contractor OS" title="Company Operations" description="Read-only field/client operations view for your organization." breadcrumbs={[{ label: "Command Center", href: "/dashboard" }, { label: "Company Operations" }]} />
+      <div className="grid gap-3 md:grid-cols-3">
+        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">Active technicians</p><p className="mt-2 text-2xl font-semibold">{snapshot.metrics.technicianCount}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">Upcoming assignments</p><p className="mt-2 text-2xl font-semibold">{snapshot.metrics.upcomingAssignments}</p></CardContent></Card>
+        <Card><CardContent className="p-4"><p className="text-xs uppercase tracking-wide text-muted-foreground">Recorded hours</p><p className="mt-2 text-2xl font-semibold">{snapshot.metrics.laborHours.toFixed(2)}</p></CardContent></Card>
+      </div>
+      <Card><CardHeader><CardTitle>Team</CardTitle></CardHeader><CardContent className="space-y-2">{snapshot.technicians.length ? snapshot.technicians.map(t => <div key={t.id} className="rounded-xl border p-3"><p className="font-medium">{t.displayName}</p><p className="text-xs text-muted-foreground">{t.workerType} · {t.availabilityStatus}</p></div>) : <p className="text-sm text-muted-foreground">No technicians yet.</p>}</CardContent></Card>
+      <Card><CardHeader><CardTitle>Schedule</CardTitle></CardHeader><CardContent className="space-y-2">{calendar.length ? calendar.map(s => <div key={s.id} className="rounded-xl border p-3"><p className="font-medium">{s.title}</p><p className="text-xs text-muted-foreground">{s.technicianName} · {calendarFormatter.format(new Date(s.startsAt))} → {calendarFormatter.format(new Date(s.endsAt))}</p></div>) : <p className="text-sm text-muted-foreground">No schedule entries in this {calendarView}.</p>}</CardContent></Card>
+    </div>;
+  }
+
   const canViewFinancials = user.role === "SUPER_ADMIN" || user.role === "INTERNAL_ADMIN";
 
   return <div className="space-y-6">
