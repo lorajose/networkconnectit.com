@@ -30,7 +30,8 @@ async function main() {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   for (const migrationPath of [
     'prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql',
-    'prisma/migrations/20260925010000_nci079_material_usage/migration.sql'
+    'prisma/migrations/20260925010000_nci079_material_usage/migration.sql',
+    'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql'
   ]) {
     const migration = fs.readFileSync(migrationPath, 'utf8');
     for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
@@ -42,7 +43,7 @@ async function main() {
   const actor = { id: 'admin-a', role: 'CLIENT_ADMIN', organizationId: 'a' };
   const other = { id: 'admin-b', role: 'CLIENT_ADMIN', organizationId: 'b' };
   const technician = await repo.createTechnician(actor, { displayName: 'QA technician', workerType: 'W2', hourlyPayRate: 0 });
-  const input = { technicianProfileId: technician, title: 'Concurrent booking', startsAt: '2030-01-01T10:00:00Z', endsAt: '2030-01-01T11:00:00Z', entryType: 'ASSIGNMENT' };
+  const input = { technicianProfileId: technician, title: 'Concurrent booking', startsAt: '2030-01-01T10:00:00', endsAt: '2030-01-01T11:00:00', timeZone: 'America/New_York', entryType: 'ASSIGNMENT' };
   // Empty schedule: locking existing bookings alone would not protect this case.
   const attempts = await Promise.allSettled([repo.createScheduleEntry(actor, input), repo.createScheduleEntry(actor, input)]);
   assert.equal(attempts.filter(r => r.status === 'fulfilled').length, 1);
@@ -50,7 +51,7 @@ async function main() {
   assert.match(String(rejected.reason), /conflicting schedule/);
   const count = await prisma.$queryRaw`SELECT COUNT(*) AS total FROM OperationsScheduleEntry`;
   assert.equal(Number(count[0].total), 1);
-  await repo.createScheduleEntry(actor, { ...input, startsAt: input.endsAt, endsAt: '2030-01-01T12:00:00Z' });
+  await repo.createScheduleEntry(actor, { ...input, startsAt: input.endsAt, endsAt: '2030-01-01T12:00:00' });
   await repo.createScheduleEntry(actor, { ...input, entryType: 'AVAILABLE' });
   await assert.rejects(() => repo.createScheduleEntry(actor, { ...input, entryType: 'PTO' }), /conflicting/);
   await assert.rejects(() => repo.createScheduleEntry(other, input), /outside your tenant/);
@@ -133,7 +134,7 @@ async function main() {
   const paymentEvents = await prisma.$queryRaw`SELECT eventType FROM ProjectActivityEvent WHERE workOrderId = 'work-order-a' ORDER BY occurredAt`;
   assert.deepEqual(paymentEvents.map(row => row.eventType), ['INVOICE_PAYMENT_RECORDED', 'INVOICE_PAID']);
 
-  const workOrderScheduleId = await repo.createScheduleEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workOrderId: 'work-order-a', title: 'WO assignment', startsAt: '2030-01-02T10:00:00Z', endsAt: '2030-01-02T11:00:00Z', entryType: 'ASSIGNMENT' });
+  const workOrderScheduleId = await repo.createScheduleEntry(actor, { technicianProfileId: technician, projectInstallationId: 'project-a', workOrderId: 'work-order-a', title: 'WO assignment', startsAt: '2030-01-02T10:00:00', endsAt: '2030-01-02T11:00:00', timeZone: 'America/New_York', entryType: 'ASSIGNMENT' });
   const workOrderSchedule = await prisma.$queryRaw`SELECT workOrderId FROM OperationsScheduleEntry WHERE id = ${workOrderScheduleId}`;
   assert.equal(workOrderSchedule[0].workOrderId, 'work-order-a');
   await assert.rejects(() => repo.createInvoice(actor, { projectInstallationId: 'project-a', workOrderId: 'foreign-work-order', invoiceNumber: 'CI-INV-FOREIGN-WO', customerName: 'CI Client' }), /outside your tenant or project scope/);
@@ -165,6 +166,14 @@ async function main() {
   const foreignPayPeriod = await repo.getPayPeriodSummary(other, { startDate: '2030-01-01', endDate: '2030-01-31' });
   assert.equal(foreignPayPeriod.rows.length, 0);
   await assert.rejects(() => repo.getPayPeriodSummary(actor, { startDate: '2030-02-01', endDate: '2030-01-01' }), /start must be on or before end/);
+
+  const calendar = await repo.getScheduleCalendar(actor, { startLocal: '2030-01-02T00:00:00', endLocal: '2030-01-03T00:00:00', timeZone: 'America/New_York' });
+  assert.equal(calendar.length, 1);
+  assert.equal(calendar[0].workOrderId, 'work-order-a');
+  assert.equal(calendar[0].timeZone, 'America/New_York');
+  const foreignCalendar = await repo.getScheduleCalendar(other, { startLocal: '2030-01-02T00:00:00', endLocal: '2030-01-03T00:00:00', timeZone: 'America/New_York' });
+  assert.equal(foreignCalendar.length, 0);
+  await assert.rejects(() => repo.createScheduleEntry(actor, { ...input, timeZone: 'Not/AZone' }), /Invalid IANA time zone/);
 
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
