@@ -130,6 +130,21 @@ export async function persistProposalApproval(input: PersistProposalApprovalInpu
     `);
 
     await tx.$executeRaw(Prisma.sql`
+      INSERT INTO ProposalEvent (
+        id, organizationId, proposalId, proposalVersionId, eventType, actorUserId, metadataJson, createdAt
+      ) VALUES (
+        ${`pev_${randomUUID().replaceAll("-", "")}`},
+        ${organizationId},
+        ${proposalId},
+        ${version.id},
+        'APPROVED',
+        null,
+        ${JSON.stringify({ approvedAmount: version.customerTotal.toString() })},
+        ${approvedAt}
+      )
+    `);
+
+    await tx.$executeRaw(Prisma.sql`
       UPDATE Estimate
       SET status = 'ACCEPTED', projectInstallationId = ${projectInstallationId}, updatedAt = ${approvedAt}
       WHERE id = ${estimate.id} AND organizationId = ${organizationId}
