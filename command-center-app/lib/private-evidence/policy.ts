@@ -40,11 +40,13 @@ export function receiptStorageKey(input: {
   organizationId: string;
   expenseId: string;
   objectId: string;
+  fileName: string;
 }) {
   const organizationId = segment(input.organizationId, "Organization");
   const expenseId = segment(input.expenseId, "Expense");
   const objectId = segment(input.objectId, "Object");
-  return `organizations/${organizationId}/expenses/${expenseId}/${objectId}`;
+  const fileName = validateReceiptUpload({ organizationId, expenseId, fileName: input.fileName, contentType: "application/pdf", size: 1 }).fileName;
+  return `organizations/${organizationId}/expenses/${expenseId}/${objectId}--${encodeURIComponent(input.fileName)}`;
 }
 
 export { MAX_RECEIPT_BYTES, ALLOWED_RECEIPT_TYPES };
