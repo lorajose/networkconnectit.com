@@ -15,7 +15,7 @@ function number(formData: FormData, key: string) {
   return value;
 }
 async function actor() {
-  const user = await requireRoles(routeAccess.companyOperations);
+  const user = await requireRoles(routeAccess.companyOperationsWrite);
   return { id: user.id, role: user.role, organizationId: user.organizationId };
 }
 function org(formData: FormData) {
