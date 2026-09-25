@@ -52,3 +52,14 @@ export function optionalEmail(value?: string) {
   if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(email)) throw new Error("Invalid email.");
   return email;
 }
+
+
+export function canViewSensitiveOperationsFinancials(actor: OperationsActor) {
+  return actor.role === "SUPER_ADMIN" || actor.role === "INTERNAL_ADMIN";
+}
+
+export function requireSensitiveOperationsFinancials(actor: OperationsActor) {
+  if (!canViewSensitiveOperationsFinancials(actor)) {
+    throw new Error("Sensitive operations financial data requires an internal administrator role.");
+  }
+}
