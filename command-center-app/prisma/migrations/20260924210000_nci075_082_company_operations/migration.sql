@@ -19,6 +19,7 @@ CREATE TABLE OperationsScheduleEntry (
   title VARCHAR(255) NOT NULL,
   startsAt DATETIME(3) NOT NULL,
   endsAt DATETIME(3) NOT NULL,
+  timeZone VARCHAR(64) NOT NULL DEFAULT 'America/New_York',
   status VARCHAR(32) NOT NULL DEFAULT 'SCHEDULED',
   notes TEXT NULL,
   createdByUserId VARCHAR(191) NOT NULL,
