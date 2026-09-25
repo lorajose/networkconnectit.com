@@ -43,7 +43,9 @@ async function main() {
   const repo = load('lib/company-operations/repository.ts', { './policy': policy, '@/lib/db': { prisma }, '@prisma/client': { Prisma } });
   const actor = { id: 'admin-a', role: 'CLIENT_ADMIN', organizationId: 'a' };
   const other = { id: 'admin-b', role: 'CLIENT_ADMIN', organizationId: 'b' };
-  const technician = await repo.createTechnician(actor, { displayName: 'QA technician', workerType: 'W2', hourlyPayRate: 0 });
+  const internalActor = { id: 'internal-a', role: 'INTERNAL_ADMIN', organizationId: null };
+  await assert.rejects(() => repo.createTechnician(actor, { displayName: 'Blocked pay technician', workerType: 'W2', hourlyPayRate: 25 }), /sensitive operations financial/i);
+  const technician = await repo.createTechnician(internalActor, { organizationId: 'a', displayName: 'QA technician', workerType: 'W2', hourlyPayRate: 0 });
   const input = { technicianProfileId: technician, title: 'Concurrent booking', startsAt: '2030-01-01T10:00:00', endsAt: '2030-01-01T11:00:00', timeZone: 'America/New_York', entryType: 'ASSIGNMENT' };
   // Empty schedule: locking existing bookings alone would not protect this case.
   const attempts = await Promise.allSettled([repo.createScheduleEntry(actor, input), repo.createScheduleEntry(actor, input)]);
@@ -156,7 +158,7 @@ async function main() {
   assert.equal(overdue[0].status, 'PAID');
   assert.equal(Number(overdue[0].paidAmount), 200);
 
-  const payPeriod = await repo.getPayPeriodSummary(actor, { startDate: '2030-01-01', endDate: '2030-01-31' });
+  const payPeriod = await repo.getPayPeriodSummary(internalActor, { organizationId: 'a', { startDate: '2030-01-01', endDate: '2030-01-31' });
   assert.equal(payPeriod.rows.length, 1);
   assert.equal(payPeriod.rows[0].workOrderId, 'work-order-a');
   assert.equal(payPeriod.rows[0].regularHours, 8);
@@ -164,9 +166,10 @@ async function main() {
   assert.equal(payPeriod.rows[0].hourlyRate, 50);
   assert.equal(payPeriod.rows[0].totalCost, 550);
   assert.equal(payPeriod.totals.totalCost, 550);
-  const foreignPayPeriod = await repo.getPayPeriodSummary(other, { startDate: '2030-01-01', endDate: '2030-01-31' });
+  await assert.rejects(() => repo.getPayPeriodSummary(actor, { startDate: '2030-01-01', endDate: '2030-01-31' }), /sensitive operations financial/i);
+  const foreignPayPeriod = await repo.getPayPeriodSummary(internalActor, { organizationId: 'b', startDate: '2030-01-01', endDate: '2030-01-31' });
   assert.equal(foreignPayPeriod.rows.length, 0);
-  await assert.rejects(() => repo.getPayPeriodSummary(actor, { startDate: '2030-02-01', endDate: '2030-01-01' }), /start must be on or before end/);
+  await assert.rejects(() => repo.getPayPeriodSummary(internalActor, { organizationId: 'a', startDate: '2030-02-01', endDate: '2030-01-01' }), /start must be on or before end/);
 
   const calendar = await repo.getScheduleCalendar(actor, { startLocal: '2030-01-02T00:00:00', endLocal: '2030-01-03T00:00:00', timeZone: 'America/New_York' });
   assert.equal(calendar.length, 1);
