@@ -1,0 +1,10 @@
+import assert from "node:assert/strict";
+import test from "node:test";
+import { buildCloseoutPackage } from "../../lib/contractor-os/closeout-package";
+
+const base={project:{name:"Example Project"},completedScope:["31 cable runs"],deviceList:[],photos:[],punchList:[],cableSchedule:[{runIdentifier:"MDF-A-01",floorLevel:"1",deviceLocation:"Hall",deviceType:"Camera",scopeType:"NEW" as const,measuredLength:120,lengthUnit:"FT",wiremapStatus:"PASS",gigabitLinkStatus:"PASS",overallTestStatus:"PASS",evidenceFiles:["tester-01.jpg"],acceptanceStatus:"ACCEPTED"}],commercial:{currency:"USD"}};
+
+test("closeout package derives acceptance counts from execution evidence",()=>{const model=buildCloseoutPackage(base);assert.equal(model.acceptance.accepted,1);assert.equal(model.acceptance.rejected,0);assert.deepEqual(model.warnings,[]);});
+test("new tested runs require tester evidence when configured",()=>{const model=buildCloseoutPackage({...base,cableSchedule:[{...base.cableSchedule[0],evidenceFiles:[]}]});assert.match(model.warnings[0],/Tester evidence missing/);});
+test("accepted-value calculation is project configuration, not a global rate",()=>{const model=buildCloseoutPackage({...base,commercial:{currency:"USD",acceptedUnitRate:150}},{requireTesterEvidenceForNewRuns:true,requireDailyClose:false,requireMaterialReturnAcknowledgement:false,includeAcceptedValue:true});assert.equal(model.commercial?.acceptedValue,150);const normal=buildCloseoutPackage({...base,commercial:{currency:"USD",acceptedUnitRate:150}});assert.equal(normal.commercial?.acceptedValue,undefined);});
+test("customer-specific daily close and material return rules are configurable",()=>{const model=buildCloseoutPackage({...base,materialReturn:{required:true,acknowledged:false}},{requireTesterEvidenceForNewRuns:true,requireDailyClose:true,requireMaterialReturnAcknowledgement:true,includeAcceptedValue:false});assert.equal(model.warnings.length,2);});
