@@ -83,3 +83,18 @@ test("NCI-014 tracks both cable termination ends and derives legacy terminated s
  assert.match(page,/name="terminatedEndB"/);
  assert.doesNotMatch(page,/name="evidenceSaved"/);
 });
+
+
+test("NCI-014 exposes tenant-safe floor closeout CRUD and project summary UI",()=>{
+ const actions=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/actions.ts"),"utf8");
+ const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(source,/listWorkOrderFloorCloseouts/);
+ assert.match(source,/saveWorkOrderFloorCloseout/);
+ assert.match(source,/Cross-tenant floor closeout read denied/);
+ assert.match(source,/ON DUPLICATE KEY UPDATE/);
+ assert.match(actions,/saveFloorCloseoutAction/);
+ assert.match(page,/Cable project summary/);
+ assert.match(page,/Floor closeout/);
+ assert.match(page,/getCableRunProjectSummary/);
+ assert.match(page,/listWorkOrderFloorCloseouts/);
+});
