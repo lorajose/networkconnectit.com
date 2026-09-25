@@ -32,7 +32,8 @@ async function main() {
     'prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql',
     'prisma/migrations/20260925010000_nci079_material_usage/migration.sql',
     'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql',
-    'prisma/migrations/20260925143000_nci082_operations_settings_audit/migration.sql'
+    'prisma/migrations/20260925143000_nci082_operations_settings_audit/migration.sql',
+    'prisma/migrations/20260925160000_nci075_technician_lifecycle/migration.sql'
   ]) {
     const migration = fs.readFileSync(migrationPath, 'utf8');
     for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
