@@ -75,8 +75,8 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       FROM OperationsInvoiceLine
       WHERE organizationId = ${organizationId}
       ORDER BY invoiceId, sortOrder ASC LIMIT 250`),
-    prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean }>>(Prisma.sql`
-      SELECT id, category, description, amount, expenseDate, reimbursable
+    prisma.$queryRaw<Array<{ id: string; category: string; description: string; amount: Prisma.Decimal; expenseDate: Date; reimbursable: number | boolean; materialQuantityPurchased: Prisma.Decimal | null; materialQuantityUsed: Prisma.Decimal | null; materialUnit: string | null }>>(Prisma.sql`
+      SELECT id, category, description, amount, expenseDate, reimbursable, materialQuantityPurchased, materialQuantityUsed, materialUnit
       FROM OperationsExpense WHERE organizationId = ${organizationId}
       ORDER BY expenseDate DESC, createdAt DESC LIMIT 50`),
     prisma.$queryRaw<Array<{
@@ -186,6 +186,7 @@ export async function createInvoice(actor: OperationsActor, input: {
 
 export async function createExpense(actor: OperationsActor, input: {
   organizationId?: string; projectInstallationId?: string; category: string; description: string; amount: number; expenseDate: string; reimbursable: boolean;
+  materialQuantityPurchased?: number; materialQuantityUsed?: number; materialUnit?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   choice(input.category, ["MATERIALS", "TRAVEL", "TOOLS", "SUBCONTRACTOR", "OTHER"], "expense category");
@@ -198,12 +199,26 @@ export async function createExpense(actor: OperationsActor, input: {
     if (!project[0]) throw new Error("Project is outside your tenant scope.");
   }
   if (typeof input.reimbursable !== "boolean") throw new Error("Invalid reimbursable flag.");
+  let materialQuantityPurchased: number | null = null;
+  let materialQuantityUsed: number | null = null;
+  let materialUnit: string | null = null;
+  if (input.category === "MATERIALS") {
+    materialQuantityPurchased = Number(input.materialQuantityPurchased);
+    materialQuantityUsed = Number(input.materialQuantityUsed ?? 0);
+    materialUnit = requiredText(input.materialUnit || "", "Material unit", 32);
+    nonNegativeDecimal(materialQuantityPurchased, "Material quantity purchased", 999999999.999);
+    nonNegativeDecimal(materialQuantityUsed, "Material quantity used", 999999999.999);
+    if (materialQuantityPurchased <= 0) throw new Error("Material quantity purchased must be greater than zero.");
+    if (materialQuantityUsed > materialQuantityPurchased) throw new Error("Material quantity used cannot exceed quantity purchased.");
+  }
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsExpense
-      (id, organizationId, projectInstallationId, category, description, amount, expenseDate, reimbursable, createdByUserId, createdAt, updatedAt)
+      (id, organizationId, projectInstallationId, category, description, amount, expenseDate, reimbursable,
+       materialQuantityPurchased, materialQuantityUsed, materialUnit, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${projectInstallationId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable}, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${projectInstallationId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable},
+       ${materialQuantityPurchased}, ${materialQuantityUsed}, ${materialUnit}, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
