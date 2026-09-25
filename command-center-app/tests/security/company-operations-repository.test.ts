@@ -6,7 +6,7 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; project?: boolean; workOrder?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number }; profitability?: Array<Record<string, unknown>> } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; workOrder?: boolean; closeout?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number }; profitability?: Array<Record<string, unknown>> } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
@@ -18,6 +18,7 @@ function repository(options: { technician?: boolean; project?: boolean; workOrde
       if (query.sql.includes("FROM FieldTechnicianProfile") && query.sql.includes("WHERE id =")) return options.technician ? [{ id: "tech", hourlyPayRate: 50 }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
       if (query.sql.includes("FROM ProjectWorkOrder")) return options.workOrder ? [{ id: "work-order" }] : [];
+      if (query.sql.includes("FROM ProjectCloseoutPackage")) return options.closeout ? [{ id: "closeout" }] : [];
       if (query.sql.includes("AS laborCost") && query.sql.includes("FROM ProjectInstallation p")) return options.profitability ?? [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 90, scheduledHours: 120, overdueInvoices: BigInt(3), invoiced: 10000, outstanding: 4000, expenses: 2500 }];
       return [];
@@ -403,7 +404,13 @@ test("canonical work order links are tenant and project scoped across operations
   }), /Work order requires a project/);
   assert.equal(missingProject.queries.some(query => query.sql.includes("FROM ProjectWorkOrder")), false);
 
-  const ownedInvoice = repository({ project: true, workOrder: true });
+  const withoutCloseout = repository({ project: true, workOrder: true });
+  await assert.rejects(() => withoutCloseout.api.createInvoice(admin, {
+    projectInstallationId: "project", workOrderId: "work-order", invoiceNumber: "INV-WO-NO-CLOSEOUT", customerName: "Client"
+  }), /closed work order with a generated closeout package/);
+  assert.equal(withoutCloseout.queries.some(query => query.sql.includes("INSERT INTO OperationsInvoice")), false);
+
+  const ownedInvoice = repository({ project: true, workOrder: true, closeout: true });
   await ownedInvoice.api.createInvoice(admin, {
     projectInstallationId: "project", workOrderId: "work-order", invoiceNumber: "INV-WO-2", customerName: "Client"
   });
