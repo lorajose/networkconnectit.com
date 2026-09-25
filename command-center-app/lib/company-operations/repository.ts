@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { calendarDate, canViewSensitiveOperationsFinancials, choice, nonNegativeDecimal, optionalEmail, requiredText, scopedOrganizationId, validateHours } from "./policy";
+import { calendarDate, canViewSensitiveOperationsFinancials, choice, nonNegativeDecimal, optionalEmail, requiredText, requireSensitiveOperationsFinancials, scopedOrganizationId, validateHours } from "./policy";
 import type { OperationsActor } from "./policy";
 export type { OperationsActor } from "./policy";
 
@@ -305,6 +305,7 @@ export async function createTechnician(actor: OperationsActor, input: {
   organizationId?: string; displayName: string; workerType: string; email?: string; hourlyPayRate?: number;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  if (input.hourlyPayRate !== undefined) requireSensitiveOperationsFinancials(actor);
   input.displayName = requiredText(input.displayName, "Technician name", 191);
   choice(input.workerType, ["1099", "W2"], "worker type");
   const email = optionalEmail(input.email);
@@ -315,6 +316,7 @@ export async function createTechnician(actor: OperationsActor, input: {
       (id, organizationId, userId, displayName, status, workerType, email, hourlyPayRate, availabilityStatus, createdAt, updatedAt)
     VALUES
       (${id}, ${organizationId}, ${"ops:" + id}, ${input.displayName}, 'ACTIVE', ${input.workerType}, ${email}, ${input.hourlyPayRate ?? null}, 'AVAILABLE', NOW(3), NOW(3))`);
+  await appendOperationsAuditEvent(organizationId, actor.id, "TECHNICIAN_CREATED", "TECHNICIAN", id, { workerType: input.workerType, hasPayRate: input.hourlyPayRate !== undefined });
   return id;
 }
 
@@ -364,6 +366,7 @@ export async function createInvoice(actor: OperationsActor, input: {
       (id, organizationId, projectInstallationId, workOrderId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
     VALUES
       (${id}, ${organizationId}, ${projectInstallationId}, ${workOrderId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, 0, 0, 0, ${actor.id}, NOW(3), NOW(3))`);
+  await appendOperationsAuditEvent(organizationId, actor.id, "INVOICE_CREATED", "INVOICE", id, { invoiceNumber: input.invoiceNumber });
   return id;
 }
 
@@ -403,6 +406,7 @@ export async function createExpense(actor: OperationsActor, input: {
     VALUES
       (${id}, ${organizationId}, ${projectInstallationId}, ${workOrderId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable},
        ${materialQuantityPurchased}, ${materialQuantityUsed}, ${materialUnit}, ${actor.id}, NOW(3), NOW(3))`);
+  await appendOperationsAuditEvent(organizationId, actor.id, "EXPENSE_CREATED", "EXPENSE", id, { category: input.category, amount: input.amount });
   return id;
 }
 
@@ -420,6 +424,7 @@ export async function attachExpenseReceipt(actor: OperationsActor, input: {
     SET receiptStorageKey = ${storageKey}, updatedAt = NOW(3)
     WHERE id = ${input.expenseId} AND organizationId = ${organizationId}`);
   if (updated !== 1) throw new Error("Expense is outside your tenant scope.");
+  await appendOperationsAuditEvent(organizationId, actor.id, "EXPENSE_RECEIPT_ATTACHED", "EXPENSE", input.expenseId);
 }
 
 export async function getExpenseReceiptReference(actor: OperationsActor, input: {
@@ -459,6 +464,7 @@ export async function createTimeEntry(actor: OperationsActor, input: {
       (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, workDate, regularHours, overtimeHours, hourlyPayRateSnapshot, status, createdByUserId, createdAt, updatedAt)
     VALUES
       (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${workDate}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
+  await appendOperationsAuditEvent(organizationId, actor.id, "TIME_ENTRY_CREATED", "TIME_ENTRY", id, { technicianProfileId: input.technicianProfileId, workDate: input.workDate });
   return id;
 }
 
@@ -520,6 +526,7 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
         (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, entryType, title, startsAt, endsAt, timeZone, status, createdByUserId, createdAt, updatedAt)
       VALUES
         (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, ${timeZone}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+    await appendOperationsAuditEvent(organizationId, actor.id, "SCHEDULE_ENTRY_CREATED", "SCHEDULE_ENTRY", id, { entryType: input.entryType, technicianProfileId: input.technicianProfileId }, tx as typeof prisma);
     return id;
   });
 }
@@ -572,6 +579,7 @@ export async function recordInvoicePayment(actor: OperationsActor, input: {
     await tx.$executeRaw(Prisma.sql`
       UPDATE OperationsInvoice SET paidAmount = ${nextPaidAmount}, status = ${nextStatus}, updatedAt = NOW(3)
       WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}`);
+    await appendOperationsAuditEvent(organizationId, actor.id, "INVOICE_PAYMENT_RECORDED", "INVOICE", input.invoiceId, { paymentId: id, amount: input.amount, status: nextStatus }, tx as typeof prisma);
     if (invoice.workOrderId && invoice.projectInstallationId) {
       const workOrders = await tx.$queryRaw<Array<{ surveySessionId: string }>>(Prisma.sql`
         SELECT surveySessionId FROM ProjectWorkOrder
@@ -602,6 +610,7 @@ export async function sendInvoice(actor: OperationsActor, input: { organizationI
     SET status = 'SENT', issueDate = COALESCE(issueDate, CURRENT_DATE()), updatedAt = NOW(3)
     WHERE id = ${input.invoiceId} AND organizationId = ${organizationId} AND status = 'DRAFT'`);
   if (updated !== 1) throw new Error("Invoice is outside your tenant scope or is not a draft.");
+  await appendOperationsAuditEvent(organizationId, actor.id, "INVOICE_SENT", "INVOICE", input.invoiceId);
 }
 
 
@@ -628,6 +637,7 @@ export async function updateInvoiceAdjustments(actor: OperationsActor, input: {
       UPDATE OperationsInvoice SET taxAmount = ${input.taxAmount}, discountAmount = ${input.discountAmount},
         totalAmount = ${totalAmount}, updatedAt = NOW(3)
       WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}`);
+    await appendOperationsAuditEvent(organizationId, actor.id, "INVOICE_ADJUSTMENTS_UPDATED", "INVOICE", input.invoiceId, { taxAmount: input.taxAmount, discountAmount: input.discountAmount, totalAmount }, tx as typeof prisma);
     return totalAmount;
   });
 }
@@ -668,6 +678,7 @@ export async function addInvoiceLine(actor: OperationsActor, input: {
           + i.taxAmount - i.discountAmount),
         i.updatedAt = NOW(3)
       WHERE i.id = ${input.invoiceId} AND i.organizationId = ${organizationId}`);
+    await appendOperationsAuditEvent(organizationId, actor.id, "INVOICE_LINE_ADDED", "INVOICE", input.invoiceId, { lineId: id, lineType: input.lineType, amount }, tx as typeof prisma);
     return id;
   });
 }
@@ -680,6 +691,7 @@ export async function submitTimeEntry(actor: OperationsActor, input: { organizat
     UPDATE OperationsTimeEntry SET status = 'SUBMITTED', updatedAt = NOW(3)
     WHERE id = ${input.timeEntryId} AND organizationId = ${organizationId} AND status = 'DRAFT'`);
   if (updated !== 1) throw new Error("Time entry is outside your tenant scope or is not a draft.");
+  await appendOperationsAuditEvent(organizationId, actor.id, "TIME_ENTRY_SUBMITTED", "TIME_ENTRY", input.timeEntryId);
 }
 
 export async function approveTimeEntry(actor: OperationsActor, input: { organizationId?: string; timeEntryId: string }) {
@@ -690,4 +702,5 @@ export async function approveTimeEntry(actor: OperationsActor, input: { organiza
     SET status = 'APPROVED', approvedByUserId = ${actor.id}, approvedAt = NOW(3), updatedAt = NOW(3)
     WHERE id = ${input.timeEntryId} AND organizationId = ${organizationId} AND status = 'SUBMITTED'`);
   if (updated !== 1) throw new Error("Time entry is outside your tenant scope or is not submitted.");
+  await appendOperationsAuditEvent(organizationId, actor.id, "TIME_ENTRY_APPROVED", "TIME_ENTRY", input.timeEntryId);
 }
