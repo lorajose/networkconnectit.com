@@ -190,7 +190,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
   const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
-  return { organizationId, technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, metrics: {
+  return { organizationId, technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, operationalAlerts, metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
