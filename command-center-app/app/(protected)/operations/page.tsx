@@ -3,7 +3,7 @@ import Link from "next/link";
 import { PageHeader } from "@/components/page-header";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRoles } from "@/lib/auth";
-import { getOperationsSnapshot } from "@/lib/company-operations/repository";
+import { getOperationsSnapshot, getScheduleCalendar } from "@/lib/company-operations/repository";
 import { getOrganizationOptions } from "@/lib/management/organizations";
 import { routeAccess } from "@/lib/rbac";
 
@@ -25,6 +25,21 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
 
   const snapshot = await getOperationsSnapshot({ id: user.id, role: user.role, organizationId: user.organizationId }, organizationId);
   const org = organizations.find((item) => item.id === organizationId);
+
+  const calendarView = searchParams.view === "day" ? "day" : "week";
+  const calendarTimeZone = typeof searchParams.timeZone === "string" ? searchParams.timeZone : "America/New_York";
+  const requestedDate = typeof searchParams.date === "string" && /^\d{4}-\d{2}-\d{2}$/.test(searchParams.date) ? searchParams.date : new Date().toISOString().slice(0, 10);
+  const baseDate = new Date(`${requestedDate}T12:00:00Z`);
+  const day = baseDate.getUTCDay();
+  const offset = calendarView === "week" ? (day + 6) % 7 : 0;
+  const rangeStart = new Date(baseDate); rangeStart.setUTCDate(baseDate.getUTCDate() - offset);
+  const rangeEnd = new Date(rangeStart); rangeEnd.setUTCDate(rangeStart.getUTCDate() + (calendarView === "week" ? 7 : 1));
+  const localStamp = (d: Date) => `${d.toISOString().slice(0, 10)}T00:00:00`;
+  const calendar = await getScheduleCalendar(
+    { id: user.id, role: user.role, organizationId: user.organizationId },
+    { organizationId, startLocal: localStamp(rangeStart), endLocal: localStamp(rangeEnd), timeZone: calendarTimeZone }
+  );
+  const calendarFormatter = new Intl.DateTimeFormat("en-US", { timeZone: calendarTimeZone, weekday: "short", month: "short", day: "numeric", hour: "numeric", minute: "2-digit" });
 
   return <div className="space-y-6">
     <PageHeader eyebrow="Contractor OS" title="Company Operations" description="Run technicians, scheduling, labor, invoices and expenses from one tenant-safe workspace." breadcrumbs={[{ label: "Command Center", href: "/dashboard" }, { label: "Company Operations" }]} />
@@ -69,7 +84,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
         <select className={field} name="projectInstallationId"><option value="">No project (availability / PTO)</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
         <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.workOrderNumber} · {w.title}</option>)}</select>
         <input className={field} name="title" placeholder="Assignment / PTO / unavailable" required />
-        <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="startsAt" type="datetime-local" required /><input className={field} name="endsAt" type="datetime-local" required /></div>
+        <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="startsAt" type="datetime-local" required /><input className={field} name="endsAt" type="datetime-local" required /></div><select className={field} name="timeZone" defaultValue={calendarTimeZone}><option value="America/New_York">Eastern · America/New_York</option><option value="America/Chicago">Central · America/Chicago</option><option value="America/Denver">Mountain · America/Denver</option><option value="America/Los_Angeles">Pacific · America/Los_Angeles</option><option value="America/Phoenix">Arizona · America/Phoenix</option><option value="Pacific/Honolulu">Hawaii · Pacific/Honolulu</option></select><p className="text-xs text-muted-foreground">Times are entered in the selected IANA timezone and normalized before conflict checks.</p>
         <select className={field} name="entryType"><option value="ASSIGNMENT">Assignment</option><option value="AVAILABLE">Available</option><option value="UNAVAILABLE">Unavailable</option><option value="PTO">PTO</option></select><button className={button}>Schedule</button>
       </form>
 
@@ -99,6 +114,18 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
         <p className="text-xs text-muted-foreground">Material quantity fields are required when category is MATERIALS. Used quantity cannot exceed purchased quantity.</p>
         <label className="flex items-center gap-2 text-sm"><input name="reimbursable" type="checkbox" /> Reimbursable</label><button className={button}>Add expense</button>
       </form>
+    </CardContent></Card>
+
+    <Card><CardHeader><CardTitle>Schedule calendar · {calendarView === "day" ? "Day" : "Week"}</CardTitle></CardHeader><CardContent className="space-y-4">
+      <form method="get" className="grid gap-2 md:grid-cols-4">
+        <input type="hidden" name="organizationId" value={organizationId} />
+        <input className={field} type="date" name="date" defaultValue={requestedDate} />
+        <select className={field} name="view" defaultValue={calendarView}><option value="day">Day</option><option value="week">Week</option></select>
+        <select className={field} name="timeZone" defaultValue={calendarTimeZone}><option value="America/New_York">Eastern</option><option value="America/Chicago">Central</option><option value="America/Denver">Mountain</option><option value="America/Los_Angeles">Pacific</option><option value="America/Phoenix">Arizona</option><option value="Pacific/Honolulu">Hawaii</option></select>
+        <button className={button}>View calendar</button>
+      </form>
+      <p className="text-xs text-muted-foreground">Display timezone: {calendarTimeZone}. Assignments, PTO and unavailable periods share the existing conflict protection; AVAILABLE remains advisory.</p>
+      <div className="space-y-2">{calendar.length ? calendar.map(s => <div key={s.id} className="grid gap-1 rounded-xl border p-3 md:grid-cols-[1fr_auto]"><div><p className="font-medium">{s.title}</p><p className="text-xs text-muted-foreground">{s.technicianName} · {s.entryType}{s.workOrderId ? ` · WO ${s.workOrderId}` : ""}</p></div><p className="text-sm md:text-right">{calendarFormatter.format(new Date(s.startsAt))}<br />→ {calendarFormatter.format(new Date(s.endsAt))}</p></div>) : <p className="text-sm text-muted-foreground">No schedule entries in this {calendarView}.</p>}</div>
     </CardContent></Card>
 
     <div className="grid gap-6 xl:grid-cols-2">
