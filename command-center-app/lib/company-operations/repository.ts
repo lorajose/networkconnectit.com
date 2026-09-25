@@ -103,7 +103,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   if (actor.role !== "VIEWER") await syncOverdueInvoices(actor, organizationId);
   const [technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals, operationalAlerts] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; employmentStatus: string; skillsJson: string | null; certificationsJson: string | null; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
-      SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
+      SELECT id, displayName, workerType, availabilityStatus, employmentStatus, skillsJson, certificationsJson, hourlyPayRate
       FROM FieldTechnicianProfile WHERE organizationId = ${organizationId}
       ORDER BY displayName ASC LIMIT 100`),
     prisma.$queryRaw<Array<{ id: string; name: string; projectCode: string | null }>>(Prisma.sql`
