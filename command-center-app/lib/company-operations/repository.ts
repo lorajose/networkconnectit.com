@@ -13,7 +13,7 @@ function zonedLocalDateTime(value: string, timeZone: string, label: string) {
   requiredText(timeZone, "Time zone", 64);
   try { new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date()); } catch { throw new Error("Invalid IANA time zone."); }
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) throw new Error(\`Invalid \${label}.\`);
+  if (!match) throw new Error(\`Invalid ${label}.`);
   const parts = match.slice(1).map(Number);
   const targetUtc = Date.UTC(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5] || 0);
   let guess = targetUtc;
@@ -27,7 +27,7 @@ function zonedLocalDateTime(value: string, timeZone: string, label: string) {
   }
   const result = new Date(guess);
   const verify = Object.fromEntries(formatter.formatToParts(result).filter(p => p.type !== "literal").map(p => [p.type, Number(p.value)]));
-  if (Date.UTC(verify.year, verify.month - 1, verify.day, verify.hour, verify.minute, verify.second) !== targetUtc) throw new Error(\`\${label} falls in a daylight-saving time gap.\`);
+  if (Date.UTC(verify.year, verify.month - 1, verify.day, verify.hour, verify.minute, verify.second) !== targetUtc) throw new Error(\`${label} falls in a daylight-saving time gap.`);
   return result;
 }
 
@@ -175,6 +175,28 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   }};
 }
 
+
+
+export async function getScheduleCalendar(actor: OperationsActor, input: {
+  organizationId?: string; startLocal: string; endLocal: string; timeZone: string;
+}) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  const startsAt = zonedLocalDateTime(input.startLocal, input.timeZone, "calendar start");
+  const endsAt = zonedLocalDateTime(input.endLocal, input.timeZone, "calendar end");
+  if (!(startsAt < endsAt)) throw new Error("Calendar end must be after start.");
+  return prisma.$queryRaw<Array<{
+    id: string; technicianProfileId: string; technicianName: string; projectInstallationId: string | null;
+    workOrderId: string | null; entryType: string; title: string; startsAt: Date; endsAt: Date; timeZone: string; status: string;
+  }>>(Prisma.sql`
+    SELECT s.id, s.technicianProfileId, t.displayName AS technicianName, s.projectInstallationId,
+      s.workOrderId, s.entryType, s.title, s.startsAt, s.endsAt, s.timeZone, s.status
+    FROM OperationsScheduleEntry s
+    JOIN FieldTechnicianProfile t ON t.id = s.technicianProfileId AND t.organizationId = s.organizationId
+    WHERE s.organizationId = ${organizationId}
+      AND s.status <> 'CANCELLED'
+      AND s.startsAt < ${endsAt} AND s.endsAt > ${startsAt}
+    ORDER BY s.startsAt ASC, t.displayName ASC`);
+}
 
 export async function getPayPeriodSummary(actor: OperationsActor, input: {
   organizationId?: string; startDate: string; endDate: string;
