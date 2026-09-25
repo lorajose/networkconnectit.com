@@ -6,18 +6,18 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; project?: boolean; workOrder?: boolean; closeout?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number }; profitability?: Array<Record<string, unknown>> } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; workOrder?: boolean; closeout?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number; projectInstallationId?: string | null; workOrderId?: string | null }; profitability?: Array<Record<string, unknown>> } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
     $queryRaw: async (query: { sql: string; values: unknown[] }) => {
       queries.push(query);
       events.push(query.sql.includes("FOR UPDATE") ? "lock" : "read");
-      if (query.sql.includes("OperationsInvoice") && query.sql.includes("FOR UPDATE")) return options.invoice ? [{ id: "invoice", ...options.invoice }] : [];
+      if (query.sql.includes("OperationsInvoice") && query.sql.includes("FOR UPDATE")) return options.invoice ? [{ id: "invoice", projectInstallationId: null, workOrderId: null, ...options.invoice }] : [];
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
       if (query.sql.includes("FROM FieldTechnicianProfile") && query.sql.includes("WHERE id =")) return options.technician ? [{ id: "tech", hourlyPayRate: 50 }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
-      if (query.sql.includes("FROM ProjectWorkOrder")) return options.workOrder ? [{ id: "work-order" }] : [];
+      if (query.sql.includes("FROM ProjectWorkOrder")) return options.workOrder ? [{ id: "work-order", surveySessionId: "survey" }] : [];
       if (query.sql.includes("FROM ProjectCloseoutPackage")) return options.closeout ? [{ id: "closeout" }] : [];
       if (query.sql.includes("AS laborCost") && query.sql.includes("FROM ProjectInstallation p")) return options.profitability ?? [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 90, scheduledHours: 120, overdueInvoices: BigInt(3), invoiced: 10000, outstanding: 4000, expenses: 2500 }];
@@ -432,4 +432,21 @@ test("canonical work order links are tenant and project scoped across operations
   const ownedSchedule = repository({ technician: true, project: true, workOrder: true });
   await ownedSchedule.api.createScheduleEntry(admin, { ...scheduleInput, projectInstallationId: "project", workOrderId: "work-order" });
   assert.ok(ownedSchedule.queries.find(query => query.sql.includes("INSERT INTO OperationsScheduleEntry"))!.values.includes("work-order"));
+});
+
+test("work order invoice payments append canonical lifecycle audit events atomically", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+  const partial = repository({ workOrder: true, invoice: { totalAmount: 100, paidAmount: 0, status: "SENT", projectInstallationId: "project", workOrderId: "work-order" } });
+  await partial.api.recordInvoicePayment(admin, { invoiceId: "invoice", amount: 40, paidAt: "2026-09-25T12:00:00Z" });
+  const partialEvent = partial.queries.find(query => query.sql.includes("INSERT INTO ProjectActivityEvent"))!;
+  assert.ok(partialEvent.values.includes("INVOICE_PAYMENT_RECORDED"));
+  assert.ok(partialEvent.values.includes("work-order"));
+  assert.ok(partialEvent.values.includes("project"));
+  assert.deepEqual(partial.events.slice(-1), ["commit"]);
+
+  const final = repository({ workOrder: true, invoice: { totalAmount: 100, paidAmount: 40, status: "SENT", projectInstallationId: "project", workOrderId: "work-order" } });
+  await final.api.recordInvoicePayment(admin, { invoiceId: "invoice", amount: 60, paidAt: "2026-09-25T13:00:00Z" });
+  const finalEvent = final.queries.find(query => query.sql.includes("INSERT INTO ProjectActivityEvent"))!;
+  assert.ok(finalEvent.values.includes("INVOICE_PAID"));
+  assert.ok(final.queries.find(query => query.sql.includes("UPDATE OperationsInvoice"))!.values.includes("PAID"));
 });
