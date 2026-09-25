@@ -19,12 +19,15 @@ test("NCI-014 records independent low-voltage test outcomes and evidence",()=>{
  assert.match(migration,/wiremapStatus/);
  assert.match(migration,/gigabitLinkStatus/);
  assert.match(source,/overallTestStatus/);
- assert.match(source,/evidenceSaved/);
+ assert.match(source,/ProjectWorkOrderEvidence/);
+ assert.match(source,/evidenceType='TESTER'/);
+ assert.match(source,/const evidenceSaved=Number\(testerEvidence\?\.count\?\?0\)>0/);
+ assert.doesNotMatch(source,/input\.evidenceSaved/);
  assert.match(source,/New runs require measured length and tester evidence before PASS/);
 });
 
 test("NCI-014 preserves the field stage history and rejection punch workflow",()=>{
- for(const stage of ["PULLED","TERMINATED","LABELED","WIREMAP","GIGABIT_LINK","TESTED","EVIDENCE_SAVED","READY"]) assert.match(source,new RegExp(stage));
+ for(const stage of ["PULLED","TERMINATED_END_A","TERMINATED_END_B","TERMINATED","LABELED","WIREMAP","GIGABIT_LINK","TESTED","EVIDENCE_SAVED","READY"]) assert.match(source,new RegExp(stage));
  assert.match(source,/ProjectWorkOrderItemEvent/);
  assert.match(source,/ProjectPunchListItem/);
  assert.match(source,/REJECTED/);
@@ -48,4 +51,50 @@ test("NCI-014 mobile UI and project summary are wired to the cable execution mod
  assert.match(page,/evidenceSaved/);
  assert.match(source,/getCableRunProjectSummary/);
  assert.match(source,/Cross-tenant cable summary read denied/);
+});
+
+
+test("NCI-014 repeated saves do not duplicate unchanged stage events or open punch items",()=>{
+ assert.match(source,/String\(before\?\?""\)===String\(result\?\?""\)/);
+ assert.match(source,/current\.status==="COMPLETED"/);
+ const openPunchGuards=source.match(/ProjectPunchListItem[\s\S]{0,240}status='OPEN'/g)??[];
+ assert.ok(openPunchGuards.length>=2,"failure and customer rejection paths must both guard existing OPEN punch items");
+});
+
+
+test("NCI-014 server action cannot spoof tester evidence with a client checkbox",()=>{
+ const actions=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/actions.ts"),"utf8");
+ const cableAction=actions.slice(actions.indexOf("export async function updateCableRunExecutionAction"),actions.indexOf("export async function saveCloseoutRequirementsAction"));
+ assert.doesNotMatch(cableAction,/formData\.get\("evidenceSaved"\)/);
+ assert.match(source,/ProjectWorkOrderEvidence/);
+ assert.match(source,/evidenceType='TESTER'/);
+});
+
+
+test("NCI-014 tracks both cable termination ends and derives legacy terminated state",()=>{
+ const endMigration=readFileSync(resolve(process.cwd(),"prisma/migrations/20260925230000_nci014_termination_ends/migration.sql"),"utf8");
+ assert.match(endMigration,/terminatedEndA/);
+ assert.match(endMigration,/terminatedEndB/);
+ assert.match(endMigration,/SET terminatedEndA=isTerminated, terminatedEndB=isTerminated/);
+ assert.match(source,/terminated=input\.terminatedEndA&&input\.terminatedEndB/);
+ assert.match(source,/isTerminated=\$\{terminated\}/);
+ const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(page,/name="terminatedEndA"/);
+ assert.match(page,/name="terminatedEndB"/);
+ assert.doesNotMatch(page,/name="evidenceSaved"/);
+});
+
+
+test("NCI-014 exposes tenant-safe floor closeout CRUD and project summary UI",()=>{
+ const actions=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/actions.ts"),"utf8");
+ const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(source,/listWorkOrderFloorCloseouts/);
+ assert.match(source,/saveWorkOrderFloorCloseout/);
+ assert.match(source,/Cross-tenant floor closeout read denied/);
+ assert.match(source,/ON DUPLICATE KEY UPDATE/);
+ assert.match(actions,/saveFloorCloseoutAction/);
+ assert.match(page,/Cable project summary/);
+ assert.match(page,/Floor closeout/);
+ assert.match(page,/getCableRunProjectSummary/);
+ assert.match(page,/listWorkOrderFloorCloseouts/);
 });

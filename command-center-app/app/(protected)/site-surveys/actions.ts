@@ -13,7 +13,7 @@ import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } fro
 import { routeAccess } from "@/lib/rbac";
 import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
 import { assignWorkOrderTechnician, closeWorkOrder, createPunchListItem, generateCloseoutPackageManifest, persistWorkOrderEvidence, recordFinalAcceptance, resolvePunchListItem, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
-import { updateCableRunExecution } from "@/lib/contractor-os/cable-run-execution";
+import { saveWorkOrderFloorCloseout, updateCableRunExecution } from "@/lib/contractor-os/cable-run-execution";
 import { saveWorkOrderCloseoutRequirement } from "@/lib/contractor-os/closeout-requirements";
 
 function value(formData: FormData, key: string) {
@@ -226,9 +226,9 @@ export async function updateCableRunExecutionAction(formData:FormData){
   lengthUnit:value(formData,"lengthUnit")==="M"?"M":"FT",floorLevel:value(formData,"floorLevel")||null,
   terminationPoint:value(formData,"terminationPoint")||null,deviceLocation:value(formData,"deviceLocation")||null,
   deviceType:value(formData,"deviceType")||null,pulledInstalled:formData.get("pulledInstalled")==="on",
-  terminated:formData.get("terminated")==="on",labeled:formData.get("labeled")==="on",wiremapStatus:result("wiremapStatus"),
+  terminatedEndA:formData.get("terminatedEndA")==="on",terminatedEndB:formData.get("terminatedEndB")==="on",labeled:formData.get("labeled")==="on",wiremapStatus:result("wiremapStatus"),
   gigabitLinkStatus:result("gigabitLinkStatus"),overallTestStatus:result("overallTestStatus"),
-  evidenceSaved:formData.get("evidenceSaved")==="on",technicianNote:value(formData,"technicianNote")||null,userId:user.id
+  technicianNote:value(formData,"technicianNote")||null,userId:user.id
  });
  revalidatePath(`/site-surveys/${sessionId}`);
 }
@@ -240,4 +240,22 @@ export async function saveCloseoutRequirementsAction(formData:FormData){
  await saveWorkOrderCloseoutRequirement({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),requireDailyClose:formData.get("requireDailyClose")==="on",requireMaterialReturnAcknowledgement:formData.get("requireMaterialReturnAcknowledgement")==="on",requireWorkAreaPhotos:formData.get("requireWorkAreaPhotos")==="on",requireTesterEvidenceForNewRuns:formData.get("requireTesterEvidenceForNewRuns")==="on",warrantyRequired:formData.get("warrantyRequired")==="on",warrantyStartDate:date?new Date(date+"T00:00:00"):null,warrantyTerms:value(formData,"warrantyTerms")||null,materialReturnRequired:formData.get("materialReturnRequired")==="on",materialReturnAcknowledged:formData.get("materialReturnAcknowledged")==="on",materialReturnNote:value(formData,"materialReturnNote")||null,toolsRemoved:formData.get("toolsRemoved")==="on",corridorsClear:formData.get("corridorsClear")==="on",workAreaPhotosSaved:formData.get("workAreaPhotosSaved")==="on",buildingSecured:formData.get("buildingSecured")==="on",technicianSignOffName:value(formData,"technicianSignOffName")||null,technicianSignedOff:formData.get("technicianSignedOff")==="on",userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}/closeout`);
+}
+
+
+export async function saveFloorCloseoutAction(formData:FormData){
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const sessionId=value(formData,"sessionId"),workOrderId=value(formData,"workOrderId");
+ await allowWorkOrderFieldAction(user,organizationId,sessionId,workOrderId);
+ await saveWorkOrderFloorCloseout({id:user.id,role:user.role,organizationId:user.organizationId},{
+  organizationId,workOrderId,floorLevel:value(formData,"floorLevel"),
+  cableSupportPassed:formData.get("cableSupportPassed")==="on",
+  racewayConduitPassed:formData.get("racewayConduitPassed")==="on",
+  firestopPassed:formData.get("firestopPassed")==="on",
+  labelReconciliationPassed:formData.get("labelReconciliationPassed")==="on",
+  cleanupPassed:formData.get("cleanupPassed")==="on",
+  workAreaPhotosSaved:formData.get("workAreaPhotosSaved")==="on",
+  notes:value(formData,"notes")||null,userId:user.id
+ });
+ revalidatePath(`/site-surveys/${sessionId}`);
 }
