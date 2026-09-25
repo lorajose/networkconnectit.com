@@ -69,6 +69,12 @@ if (databaseUrl) {
     if (["localhost", "127.0.0.1"].includes(db.hostname)) {
       failures.push("Production DATABASE_URL must not point to loopback");
     }
+    const sslAccept = (db.searchParams.get("sslaccept") ?? "").toLowerCase();
+    if (databaseTlsMode === "verify-identity" || databaseTlsMode === "verify-ca") {
+      if (sslAccept !== "strict") failures.push("DATABASE_URL must use sslaccept=strict for verified TLS mode");
+    } else if (databaseTlsMode === "required" && !["strict","accept_invalid_certs"].includes(sslAccept)) {
+      failures.push("DATABASE_URL must explicitly enable TLS for NCI_DATABASE_TLS_MODE=required");
+    }
   } catch {
     failures.push("DATABASE_URL must be a valid connection URL when configured");
   }
