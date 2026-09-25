@@ -190,12 +190,12 @@ async function main() {
   const clientSafe = await repo.getOperationsSnapshot(actor);
   const internalSafe = await repo.getOperationsSnapshot({ ...actor, role: 'INTERNAL_ADMIN' }, 'a');
   assert.equal(result.metrics.technicianCount, 1);
-  assert.equal(Object.hasOwn(clientSafe.technicians[0], 'hourlyPayRate'), false);
+  assert.equal(clientSafe.technicians[0].hourlyPayRate, null);
   assert.equal(typeof clientSafe.metrics.invoiced, 'number');
   assert.ok(clientSafe.invoices.length > 0);
   assert.ok(clientSafe.projectProfitability.length > 0);
   assert.equal(typeof internalSafe.metrics.invoiced, 'number');
-  assert.ok(Object.hasOwn(internalSafe.technicians[0], 'hourlyPayRate'));
+  assert.notEqual(internalSafe.technicians[0].hourlyPayRate, null);
   assert.ok(internalSafe.invoices.length > 0);
   await assert.rejects(() => repo.updateOperationsSettings(actor, { organizationId: 'b', defaultTimeZone: 'America/New_York', overtimeMultiplier: 1.5, payPeriod: 'BIWEEKLY' }), /outside your tenant/);
   assert.ok(result.operationalAlerts.some(a => a.alertType === 'UNASSIGNED_WORK_ORDER' && a.entityId === 'work-order-alert'));
