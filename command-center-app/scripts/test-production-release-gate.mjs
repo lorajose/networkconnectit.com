@@ -12,7 +12,9 @@ const base = {
   BID_PRIVATE_STORAGE_ROOT: "/tmp/nci-private",
   ENABLE_FIRST_ADMIN_BOOTSTRAP: "false",
   FIRST_ADMIN_BOOTSTRAP_TOKEN: "",
-  DATABASE_ADMIN_URL: ""
+  DATABASE_ADMIN_URL: "",
+  NCI_ALLOW_DEMO_SEED: "false",
+  NCI_DATABASE_TLS_MODE: "verify-identity"
 };
 
 function gate(overrides = {}) {
@@ -37,6 +39,14 @@ assert.match(legacyPath.stderr, /must be empty/);
 const wrongHost = gate({ NEXTAUTH_URL: "https://example.com/api/auth" });
 assert.notEqual(wrongHost.status, 0);
 assert.match(wrongHost.stderr, /production host must be command\.networkconnectit\.com/);
+
+const demoSeed = gate({ NCI_ALLOW_DEMO_SEED: "true" });
+assert.notEqual(demoSeed.status, 0);
+assert.match(demoSeed.stderr, /DEMO_SEED must be disabled/);
+
+const missingTls = gate({ NCI_DATABASE_TLS_MODE: "" });
+assert.notEqual(missingTls.status, 0);
+assert.match(missingTls.stderr, /DATABASE_TLS_MODE must explicitly require TLS/);
 
 const loopbackDb = gate({ DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/command_center" });
 assert.notEqual(loopbackDb.status, 0);
