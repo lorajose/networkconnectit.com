@@ -33,11 +33,14 @@ async function main() {
     'prisma/migrations/20260925010000_nci079_material_usage/migration.sql',
     'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql',
     'prisma/migrations/20260925143000_nci082_operations_settings_audit/migration.sql',
-    'prisma/migrations/20260925160000_nci075_technician_lifecycle/migration.sql'
+    'prisma/migrations/20260925160000_nci075_technician_lifecycle/migration.sql',
+    'prisma/migrations/20260925174500_nci012_proposal_artifacts/migration.sql'
   ]) {
     const migration = fs.readFileSync(migrationPath, 'utf8');
     for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
   }
+  const proposalTables = await prisma.$queryRaw`SELECT TABLE_NAME FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'operations_ci_test' AND TABLE_NAME IN ('ProposalArtifact','ProposalEvent')`;
+  assert.equal(proposalTables.length, 2);
   const engines = await prisma.$queryRaw`SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'operations_ci_test'`;
   assert.ok(engines.every(row => row.ENGINE === 'InnoDB'));
   const policy = load('lib/company-operations/policy.ts', {});
