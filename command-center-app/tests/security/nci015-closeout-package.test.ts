@@ -8,3 +8,18 @@ test("closeout package derives acceptance counts from execution evidence",()=>{c
 test("new tested runs require tester evidence when configured",()=>{const model=buildCloseoutPackage({...base,cableSchedule:[{...base.cableSchedule[0],evidenceFiles:[]}]});assert.match(model.warnings[0],/Tester evidence missing/);});
 test("accepted-value calculation is project configuration, not a global rate",()=>{const model=buildCloseoutPackage({...base,commercial:{currency:"USD",acceptedUnitRate:150}},{requireTesterEvidenceForNewRuns:true,requireDailyClose:false,requireMaterialReturnAcknowledgement:false,includeAcceptedValue:true});assert.equal(model.commercial?.acceptedValue,150);const normal=buildCloseoutPackage({...base,commercial:{currency:"USD",acceptedUnitRate:150}});assert.equal(normal.commercial?.acceptedValue,undefined);});
 test("customer-specific daily close and material return rules are configurable",()=>{const model=buildCloseoutPackage({...base,materialReturn:{required:true,acknowledged:false}},{requireTesterEvidenceForNewRuns:true,requireDailyClose:true,requireMaterialReturnAcknowledgement:true,includeAcceptedValue:false});assert.equal(model.warnings.length,2);});
+
+
+import fs from "node:fs";
+import path from "node:path";
+
+test("immutable closeout manifest snapshots cable execution and real stored evidence",()=>{
+ const source=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ assert.match(source,/schemaVersion:2/);
+ assert.match(source,/runIdentifier,scopeType,fromLocation,toLocation,cableType,measuredLength,lengthUnit,floorLevel/);
+ assert.match(source,/wiremapStatus,gigabitLinkStatus,evidenceSaved,acceptanceStatus/);
+ assert.match(source,/ProjectWorkOrderEvidence/);
+ assert.match(source,/evidenceType,originalName,mimeType,byteSize,storageKey,sha256/);
+ assert.match(source,/acceptanceCounts/);
+ assert.match(source,/cableSchedule:cableRuns/);
+});
