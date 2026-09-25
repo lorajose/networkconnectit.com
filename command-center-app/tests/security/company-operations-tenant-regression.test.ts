@@ -50,3 +50,15 @@ test("schedule calendar is tenant scoped and timezone explicit", () => {
   assert.match(repository, /Invalid IANA time zone/);
   assert.match(repository, /timeZone, status, createdByUserId/);
 });
+
+
+test("operational alerts reuse tenant-scoped canonical records", () => {
+  assert.match(repository, /'OVERDUE_INVOICE' AS alertType/);
+  assert.match(repository, /'UNASSIGNED_WORK_ORDER'/);
+  assert.match(repository, /assignedToUserId IS NULL/);
+  assert.match(repository, /status NOT IN \('CLOSED', 'CANCELLED'\)/);
+  assert.match(repository, /'UPCOMING_ASSIGNMENT'/);
+  assert.match(repository, /s\.organizationId = \$\{organizationId\}/);
+  assert.match(repository, /DATE_ADD\(NOW\(\), INTERVAL 48 HOUR\)/);
+  assert.doesNotMatch(repository, /workOrderNumber/);
+});
