@@ -392,8 +392,8 @@ export async function recordInvoicePayment(actor: OperationsActor, input: {
   const reference = input.reference ? requiredText(input.reference, "Payment reference", 191) : null;
 
   return prisma.$transaction(async (tx) => {
-    const invoices = await tx.$queryRaw<Array<{ id: string; totalAmount: Prisma.Decimal; paidAmount: Prisma.Decimal; status: string }>>(Prisma.sql`
-      SELECT id, totalAmount, paidAmount, status FROM OperationsInvoice
+    const invoices = await tx.$queryRaw<Array<{ id: string; projectInstallationId: string | null; workOrderId: string | null; totalAmount: Prisma.Decimal; paidAmount: Prisma.Decimal; status: string }>>(Prisma.sql`
+      SELECT id, projectInstallationId, workOrderId, totalAmount, paidAmount, status FROM OperationsInvoice
       WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}
       LIMIT 1 FOR UPDATE`);
     const invoice = invoices[0];
@@ -414,6 +414,23 @@ export async function recordInvoicePayment(actor: OperationsActor, input: {
     await tx.$executeRaw(Prisma.sql`
       UPDATE OperationsInvoice SET paidAmount = ${nextPaidAmount}, status = ${nextStatus}, updatedAt = NOW(3)
       WHERE id = ${input.invoiceId} AND organizationId = ${organizationId}`);
+    if (invoice.workOrderId && invoice.projectInstallationId) {
+      const workOrders = await tx.$queryRaw<Array<{ surveySessionId: string }>>(Prisma.sql`
+        SELECT surveySessionId FROM ProjectWorkOrder
+        WHERE id = ${invoice.workOrderId} AND organizationId = ${organizationId}
+          AND projectInstallationId = ${invoice.projectInstallationId}
+        LIMIT 1`);
+      const workOrder = workOrders[0];
+      if (!workOrder) throw new Error("Invoice work order is outside your tenant or project scope.");
+      await tx.$executeRaw(Prisma.sql`
+        INSERT INTO ProjectActivityEvent
+          (id,organizationId,projectInstallationId,surveySessionId,workOrderId,eventType,actorUserId,summary,detailsJson,occurredAt)
+        VALUES
+          (${randomUUID()},${organizationId},${invoice.projectInstallationId},${workOrder.surveySessionId},${invoice.workOrderId},
+           ${nextStatus === "PAID" ? "INVOICE_PAID" : "INVOICE_PAYMENT_RECORDED"},${actor.id},
+           ${nextStatus === "PAID" ? "Invoice paid in full" : "Invoice payment recorded"},
+           ${JSON.stringify({invoiceId:input.invoiceId,paymentId:id,amount:input.amount,paidAmount:nextPaidAmount,totalAmount,status:nextStatus})},NOW(3))`);
+    }
     return id;
   });
 }
