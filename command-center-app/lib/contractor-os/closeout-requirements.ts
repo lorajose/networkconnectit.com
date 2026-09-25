@@ -1,7 +1,8 @@
 import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
-import { requireCommercialWriteAccess, type CommercialActor } from "@/lib/contractor-os/project-approval-work-order";
+import type { CommercialActor } from "@/lib/contractor-os/commercial-access";
+import { requireCommercialWriteAccess } from "@/lib/contractor-os/commercial-access";
 
 export type WorkOrderCloseoutRequirement={
  id:string;organizationId:string;workOrderId:string;requireDailyClose:boolean;requireMaterialReturnAcknowledgement:boolean;requireWorkAreaPhotos:boolean;requireTesterEvidenceForNewRuns:boolean;
