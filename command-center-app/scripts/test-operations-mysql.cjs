@@ -96,6 +96,22 @@ async function main() {
   const payments = await prisma.$queryRaw`SELECT COUNT(*) AS total FROM OperationsPayment WHERE invoiceId = ${invoiceId}`;
   assert.equal(Number(payments[0].total), 2);
 
+  const overdueId = await repo.createInvoice(actor, { projectInstallationId: 'project-a', invoiceNumber: 'CI-INV-OVERDUE', customerName: 'Late Client', dueDate: '2020-01-01' });
+  await repo.addInvoiceLine(actor, { invoiceId: overdueId, lineType: 'SERVICE', description: 'Overdue lifecycle', quantity: 1, unitPrice: 200 });
+  await repo.sendInvoice(actor, { invoiceId: overdueId });
+  const overdueCount = await repo.syncOverdueInvoices(actor);
+  assert.equal(Number(overdueCount), 1);
+  let overdue = await prisma.$queryRaw`SELECT status, paidAmount, totalAmount FROM OperationsInvoice WHERE id = ${overdueId}`;
+  assert.equal(overdue[0].status, 'OVERDUE');
+  await repo.recordInvoicePayment(actor, { invoiceId: overdueId, amount: 50, paidAt: '2030-01-10T12:00:00Z', method: 'ACH' });
+  overdue = await prisma.$queryRaw`SELECT status, paidAmount FROM OperationsInvoice WHERE id = ${overdueId}`;
+  assert.equal(overdue[0].status, 'OVERDUE');
+  assert.equal(Number(overdue[0].paidAmount), 50);
+  await repo.recordInvoicePayment(actor, { invoiceId: overdueId, amount: 150, paidAt: '2030-01-11T12:00:00Z', method: 'ACH' });
+  overdue = await prisma.$queryRaw`SELECT status, paidAmount FROM OperationsInvoice WHERE id = ${overdueId}`;
+  assert.equal(overdue[0].status, 'PAID');
+  assert.equal(Number(overdue[0].paidAmount), 200);
+
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
   assert.equal(result.metrics.technicianCount, 1);
@@ -105,6 +121,6 @@ async function main() {
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').laborCost, 550);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 350);
-  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, atomic payments and project profitability.');
+  console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, SENT/OVERDUE/PAID lifecycle, atomic payments and project profitability.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
