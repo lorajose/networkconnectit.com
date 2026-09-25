@@ -95,7 +95,7 @@ export default async function CloseoutReportPage({ params, searchParams }: Props
 
       <section>
         <h2 className="text-xl font-semibold">Test & photo evidence index</h2>
-        <div className="mt-3 space-y-2 text-sm">{evidence.map((file) => <div key={file.id} className="border p-3"><strong>{file.originalName}</strong>{file.caption ? <span> · {file.caption}</span> : null}<span className="ml-2 text-slate-500">Run {cableRuns.find((run) => run.id === file.workOrderItemId)?.runIdentifier ?? "work item"}</span></div>)}</div>
+        <div className="mt-3 space-y-2 text-sm">{evidence.map((file) => <div key={file.id} className="border p-3"><strong>{file.evidenceType} · {file.originalName}</strong>{file.caption ? <span> · {file.caption}</span> : null}<span className="ml-2 text-slate-500">Run {cableRuns.find((run) => run.id === file.workOrderItemId)?.runIdentifier ?? "work item"}</span></div>)}</div>
       </section>
 
       <section className="grid gap-6 border-t pt-5 md:grid-cols-2">
