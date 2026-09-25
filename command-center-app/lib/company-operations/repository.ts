@@ -220,23 +220,19 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
 
   const canViewFinancials = canViewSensitiveOperationsFinancials(actor);
   const safeTechnicians = canViewFinancials ? technicians : technicians.map(({ hourlyPayRate: _hourlyPayRate, ...technician }) => technician);
-  const safeProfitability = canViewFinancials ? projectProfitability : [];
-  const safeExpenses = canViewFinancials ? expenses : [];
-  const safeInvoices = canViewFinancials ? invoices : [];
-  const safeInvoiceLines = canViewFinancials ? invoiceLines : [];
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
-  const profitability = safeProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
-  return { organizationId, technicians: safeTechnicians, projects, workOrders, schedule, timeEntries, invoices: safeInvoices, invoiceLines: safeInvoiceLines, expenses: safeExpenses, projectProfitability: profitability, operationalAlerts: canViewFinancials ? operationalAlerts : operationalAlerts.filter((alert) => alert.alertType !== 'OVERDUE_INVOICE'), metrics: {
+  const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
+  return { organizationId, technicians: safeTechnicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, operationalAlerts, metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
     scheduledHours: Number(total.scheduledHours),
     utilizationPercent: Number(total.scheduledHours) > 0 ? (Number(total.laborHours) / Number(total.scheduledHours)) * 100 : null,
-    overdueInvoices: canViewFinancials ? Number(total.overdueInvoices) : null,
-    invoiced: canViewFinancials ? Number(total.invoiced) : null,
-    outstanding: canViewFinancials ? Number(total.outstanding) : null,
-    expenses: canViewFinancials ? Number(total.expenses) : null
+    overdueInvoices: Number(total.overdueInvoices),
+    invoiced: Number(total.invoiced),
+    outstanding: Number(total.outstanding),
+    expenses: Number(total.expenses)
   }};
 }
 
