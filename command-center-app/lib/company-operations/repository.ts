@@ -2,7 +2,7 @@ import { randomUUID } from "crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
-import { calendarDate, choice, nonNegativeDecimal, optionalEmail, requiredText, scopedOrganizationId, validateHours } from "./policy";
+import { calendarDate, canViewSensitiveOperationsFinancials, choice, nonNegativeDecimal, optionalEmail, requiredText, scopedOrganizationId, validateHours } from "./policy";
 import type { OperationsActor } from "./policy";
 export type { OperationsActor } from "./policy";
 
@@ -65,6 +65,37 @@ export async function getClientSafeInvoice(actor: OperationsActor, input: { orga
     WHERE invoiceId = ${input.invoiceId} AND organizationId = ${organizationId}
     ORDER BY paidAt ASC, createdAt ASC`);
   return { ...invoice, lines, payments, balanceDue: Math.max(0, Number(invoice.totalAmount) - Number(invoice.paidAmount)) };
+}
+
+
+
+async function appendOperationsAuditEvent(organizationId: string, actorUserId: string, eventType: string, entityType: string, entityId?: string, details?: Record<string, unknown>, tx: typeof prisma = prisma) {
+  await tx.$executeRaw(Prisma.sql`
+    INSERT INTO OperationsAuditEvent (id, organizationId, actorUserId, eventType, entityType, entityId, detailsJson, occurredAt)
+    VALUES (${randomUUID()}, ${organizationId}, ${actorUserId}, ${eventType}, ${entityType}, ${entityId ?? null}, ${details ? JSON.stringify(details) : null}, NOW(3))`);
+}
+
+export async function getOperationsSettings(actor: OperationsActor, requestedOrganizationId?: string) {
+  const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
+  const rows = await prisma.$queryRaw<Array<{ organizationId: string; defaultTimeZone: string; overtimeMultiplier: Prisma.Decimal; payPeriod: string }>>(Prisma.sql`
+    SELECT organizationId, defaultTimeZone, overtimeMultiplier, payPeriod
+    FROM OperationsOrganizationSettings WHERE organizationId = ${organizationId} LIMIT 1`);
+  return rows[0] ?? { organizationId, defaultTimeZone: "America/New_York", overtimeMultiplier: new Prisma.Decimal(1.5), payPeriod: "BIWEEKLY" };
+}
+
+export async function updateOperationsSettings(actor: OperationsActor, input: { organizationId?: string; defaultTimeZone: string; overtimeMultiplier: number; payPeriod: string }) {
+  const organizationId = scopedOrganizationId(actor, input.organizationId);
+  input.defaultTimeZone = requiredText(input.defaultTimeZone, "Default time zone", 64);
+  try { new Intl.DateTimeFormat("en-US", { timeZone: input.defaultTimeZone }).format(new Date()); } catch { throw new Error("Invalid IANA time zone."); }
+  nonNegativeDecimal(input.overtimeMultiplier, "Overtime multiplier", 10);
+  choice(input.payPeriod, ["WEEKLY", "BIWEEKLY", "SEMIMONTHLY", "MONTHLY"], "pay period");
+  await prisma.$transaction(async (tx) => {
+    await tx.$executeRaw(Prisma.sql`
+      INSERT INTO OperationsOrganizationSettings (organizationId, defaultTimeZone, overtimeMultiplier, payPeriod, updatedByUserId, createdAt, updatedAt)
+      VALUES (${organizationId}, ${input.defaultTimeZone}, ${input.overtimeMultiplier}, ${input.payPeriod}, ${actor.id}, NOW(3), NOW(3))
+      ON DUPLICATE KEY UPDATE defaultTimeZone=VALUES(defaultTimeZone), overtimeMultiplier=VALUES(overtimeMultiplier), payPeriod=VALUES(payPeriod), updatedByUserId=VALUES(updatedByUserId), updatedAt=NOW(3)`);
+    await appendOperationsAuditEvent(organizationId, actor.id, "OPERATIONS_SETTINGS_UPDATED", "OPERATIONS_SETTINGS", organizationId, { defaultTimeZone: input.defaultTimeZone, overtimeMultiplier: input.overtimeMultiplier, payPeriod: input.payPeriod }, tx as typeof prisma);
+  });
 }
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
@@ -187,19 +218,25 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
       ORDER BY sortAt ASC LIMIT 50`)
   ]);
 
+  const canViewFinancials = canViewSensitiveOperationsFinancials(actor);
+  const safeTechnicians = canViewFinancials ? technicians : technicians.map(({ hourlyPayRate: _hourlyPayRate, ...technician }) => technician);
+  const safeProfitability = canViewFinancials ? projectProfitability : [];
+  const safeExpenses = canViewFinancials ? expenses : [];
+  const safeInvoices = canViewFinancials ? invoices : [];
+  const safeInvoiceLines = canViewFinancials ? invoiceLines : [];
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
-  const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
-  return { organizationId, technicians, projects, workOrders, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability: profitability, operationalAlerts, metrics: {
+  const profitability = safeProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
+  return { organizationId, technicians: safeTechnicians, projects, workOrders, schedule, timeEntries, invoices: safeInvoices, invoiceLines: safeInvoiceLines, expenses: safeExpenses, projectProfitability: profitability, operationalAlerts: canViewFinancials ? operationalAlerts : operationalAlerts.filter((alert) => alert.alertType !== 'OVERDUE_INVOICE'), metrics: {
     technicianCount: Number(total.technicianCount),
     upcomingAssignments: Number(total.upcomingAssignments),
     laborHours: Number(total.laborHours),
     scheduledHours: Number(total.scheduledHours),
     utilizationPercent: Number(total.scheduledHours) > 0 ? (Number(total.laborHours) / Number(total.scheduledHours)) * 100 : null,
-    overdueInvoices: Number(total.overdueInvoices),
-    invoiced: Number(total.invoiced),
-    outstanding: Number(total.outstanding),
-    expenses: Number(total.expenses)
+    overdueInvoices: canViewFinancials ? Number(total.overdueInvoices) : null,
+    invoiced: canViewFinancials ? Number(total.invoiced) : null,
+    outstanding: canViewFinancials ? Number(total.outstanding) : null,
+    expenses: canViewFinancials ? Number(total.expenses) : null
   }};
 }
 
