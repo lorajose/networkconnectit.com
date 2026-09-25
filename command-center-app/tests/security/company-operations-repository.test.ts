@@ -6,7 +6,7 @@ import ts from "typescript";
 import * as policy from "../../lib/company-operations/policy";
 
 // Execute the repository with a database test double; no live connection or secrets.
-function repository(options: { technician?: boolean; project?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number }; profitability?: Array<Record<string, unknown>> } = {}) {
+function repository(options: { technician?: boolean; project?: boolean; workOrder?: boolean; conflict?: boolean; invoice?: { totalAmount: number; paidAmount: number; status: string; subtotal?: number }; profitability?: Array<Record<string, unknown>> } = {}) {
   const events: string[] = [];
   const queries: Array<{ sql: string; values: unknown[] }> = [];
   const db = {
@@ -17,6 +17,7 @@ function repository(options: { technician?: boolean; project?: boolean; conflict
       if (query.sql.includes("FOR UPDATE")) return (query.sql.includes("FieldTechnicianProfile") ? options.technician : options.conflict) ? [{ id: "existing" }] : [];
       if (query.sql.includes("FROM FieldTechnicianProfile") && query.sql.includes("WHERE id =")) return options.technician ? [{ id: "tech", hourlyPayRate: 50 }] : [];
       if (query.sql.includes("FROM ProjectInstallation") && query.sql.includes("WHERE id =")) return options.project ? [{ id: "project" }] : [];
+      if (query.sql.includes("FROM ProjectWorkOrder")) return options.workOrder ? [{ id: "work-order" }] : [];
       if (query.sql.includes("AS laborCost") && query.sql.includes("FROM ProjectInstallation p")) return options.profitability ?? [];
       if (query.sql.includes("AS technicianCount")) return [{ technicianCount: BigInt(120), upcomingAssignments: BigInt(80), laborHours: 90, scheduledHours: 120, overdueInvoices: BigInt(3), invoiced: 10000, outstanding: 4000, expenses: 2500 }];
       return [];
@@ -381,4 +382,47 @@ test("time approval lifecycle is tenant-scoped and state constrained", async () 
   assert.match(approve.sql, /approvedByUserId/);
   assert.ok(approve.values.includes("approver"));
   assert.ok(approve.values.includes("org"));
+});
+
+test("canonical work order links are tenant and project scoped across operations", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+
+  const foreign = repository({ project: true });
+  await assert.rejects(() => foreign.api.createInvoice(admin, {
+    projectInstallationId: "project", workOrderId: "foreign-work-order", invoiceNumber: "INV-WO-1", customerName: "Client"
+  }), /Work order is outside your tenant or project scope/);
+  assert.equal(foreign.queries.some(query => query.sql.includes("INSERT INTO OperationsInvoice")), false);
+  const lookup = foreign.queries.find(query => query.sql.includes("FROM ProjectWorkOrder"))!;
+  assert.ok(lookup.values.includes("foreign-work-order"));
+  assert.ok(lookup.values.includes("org"));
+  assert.ok(lookup.values.includes("project"));
+
+  const missingProject = repository({ workOrder: true });
+  await assert.rejects(() => missingProject.api.createExpense(admin, {
+    workOrderId: "work-order", category: "TRAVEL", description: "Parking", amount: 20, expenseDate: "2026-09-24", reimbursable: false
+  }), /Work order requires a project/);
+  assert.equal(missingProject.queries.some(query => query.sql.includes("FROM ProjectWorkOrder")), false);
+
+  const ownedInvoice = repository({ project: true, workOrder: true });
+  await ownedInvoice.api.createInvoice(admin, {
+    projectInstallationId: "project", workOrderId: "work-order", invoiceNumber: "INV-WO-2", customerName: "Client"
+  });
+  const invoiceWrite = ownedInvoice.queries.find(query => query.sql.includes("INSERT INTO OperationsInvoice"))!;
+  assert.ok(invoiceWrite.values.includes("work-order"));
+
+  const ownedExpense = repository({ project: true, workOrder: true });
+  await ownedExpense.api.createExpense(admin, {
+    projectInstallationId: "project", workOrderId: "work-order", category: "TRAVEL", description: "Parking", amount: 20, expenseDate: "2026-09-24", reimbursable: false
+  });
+  assert.ok(ownedExpense.queries.find(query => query.sql.includes("INSERT INTO OperationsExpense"))!.values.includes("work-order"));
+
+  const ownedTime = repository({ technician: true, project: true, workOrder: true });
+  await ownedTime.api.createTimeEntry(admin, {
+    technicianProfileId: "tech", projectInstallationId: "project", workOrderId: "work-order", workDate: "2026-09-24", regularHours: 8, overtimeHours: 0
+  });
+  assert.ok(ownedTime.queries.find(query => query.sql.includes("INSERT INTO OperationsTimeEntry"))!.values.includes("work-order"));
+
+  const ownedSchedule = repository({ technician: true, project: true, workOrder: true });
+  await ownedSchedule.api.createScheduleEntry(admin, { ...scheduleInput, projectInstallationId: "project", workOrderId: "work-order" });
+  assert.ok(ownedSchedule.queries.find(query => query.sql.includes("INSERT INTO OperationsScheduleEntry"))!.values.includes("work-order"));
 });
