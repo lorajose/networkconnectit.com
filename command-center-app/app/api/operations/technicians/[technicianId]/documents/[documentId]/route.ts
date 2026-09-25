@@ -8,7 +8,7 @@ import { routeAccess } from "@/lib/rbac";
 export const dynamic = "force-dynamic";
 
 export async function GET(request: Request, context: { params: { technicianId: string; documentId: string } }) {
-  const auth = await requireApiRoles(routeAccess.companyOperations);
+  const auth = await requireApiRoles(routeAccess.companyOperationsWrite);
   if (!auth.ok) return NextResponse.json({ ok: false }, { status: auth.status });
   try {
     const document = await getTechnicianDocumentReference(
