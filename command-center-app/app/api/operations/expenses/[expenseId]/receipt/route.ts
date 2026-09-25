@@ -19,7 +19,7 @@ function requestedOrganizationId(user: { organizationId?: string | null }, form?
   return user.organizationId?.trim() || form?.get("organizationId")?.toString().trim() || undefined;
 }
 
-export async function GET(_request: Request, context: { params: { expenseId: string } }) {
+export async function GET(request: Request, context: { params: { expenseId: string } }) {
   const auth = await requireApiRoles(routeAccess.companyOperations);
   if (!auth.ok) {
     return NextResponse.json({ ok: false }, { status: auth.status, headers: noStore });
@@ -28,7 +28,7 @@ export async function GET(_request: Request, context: { params: { expenseId: str
   try {
     const actor = actorFor(auth.user);
     const receipt = await getExpenseReceiptReference(actor, {
-      organizationId: requestedOrganizationId(auth.user),
+      organizationId: auth.user.organizationId?.trim() || new URL(request.url).searchParams.get("organizationId")?.trim() || undefined,
       expenseId: context.params.expenseId,
     });
     if (!receipt.hasReceipt || !receipt.storageKey) {
