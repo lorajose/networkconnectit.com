@@ -163,8 +163,22 @@ export async function createTechnician(actor: OperationsActor, input: {
   return id;
 }
 
+async function validateProjectWorkOrderLink(organizationId: string, projectInstallationId: string | null, workOrderId?: string) {
+  const normalizedWorkOrderId = workOrderId ? requiredText(workOrderId, "Work order", 191) : null;
+  if (!normalizedWorkOrderId) return null;
+  if (!projectInstallationId) throw new Error("Work order requires a project.");
+  const rows = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id FROM ProjectWorkOrder
+    WHERE id = ${normalizedWorkOrderId}
+      AND organizationId = ${organizationId}
+      AND projectInstallationId = ${projectInstallationId}
+    LIMIT 1`);
+  if (!rows[0]) throw new Error("Work order is outside your tenant or project scope.");
+  return normalizedWorkOrderId;
+}
+
 export async function createInvoice(actor: OperationsActor, input: {
-  organizationId?: string; projectInstallationId?: string; invoiceNumber: string; customerName: string; dueDate?: string;
+  organizationId?: string; projectInstallationId?: string; workOrderId?: string; invoiceNumber: string; customerName: string; dueDate?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   input.invoiceNumber = requiredText(input.invoiceNumber, "Invoice number", 64);
@@ -175,17 +189,18 @@ export async function createInvoice(actor: OperationsActor, input: {
     const project = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM ProjectInstallation WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
     if (!project[0]) throw new Error("Project is outside your tenant scope.");
   }
+  const workOrderId = await validateProjectWorkOrderLink(organizationId, projectInstallationId, input.workOrderId);
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsInvoice
-      (id, organizationId, projectInstallationId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
+      (id, organizationId, projectInstallationId, workOrderId, invoiceNumber, customerName, status, dueDate, subtotal, totalAmount, paidAmount, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${projectInstallationId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, 0, 0, 0, ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${projectInstallationId}, ${workOrderId}, ${input.invoiceNumber}, ${input.customerName}, 'DRAFT', ${dueDate}, 0, 0, 0, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
 export async function createExpense(actor: OperationsActor, input: {
-  organizationId?: string; projectInstallationId?: string; category: string; description: string; amount: number; expenseDate: string; reimbursable: boolean;
+  organizationId?: string; projectInstallationId?: string; workOrderId?: string; category: string; description: string; amount: number; expenseDate: string; reimbursable: boolean;
   materialQuantityPurchased?: number; materialQuantityUsed?: number; materialUnit?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
@@ -198,6 +213,7 @@ export async function createExpense(actor: OperationsActor, input: {
     const project = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM ProjectInstallation WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
     if (!project[0]) throw new Error("Project is outside your tenant scope.");
   }
+  const workOrderId = await validateProjectWorkOrderLink(organizationId, projectInstallationId, input.workOrderId);
   if (typeof input.reimbursable !== "boolean") throw new Error("Invalid reimbursable flag.");
   let materialQuantityPurchased: number | null = null;
   let materialQuantityUsed: number | null = null;
@@ -214,10 +230,10 @@ export async function createExpense(actor: OperationsActor, input: {
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsExpense
-      (id, organizationId, projectInstallationId, category, description, amount, expenseDate, reimbursable,
+      (id, organizationId, projectInstallationId, workOrderId, category, description, amount, expenseDate, reimbursable,
        materialQuantityPurchased, materialQuantityUsed, materialUnit, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${projectInstallationId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable},
+      (${id}, ${organizationId}, ${projectInstallationId}, ${workOrderId}, ${input.category}, ${input.description}, ${input.amount}, ${expenseDate}, ${input.reimbursable},
        ${materialQuantityPurchased}, ${materialQuantityUsed}, ${materialUnit}, ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
@@ -253,7 +269,7 @@ export async function getExpenseReceiptReference(actor: OperationsActor, input: 
 }
 
 export async function createTimeEntry(actor: OperationsActor, input: {
-  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workDate: string; regularHours: number; overtimeHours: number;
+  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; workDate: string; regularHours: number; overtimeHours: number;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   validateHours(input.regularHours, input.overtimeHours);
@@ -268,17 +284,18 @@ export async function createTimeEntry(actor: OperationsActor, input: {
     const project = await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`SELECT id FROM ProjectInstallation WHERE id = ${projectInstallationId} AND organizationId = ${organizationId} LIMIT 1`);
     if (!project[0]) throw new Error("Project is outside your tenant scope.");
   }
+  const workOrderId = await validateProjectWorkOrderLink(organizationId, projectInstallationId, input.workOrderId);
   const id = randomUUID();
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO OperationsTimeEntry
-      (id, organizationId, technicianProfileId, projectInstallationId, workDate, regularHours, overtimeHours, hourlyPayRateSnapshot, status, createdByUserId, createdAt, updatedAt)
+      (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, workDate, regularHours, overtimeHours, hourlyPayRateSnapshot, status, createdByUserId, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workDate}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
+      (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${workDate}, ${input.regularHours}, ${input.overtimeHours}, ${tech[0].hourlyPayRate}, 'DRAFT', ${actor.id}, NOW(3), NOW(3))`);
   return id;
 }
 
 export async function createScheduleEntry(actor: OperationsActor, input: {
-  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; title: string; startsAt: string; endsAt: string; entryType: string;
+  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; title: string; startsAt: string; endsAt: string; entryType: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   requiredText(input.technicianProfileId, "Technician", 191);
@@ -306,6 +323,8 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
       if (!project[0]) throw new Error("Project is outside your tenant scope.");
     }
 
+    const workOrderId = await validateProjectWorkOrderLink(organizationId, projectInstallationId, input.workOrderId);
+
     // AVAILABLE is advisory availability, not a reservation. Assignments, PTO
     // and unavailable periods block each other; adjacent intervals are allowed.
     if (input.entryType !== "AVAILABLE") {
@@ -322,9 +341,9 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
     const id = randomUUID();
     await tx.$executeRaw(Prisma.sql`
       INSERT INTO OperationsScheduleEntry
-        (id, organizationId, technicianProfileId, projectInstallationId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
+        (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, entryType, title, startsAt, endsAt, status, createdByUserId, createdAt, updatedAt)
       VALUES
-        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
     return id;
   });
 }
