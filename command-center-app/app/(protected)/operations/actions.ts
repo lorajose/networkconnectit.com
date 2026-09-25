@@ -3,7 +3,7 @@
 import { revalidatePath } from "next/cache";
 
 import { requireRoles } from "@/lib/auth";
-import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, updateInvoiceAdjustments, updateOperationsSettings, submitTimeEntry } from "@/lib/company-operations/repository";
+import { addInvoiceLine, approveTimeEntry, createExpense, createInvoice, createScheduleEntry, createTechnician, createTimeEntry, recordInvoicePayment, sendInvoice, updateInvoiceAdjustments, updateOperationsSettings, updateTechnicianProfile, submitTimeEntry } from "@/lib/company-operations/repository";
 import { routeAccess } from "@/lib/rbac";
 
 function text(formData: FormData, key: string) {
@@ -163,6 +163,23 @@ export async function updateOperationsSettingsAction(formData: FormData) {
     defaultTimeZone: text(formData, "defaultTimeZone") || "America/New_York",
     overtimeMultiplier: number(formData, "overtimeMultiplier"),
     payPeriod: text(formData, "payPeriod") || "BIWEEKLY"
+  });
+  refresh();
+}
+
+
+export async function updateTechnicianProfileAction(formData: FormData) {
+  const user = await actor();
+  const skills = text(formData, "skills").split(",").map(value => value.trim()).filter(Boolean);
+  const certificationNames = text(formData, "certifications").split(",").map(value => value.trim()).filter(Boolean);
+  const certificationExpiry = text(formData, "certificationExpiresOn") || null;
+  await updateTechnicianProfile(user, {
+    organizationId: org(formData),
+    technicianProfileId: text(formData, "technicianProfileId"),
+    skills,
+    certifications: certificationNames.map(name => ({ name, expiresOn: certificationExpiry })),
+    employmentStatus: text(formData, "employmentStatus") || "ACTIVE",
+    availabilityStatus: text(formData, "availabilityStatus") || "AVAILABLE",
   });
   refresh();
 }
