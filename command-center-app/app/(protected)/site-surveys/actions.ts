@@ -13,6 +13,7 @@ import { parseSurveyDisciplines, SURVEY_DISCIPLINES, type SurveyDiscipline } fro
 import { routeAccess } from "@/lib/rbac";
 import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-design-handoff";
 import { assignWorkOrderTechnician, closeWorkOrder, createPunchListItem, generateCloseoutPackageManifest, persistWorkOrderEvidence, recordFinalAcceptance, resolvePunchListItem, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
+import { updateCableRunExecution } from "@/lib/contractor-os/cable-run-execution";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -208,4 +209,25 @@ export async function closeWorkOrderAction(formData:FormData){
 export async function generateCloseoutPackageAction(formData:FormData){
  const user=await requireRoles(["SUPER_ADMIN","INTERNAL_ADMIN","CLIENT_ADMIN"]);const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
  await generateCloseoutPackageManifest({role:user.role,organizationId:user.organizationId},{organizationId,workOrderId:value(formData,"workOrderId"),userId:user.id});revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function updateCableRunExecutionAction(formData:FormData){
+ const user=await fieldUser();const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const sessionId=value(formData,"sessionId"),workOrderId=value(formData,"workOrderId");
+ await allowWorkOrderFieldAction(user,organizationId,sessionId,workOrderId);
+ const number=(key:string)=>{const raw=value(formData,key);return raw?Number(raw):null;};
+ const result=(key:string)=>{const raw=value(formData,key);return raw?raw as "PASS"|"FAIL"|"NA":null;};
+ await updateCableRunExecution({id:user.id,role:user.role,organizationId:user.organizationId},{
+  organizationId,workOrderId,itemId:value(formData,"itemId"),runIdentifier:value(formData,"runIdentifier"),
+  scopeType:value(formData,"scopeType")==="EXISTING"?"EXISTING":"NEW",fromLocation:value(formData,"fromLocation")||null,
+  toLocation:value(formData,"toLocation")||null,cableType:value(formData,"cableType")||null,measuredLength:number("measuredLength"),
+  lengthUnit:value(formData,"lengthUnit")==="M"?"M":"FT",floorLevel:value(formData,"floorLevel")||null,
+  terminationPoint:value(formData,"terminationPoint")||null,deviceLocation:value(formData,"deviceLocation")||null,
+  deviceType:value(formData,"deviceType")||null,pulledInstalled:formData.get("pulledInstalled")==="on",
+  terminated:formData.get("terminated")==="on",labeled:formData.get("labeled")==="on",wiremapStatus:result("wiremapStatus"),
+  gigabitLinkStatus:result("gigabitLinkStatus"),overallTestStatus:result("overallTestStatus"),
+  evidenceSaved:formData.get("evidenceSaved")==="on",technicianNote:value(formData,"technicianNote")||null,userId:user.id
+ });
+ revalidatePath(`/site-surveys/${sessionId}`);
 }
