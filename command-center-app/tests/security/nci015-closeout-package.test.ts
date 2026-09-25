@@ -70,3 +70,18 @@ test("closeout requirements are persisted per work order and remain configurable
  assert.match(page,/Building secured/);
  assert.match(page,/Warranty required/);
 });
+
+
+test("immutable closeout snapshots project summary design topology devices and persisted requirements",()=>{
+ const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ assert.match(repository,/schemaVersion:3/);
+ assert.match(repository,/projectSummary/);
+ assert.match(repository,/completedScope/);
+ assert.match(repository,/networkDesignArtifacts/);
+ assert.match(repository,/deviceLinks/);
+ assert.match(repository,/deviceList:devices/);
+ assert.match(repository,/closeoutRequirements/);
+ assert.match(repository,/ProjectWorkOrderCloseoutRequirement/);
+ assert.match(repository,/FROM Device WHERE organizationId=/);
+ assert.match(repository,/FROM DeviceLink l JOIN Device/);
+});
