@@ -4,7 +4,7 @@ import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { CommercialActor } from "./commercial-access";
 import { requireCommercialWriteAccess } from "./commercial-access";
-import type { CommercialDocumentStatus } from "./commercial-workflow";
+import { resolveApprovedProjectInstallationId, type CommercialDocumentStatus } from "./commercial-workflow";
 import { assertProposalCanBeApproved, normalizeApprovalSubmission } from "./approval-policy";
 
 export type PersistProposalApprovalInput = {
@@ -68,11 +68,10 @@ export async function persistProposalApproval(input: PersistProposalApprovalInpu
     const estimate = estimates[0];
     if (!estimate) throw new Error("Proposal estimate not found for organization");
 
-    if (proposal.projectInstallationId && estimate.projectInstallationId && proposal.projectInstallationId !== estimate.projectInstallationId) {
-      throw new Error("Proposal and Estimate project links do not match");
-    }
-    const projectInstallationId = proposal.projectInstallationId ?? estimate.projectInstallationId;
-    if (!projectInstallationId) throw new Error("Link the Estimate or Proposal to a ProjectInstallation before approval");
+    const projectInstallationId = resolveApprovedProjectInstallationId(
+      proposal.projectInstallationId,
+      estimate.projectInstallationId,
+    );
 
     const projects = await tx.$queryRaw<Array<{ id: string }>>(Prisma.sql`
       SELECT id FROM ProjectInstallation
