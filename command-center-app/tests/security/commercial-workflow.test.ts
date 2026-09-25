@@ -3,6 +3,7 @@ import assert from "node:assert/strict";
 import {
   buildApprovalReceipt,
   proposalVersionKey,
+  resolveApprovedProjectInstallationId,
   shouldCreateNewProposalVersion,
   transitionCommercialStatus,
 } from "../../lib/contractor-os/commercial-workflow";
@@ -47,4 +48,15 @@ test("approval receipt preserves signed commercial version", () => {
   assert.equal(receipt.proposalVersion, 3);
   assert.equal(receipt.customerTotal, 14250.5);
   assert.match(receipt.immutableReference, /proposal-1:v3/);
+});
+
+test("approved commercial handoff resolves one canonical project", () => {
+  assert.equal(resolveApprovedProjectInstallationId("project-1", null), "project-1");
+  assert.equal(resolveApprovedProjectInstallationId(null, "project-1"), "project-1");
+  assert.equal(resolveApprovedProjectInstallationId("project-1", "project-1"), "project-1");
+});
+
+test("approved commercial handoff rejects missing or conflicting project links", () => {
+  assert.throws(() => resolveApprovedProjectInstallationId(null, null), /Link the Estimate or Proposal/);
+  assert.throws(() => resolveApprovedProjectInstallationId("project-1", "project-2"), /do not match/);
 });
