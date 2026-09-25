@@ -158,7 +158,7 @@ async function main() {
   assert.equal(overdue[0].status, 'PAID');
   assert.equal(Number(overdue[0].paidAmount), 200);
 
-  const payPeriod = await repo.getPayPeriodSummary(internalActor, { organizationId: 'a', { startDate: '2030-01-01', endDate: '2030-01-31' });
+  const payPeriod = await repo.getPayPeriodSummary(internalActor, { organizationId: 'a', startDate: '2030-01-01', endDate: '2030-01-31' });
   assert.equal(payPeriod.rows.length, 1);
   assert.equal(payPeriod.rows[0].workOrderId, 'work-order-a');
   assert.equal(payPeriod.rows[0].regularHours, 8);
@@ -188,6 +188,10 @@ async function main() {
   assert.equal(settings.payPeriod, 'WEEKLY');
   const audit = await prisma.$queryRaw`SELECT eventType, actorUserId FROM OperationsAuditEvent WHERE organizationId = 'a'`;
   assert.ok(audit.some(e => e.eventType === 'OPERATIONS_SETTINGS_UPDATED' && e.actorUserId === actor.id));
+  const viewerSnapshot = await repo.getOperationsSnapshot({ id: 'viewer-a', role: 'VIEWER', organizationId: 'a' });
+  assert.equal(viewerSnapshot.organizationId, 'a');
+  assert.equal(viewerSnapshot.technicians[0].hourlyPayRate, null);
+  await assert.rejects(() => repo.getOperationsSnapshot({ id: 'viewer-a', role: 'VIEWER', organizationId: 'a' }, 'b'), /outside your tenant/);
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
   const clientSafe = await repo.getOperationsSnapshot(actor);
