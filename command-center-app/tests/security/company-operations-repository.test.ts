@@ -44,25 +44,30 @@ function repository(options: { technician?: boolean; project?: boolean; workOrde
   return { api: module.exports, queries, events };
 }
 
-test("every operations repository entry point denies viewers before database access", async () => {
-  const { api, queries } = repository();
+test("viewer reads stay tenant-scoped while operations writes are denied before database access", async () => {
+  const read = repository();
   const viewer = { id: "v", role: "VIEWER", organizationId: "a" };
-  for (const name of ["getOperationsSnapshot", "createTechnician", "createInvoice", "createExpense", "createTimeEntry", "createScheduleEntry"]) {
-    await assert.rejects(() => api[name](viewer, name === "getOperationsSnapshot" ? "a" : { organizationId: "a" }), /administrator/);
+  const snapshot = await read.api.getOperationsSnapshot(viewer, "a") as { organizationId: string };
+  assert.equal(snapshot.organizationId, "a");
+  await assert.rejects(() => read.api.getOperationsSnapshot(viewer, "b"), /outside your tenant/);
+
+  for (const name of ["createTechnician", "createInvoice", "createExpense", "createTimeEntry", "createScheduleEntry"]) {
+    const write = repository();
+    await assert.rejects(() => write.api[name](viewer, { organizationId: "a" }), /administrator/);
+    assert.equal(write.queries.length, 0);
   }
-  assert.equal(queries.length, 0);
 });
 
 test("invalid inputs fail before any write and zero hourly rate is persisted", async () => {
   const { api, queries } = repository();
-  const admin = { id: "a", role: "CLIENT_ADMIN", organizationId: "org" };
+  const admin = { id: "a", role: "INTERNAL_ADMIN", organizationId: null };
   await assert.rejects(() => api.updateInvoiceAdjustments(admin, { invoiceId: "invoice", taxAmount: Infinity, discountAmount: 0 }));
   await assert.rejects(() => api.createTimeEntry(admin, { technicianProfileId: "t", workDate: "2026-09-24", regularHours: 23, overtimeHours: 2 }));
   await assert.rejects(() => api.createTechnician(admin, { organizationId: "other", displayName: "Test", workerType: "W2" }), /tenant/);
   assert.equal(queries.length, 0);
-  await api.createTechnician(admin, { displayName: "Test", workerType: "W2", hourlyPayRate: 0 });
-  assert.equal(queries.length, 1);
-  assert.ok(queries[0].values.includes(0));
+  await api.createTechnician(admin, { organizationId: "org", displayName: "Test", workerType: "W2", hourlyPayRate: 0 });
+  assert.equal(queries.filter(query => query.sql.includes("INSERT INTO FieldTechnicianProfile")).length, 1);
+  assert.ok(queries.find(query => query.sql.includes("INSERT INTO FieldTechnicianProfile"))!.values.includes(0));
 });
 
 test("material expenses require purchased/used quantities and reject overuse before writing", async () => {
@@ -133,7 +138,7 @@ const scheduleInput = { technicianProfileId: "tech", title: "Job", startsAt: "20
 test("booking locks the technician and conflict query before inserting within one transaction", async () => {
   const { api, queries, events } = repository({ technician: true });
   await api.createScheduleEntry(scheduleActor, scheduleInput);
-  assert.deepEqual(events, ["begin", "lock", "lock", "write", "commit"]);
+  assert.deepEqual(events, ["begin", "lock", "lock", "write", "write", "commit"]);
   assert.deepEqual(queries[0].values, ["tech", "org"]);
   assert.match(queries[0].sql, /status = 'ACTIVE'/);
   assert.match(queries[1].sql, /entryType <> 'AVAILABLE'/);
@@ -153,7 +158,7 @@ test("conflicts and inactive or foreign technicians abort before insertion", asy
 test("advisory availability does not reserve time but still requires a tenant-owned active technician", async () => {
   const { api, events } = repository({ technician: true, conflict: true });
   await api.createScheduleEntry(scheduleActor, { ...scheduleInput, entryType: "AVAILABLE" });
-  assert.deepEqual(events, ["begin", "lock", "write", "commit"]);
+  assert.deepEqual(events, ["begin", "lock", "write", "write", "write", "commit"]);
 });
 
 test("invalid schedule intervals are rejected before starting a transaction", async () => {
@@ -175,7 +180,7 @@ test("project-linked assignments require a project from the same tenant", async 
 
   const owned = repository({ technician: true, project: true });
   await owned.api.createScheduleEntry(scheduleActor, { ...scheduleInput, projectInstallationId: "project" });
-  assert.deepEqual(owned.events, ["begin", "lock", "read", "lock", "write", "commit"]);
+  assert.deepEqual(owned.events, ["begin", "lock", "read", "lock", "write", "write", "commit"]);
   const insert = owned.queries.find(query => query.sql.includes("INSERT INTO OperationsScheduleEntry"))!;
   assert.ok(insert.values.includes("project"));
 });
@@ -244,7 +249,7 @@ test("payments lock invoice, reject drafts and overpayment, and atomically updat
   await paid.api.recordInvoicePayment(admin, {
     invoiceId: "invoice", amount: 20, paidAt: "2026-09-24T12:00:00Z", method: "ACH"
   });
-  assert.deepEqual(paid.events, ["begin", "lock", "write", "write", "commit"]);
+  assert.deepEqual(paid.events, ["begin", "lock", "write", "write", "write", "commit"]);
   const update = paid.queries.find(query => query.sql.includes("UPDATE OperationsInvoice"))!;
   assert.ok(update.values.includes(100));
   assert.ok(update.values.includes("PAID"));
@@ -330,7 +335,7 @@ test("invoice lines require a tenant-owned draft and recalculate totals atomical
   await draft.api.addInvoiceLine(admin, {
     invoiceId: "invoice", lineType: "LABOR", description: "Cable runs", quantity: 2, unitPrice: 150
   });
-  assert.deepEqual(draft.events, ["begin", "lock", "write", "write", "commit"]);
+  assert.deepEqual(draft.events, ["begin", "lock", "write", "write", "write", "commit"]);
   const insert = draft.queries.find(query => query.sql.includes("INSERT INTO OperationsInvoiceLine"))!;
   assert.ok(insert.values.includes(300));
   const update = draft.queries.find(query => query.sql.includes("UPDATE OperationsInvoice i"))!;
@@ -359,7 +364,7 @@ test("invoice tax and discount adjustments are draft-only, tenant-scoped and der
     invoiceId: "invoice", taxAmount: 25, discountAmount: 10
   });
   assert.equal(total, 315);
-  assert.deepEqual(draft.events, ["begin", "lock", "write", "commit"]);
+  assert.deepEqual(draft.events, ["begin", "lock", "write", "write", "write", "commit"]);
   const update = draft.queries.find(query => query.sql.includes("taxAmount ="))!;
   assert.ok(update.values.includes(25));
   assert.ok(update.values.includes(10));
