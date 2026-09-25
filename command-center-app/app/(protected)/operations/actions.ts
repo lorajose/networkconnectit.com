@@ -42,6 +42,7 @@ export async function createScheduleAction(formData: FormData) {
     organizationId: org(formData),
     technicianProfileId: text(formData, "technicianProfileId"),
     projectInstallationId: text(formData, "projectInstallationId") || undefined,
+    workOrderId: text(formData, "workOrderId") || undefined,
     title: text(formData, "title"),
     startsAt: text(formData, "startsAt"),
     endsAt: text(formData, "endsAt"),
@@ -56,6 +57,7 @@ export async function createTimeEntryAction(formData: FormData) {
     organizationId: org(formData),
     technicianProfileId: text(formData, "technicianProfileId"),
     projectInstallationId: text(formData, "projectInstallationId") || undefined,
+    workOrderId: text(formData, "workOrderId") || undefined,
     workDate: text(formData, "workDate"),
     regularHours: number(formData, "regularHours"),
     overtimeHours: number(formData, "overtimeHours")
@@ -68,6 +70,7 @@ export async function createInvoiceAction(formData: FormData) {
   await createInvoice(user, {
     organizationId: org(formData),
     projectInstallationId: text(formData, "projectInstallationId") || undefined,
+    workOrderId: text(formData, "workOrderId") || undefined,
     invoiceNumber: text(formData, "invoiceNumber"),
     customerName: text(formData, "customerName"),
     dueDate: text(formData, "dueDate") || undefined
@@ -80,6 +83,7 @@ export async function createExpenseAction(formData: FormData) {
   await createExpense(user, {
     organizationId: org(formData),
     projectInstallationId: text(formData, "projectInstallationId") || undefined,
+    workOrderId: text(formData, "workOrderId") || undefined,
     category: text(formData, "category") || "OTHER",
     description: text(formData, "description"),
     amount: number(formData, "amount"),
