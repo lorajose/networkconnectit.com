@@ -63,6 +63,13 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
 
     <p className="text-sm text-muted-foreground">Totals cover organization records rather than the capped detail lists. Issued invoices and outstanding exclude drafts. Utilization compares recorded hours with scheduled assignment hours; overdue counts unpaid issued invoices past due. Lists below show recent records.</p>
 
+    <Card><CardHeader><CardTitle>Operational alerts</CardTitle></CardHeader><CardContent className="space-y-2">
+      {snapshot.operationalAlerts.length ? snapshot.operationalAlerts.map(alert => <div key={`${alert.alertType}-${alert.entityId}`} className="rounded-xl border p-3">
+        <div className="flex flex-wrap items-center justify-between gap-2"><p className="font-medium">{alert.title}</p><span className="text-xs font-semibold">{alert.severity}</span></div>
+        <p className="text-xs text-muted-foreground">{alert.detail}</p>
+      </div>) : <p className="text-sm text-muted-foreground">No operational alerts right now.</p>}
+    </CardContent></Card>
+
     <Card><CardHeader><CardTitle>Project profitability</CardTitle></CardHeader><CardContent className="space-y-3">
       {snapshot.projectProfitability.length ? snapshot.projectProfitability.map(p => <div key={p.id} className="rounded-xl border p-4">
         <div className="flex flex-wrap items-center justify-between gap-2"><div><p className="font-semibold">{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</p><p className="text-xs text-muted-foreground">Issued revenue excludes draft invoices. Labor uses the historical pay-rate snapshot; overtime is costed at 1.5×.</p></div><div className="text-right"><p className="font-semibold">{money(p.grossProfit)} gross profit</p><p className="text-xs text-muted-foreground">{p.marginPercent === null ? "Margin unavailable until revenue is issued" : `${p.marginPercent.toFixed(1)}% margin`}</p></div></div>
@@ -82,7 +89,7 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
         <h3 className="font-semibold">Scheduling & Availability</h3><input type="hidden" name="organizationId" value={organizationId} />
         <select className={field} name="technicianProfileId" required><option value="">Select technician</option>{snapshot.technicians.map(t => <option key={t.id} value={t.id}>{t.displayName}</option>)}</select>
         <select className={field} name="projectInstallationId"><option value="">No project (availability / PTO)</option>{snapshot.projects.map(p => <option key={p.id} value={p.id}>{p.projectCode ? `${p.projectCode} · ` : ""}{p.name}</option>)}</select>
-        <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.workOrderNumber} · {w.title}</option>)}</select>
+        <select className={field} name="workOrderId"><option value="">No work order</option>{snapshot.workOrders.map(w => <option key={w.id} value={w.id}>{w.title}</option>)}</select>
         <input className={field} name="title" placeholder="Assignment / PTO / unavailable" required />
         <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="startsAt" type="datetime-local" required /><input className={field} name="endsAt" type="datetime-local" required /></div><select className={field} name="timeZone" defaultValue={calendarTimeZone}><option value="America/New_York">Eastern · America/New_York</option><option value="America/Chicago">Central · America/Chicago</option><option value="America/Denver">Mountain · America/Denver</option><option value="America/Los_Angeles">Pacific · America/Los_Angeles</option><option value="America/Phoenix">Arizona · America/Phoenix</option><option value="Pacific/Honolulu">Hawaii · Pacific/Honolulu</option></select><p className="text-xs text-muted-foreground">Times are entered in the selected IANA timezone and normalized before conflict checks.</p>
         <select className={field} name="entryType"><option value="ASSIGNMENT">Assignment</option><option value="AVAILABLE">Available</option><option value="UNAVAILABLE">Unavailable</option><option value="PTO">PTO</option></select><button className={button}>Schedule</button>
