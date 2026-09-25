@@ -31,7 +31,8 @@ async function main() {
   for (const migrationPath of [
     'prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql',
     'prisma/migrations/20260925010000_nci079_material_usage/migration.sql',
-    'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql'
+    'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql',
+    'prisma/migrations/20260925143000_nci082_operations_settings_audit/migration.sql'
   ]) {
     const migration = fs.readFileSync(migrationPath, 'utf8');
     for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
@@ -177,9 +178,26 @@ async function main() {
 
   await prisma.$executeRaw`INSERT INTO ProjectWorkOrder (id, organizationId, projectInstallationId, surveySessionId, title, status, assignedToUserId, updatedAt)
     VALUES ('work-order-alert', 'a', 'project-a', 'survey-alert', 'Needs dispatch', 'READY', NULL, NOW(3))`;
+  await repo.updateOperationsSettings(actor, { defaultTimeZone: 'America/Chicago', overtimeMultiplier: 2, payPeriod: 'WEEKLY' });
+  const settings = await repo.getOperationsSettings(actor);
+  assert.equal(settings.defaultTimeZone, 'America/Chicago');
+  assert.equal(Number(settings.overtimeMultiplier), 2);
+  assert.equal(settings.payPeriod, 'WEEKLY');
+  const audit = await prisma.$queryRaw`SELECT eventType, actorUserId FROM OperationsAuditEvent WHERE organizationId = 'a'`;
+  assert.ok(audit.some(e => e.eventType === 'OPERATIONS_SETTINGS_UPDATED' && e.actorUserId === actor.id));
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
+  const clientSafe = await repo.getOperationsSnapshot(actor);
+  const internalSafe = await repo.getOperationsSnapshot({ ...actor, role: 'INTERNAL_ADMIN' }, 'a');
   assert.equal(result.metrics.technicianCount, 1);
+  assert.equal(clientSafe.metrics.invoiced, null);
+  assert.equal(clientSafe.invoices.length, 0);
+  assert.equal(clientSafe.expenses.length, 0);
+  assert.equal(clientSafe.projectProfitability.length, 0);
+  assert.equal(Object.hasOwn(clientSafe.technicians[0], 'hourlyPayRate'), false);
+  assert.equal(typeof internalSafe.metrics.invoiced, 'number');
+  assert.ok(internalSafe.invoices.length > 0);
+  await assert.rejects(() => repo.updateOperationsSettings(actor, { organizationId: 'b', defaultTimeZone: 'America/New_York', overtimeMultiplier: 1.5, payPeriod: 'BIWEEKLY' }), /outside your tenant/);
   assert.ok(result.operationalAlerts.some(a => a.alertType === 'UNASSIGNED_WORK_ORDER' && a.entityId === 'work-order-alert'));
   assert.equal(result.operationalAlerts.some(a => a.entityId === 'work-order-a' && a.alertType === 'UNASSIGNED_WORK_ORDER'), false);
   assert.equal(result.metrics.upcomingAssignments, 2);
