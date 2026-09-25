@@ -15,7 +15,7 @@ import path from "node:path";
 
 test("immutable closeout manifest snapshots cable execution and real stored evidence",()=>{
  const source=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
- assert.match(source,/schemaVersion:2/);
+ assert.match(source,/schemaVersion:3/);
  assert.match(source,/runIdentifier,scopeType,fromLocation,toLocation,cableType,measuredLength,lengthUnit,floorLevel/);
  assert.match(source,/wiremapStatus,gigabitLinkStatus,evidenceSaved,acceptanceStatus/);
  assert.match(source,/ProjectWorkOrderEvidence/);
