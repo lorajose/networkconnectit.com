@@ -47,6 +47,15 @@ if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") failures.push("
 if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
 if ((process.env.DATABASE_ADMIN_URL ?? "").trim()) failures.push("DATABASE_ADMIN_URL must not be configured in production");
 
+if ((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase() && !["false","0","no","off","disabled"].includes((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase())) {
+  failures.push("NCI_ALLOW_DEMO_SEED must be disabled in production");
+}
+
+const databaseTlsMode = (process.env.NCI_DATABASE_TLS_MODE ?? "").trim().toLowerCase();
+if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) {
+  failures.push("NCI_DATABASE_TLS_MODE must explicitly require TLS (required, verify-ca, or verify-identity)");
+}
+
 const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
 const hasDiscreteDatabaseSecrets = ["DB_HOST", "DB_NAME", "DB_USER"].every(
   (name) => (process.env[name] ?? "").trim().length > 0
