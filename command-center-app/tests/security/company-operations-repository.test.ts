@@ -232,6 +232,20 @@ test("project profitability uses linked labor, expenses and issued invoices", as
 
 
 
+
+test("overdue synchronization is tenant-scoped and only advances unpaid SENT invoices", async () => {
+  const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
+  const repo = repository();
+  const updated = await repo.api.syncOverdueInvoices(admin);
+  assert.equal(updated, 1);
+  const query = repo.queries.find(query => query.sql.includes("SET status = 'OVERDUE'"))!;
+  assert.ok(query.values.includes("org"));
+  assert.match(query.sql, /status = 'SENT'/);
+  assert.match(query.sql, /dueDate < CURRENT_DATE\(\)/);
+  assert.match(query.sql, /paidAmount < totalAmount/);
+});
+
+
 test("client-safe invoice read model is tenant-scoped and excludes internal operations data", async () => {
   const admin = { id: "admin", role: "CLIENT_ADMIN", organizationId: "org" };
   const missing = repository();
