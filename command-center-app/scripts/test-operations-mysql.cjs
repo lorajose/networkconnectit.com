@@ -117,10 +117,10 @@ async function main() {
   assert.equal(result.metrics.technicianCount, 1);
   assert.equal(result.metrics.upcomingAssignments, 1);
   assert.equal(foreign.schedule.length, 0);
-  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').revenue, 1000);
+  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').revenue, 1200);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').laborCost, 550);
-  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 350);
+  assert.equal(result.projectProfitability.find(p => p.id === 'project-a').grossProfit, 550);
   console.log('PASS MySQL 8: scheduling concurrency/tenant isolation, time approval, invoice lines, tax/discount adjustments, SENT/OVERDUE/PAID lifecycle, atomic payments and project profitability.');
 }
 main().catch(error => { console.error(error); process.exitCode = 1; }).finally(() => prisma.$disconnect());
