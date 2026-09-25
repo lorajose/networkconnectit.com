@@ -13,7 +13,7 @@ function zonedLocalDateTime(value: string, timeZone: string, label: string) {
   requiredText(timeZone, "Time zone", 64);
   try { new Intl.DateTimeFormat("en-US", { timeZone }).format(new Date()); } catch { throw new Error("Invalid IANA time zone."); }
   const match = value.match(/^(\d{4})-(\d{2})-(\d{2})T(\d{2}):(\d{2})(?::(\d{2}))?$/);
-  if (!match) throw new Error(\`Invalid ${label}.`);
+  if (!match) throw new Error(`Invalid ${label}.`);
   const parts = match.slice(1).map(Number);
   const targetUtc = Date.UTC(parts[0], parts[1] - 1, parts[2], parts[3], parts[4], parts[5] || 0);
   let guess = targetUtc;
@@ -27,7 +27,7 @@ function zonedLocalDateTime(value: string, timeZone: string, label: string) {
   }
   const result = new Date(guess);
   const verify = Object.fromEntries(formatter.formatToParts(result).filter(p => p.type !== "literal").map(p => [p.type, Number(p.value)]));
-  if (Date.UTC(verify.year, verify.month - 1, verify.day, verify.hour, verify.minute, verify.second) !== targetUtc) throw new Error(\`${label} falls in a daylight-saving time gap.`);
+  if (Date.UTC(verify.year, verify.month - 1, verify.day, verify.hour, verify.minute, verify.second) !== targetUtc) throw new Error(`${label} falls in a daylight-saving time gap.`);
   return result;
 }
 
@@ -402,16 +402,16 @@ export async function createTimeEntry(actor: OperationsActor, input: {
 }
 
 export async function createScheduleEntry(actor: OperationsActor, input: {
-  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; title: string; startsAt: string; endsAt: string; timeZone: string; entryType: string;
+  organizationId?: string; technicianProfileId: string; projectInstallationId?: string; workOrderId?: string; title: string; startsAt: string; endsAt: string; timeZone?: string; entryType: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   requiredText(input.technicianProfileId, "Technician", 191);
   input.title = requiredText(input.title, "Schedule title", 255);
   const projectInstallationId = input.projectInstallationId ? requiredText(input.projectInstallationId, "Project", 191) : null;
   choice(input.entryType, ["ASSIGNMENT", "AVAILABLE", "UNAVAILABLE", "PTO"], "schedule type");
-  input.timeZone = requiredText(input.timeZone, "Time zone", 64);
-  const startsAt = zonedLocalDateTime(input.startsAt, input.timeZone, "schedule start");
-  const endsAt = zonedLocalDateTime(input.endsAt, input.timeZone, "schedule end");
+  const timeZone = requiredText(input.timeZone || "America/New_York", "Time zone", 64);
+  const startsAt = zonedLocalDateTime(input.startsAt, timeZone, "schedule start");
+  const endsAt = zonedLocalDateTime(input.endsAt, timeZone, "schedule end");
   if (!(startsAt < endsAt)) throw new Error("Schedule end must be after start.");
 
   // Serialize bookings on the tenant-owned technician row, including the first
@@ -451,7 +451,7 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
       INSERT INTO OperationsScheduleEntry
         (id, organizationId, technicianProfileId, projectInstallationId, workOrderId, entryType, title, startsAt, endsAt, timeZone, status, createdByUserId, createdAt, updatedAt)
       VALUES
-        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, ${input.timeZone}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
+        (${id}, ${organizationId}, ${input.technicianProfileId}, ${projectInstallationId}, ${workOrderId}, ${input.entryType}, ${input.title}, ${startsAt}, ${endsAt}, ${timeZone}, 'SCHEDULED', ${actor.id}, NOW(3), NOW(3))`);
     return id;
   });
 }
