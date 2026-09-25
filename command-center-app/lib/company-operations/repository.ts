@@ -9,6 +9,7 @@ export type { OperationsActor } from "./policy";
 
 export async function getClientSafeInvoice(actor: OperationsActor, input: { organizationId?: string; invoiceId: string }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
+  await syncOverdueInvoices(actor, organizationId);
   input.invoiceId = requiredText(input.invoiceId, "Invoice", 191);
   const invoices = await prisma.$queryRaw<Array<{
     id: string; invoiceNumber: string; customerName: string; status: string; issueDate: Date | null; dueDate: Date | null;
@@ -43,6 +44,7 @@ export async function getClientSafeInvoice(actor: OperationsActor, input: { orga
 
 export async function getOperationsSnapshot(actor: OperationsActor, requestedOrganizationId?: string) {
   const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
+  await syncOverdueInvoices(actor, organizationId);
   const [technicians, projects, schedule, timeEntries, invoices, invoiceLines, expenses, projectProfitability, totals] = await Promise.all([
     prisma.$queryRaw<Array<{ id: string; displayName: string; workerType: string; availabilityStatus: string; hourlyPayRate: Prisma.Decimal | null }>>(Prisma.sql`
       SELECT id, displayName, workerType, availabilityStatus, hourlyPayRate
@@ -282,6 +284,18 @@ export async function createScheduleEntry(actor: OperationsActor, input: {
   });
 }
 
+
+export async function syncOverdueInvoices(actor: OperationsActor, requestedOrganizationId?: string) {
+  const organizationId = scopedOrganizationId(actor, requestedOrganizationId);
+  return prisma.$executeRaw(Prisma.sql`
+    UPDATE OperationsInvoice
+    SET status = 'OVERDUE', updatedAt = NOW(3)
+    WHERE organizationId = ${organizationId}
+      AND status = 'SENT'
+      AND dueDate IS NOT NULL
+      AND dueDate < CURRENT_DATE()
+      AND paidAmount < totalAmount`);
+}
 
 export async function recordInvoicePayment(actor: OperationsActor, input: {
   organizationId?: string; invoiceId: string; amount: number; paidAt: string; method?: string; reference?: string;
