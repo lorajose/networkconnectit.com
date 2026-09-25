@@ -74,3 +74,17 @@ test("NCI-082 settings, audit and sensitive financial boundaries are tenant scop
   assert.match(repository, /projectProfitability: profitability/);
   assert.match(repository, /organizationId = \$\{organizationId\}/);
 });
+
+
+test("NCI-075 technician lifecycle stays tenant scoped and uses private document metadata", () => {
+  const source = readFileSync(resolve(process.cwd(), "lib/company-operations/repository.ts"), "utf8");
+  const migration = readFileSync(resolve(process.cwd(), "prisma/migrations/20260925160000_nci075_technician_lifecycle/migration.sql"), "utf8");
+  assert.match(source, /updateTechnicianProfile/);
+  assert.match(source, /WHERE id = \$\{technicianProfileId\} AND organizationId = \$\{organizationId\}/);
+  assert.match(source, /OperationsTechnicianDocument/);
+  assert.match(source, /documentId.*technicianProfileId.*organizationId/s);
+  assert.match(source, /TECHNICIAN_PROFILE_UPDATED/);
+  assert.match(source, /TECHNICIAN_DOCUMENT_ATTACHED/);
+  assert.match(migration, /employmentStatus VARCHAR\(32\) NOT NULL DEFAULT 'ACTIVE'/);
+  assert.match(migration, /INDEX OperationsTechnicianDocument_tech_idx \(organizationId, technicianProfileId, documentType\)/);
+});
