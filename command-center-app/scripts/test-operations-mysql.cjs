@@ -142,7 +142,10 @@ async function main() {
   const result = await repo.getOperationsSnapshot(actor);
   const foreign = await repo.getOperationsSnapshot(other);
   assert.equal(result.metrics.technicianCount, 1);
-  assert.equal(result.metrics.upcomingAssignments, 1);
+  assert.equal(result.metrics.upcomingAssignments, 2);
+  assert.equal(result.workOrders.length, 1);
+  assert.equal(result.workOrders[0].id, 'work-order-a');
+  assert.equal(result.workOrders[0].projectInstallationId, 'project-a');
   assert.equal(foreign.schedule.length, 0);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').revenue, 1200);
   assert.equal(result.projectProfitability.find(p => p.id === 'project-a').expenses, 100);
