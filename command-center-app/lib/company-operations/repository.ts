@@ -219,7 +219,7 @@ export async function getOperationsSnapshot(actor: OperationsActor, requestedOrg
   ]);
 
   const canViewFinancials = canViewSensitiveOperationsFinancials(actor);
-  const safeTechnicians = canViewFinancials ? technicians : technicians.map(({ hourlyPayRate: _hourlyPayRate, ...technician }) => technician);
+  const safeTechnicians = technicians.map((technician) => ({ ...technician, hourlyPayRate: canViewFinancials ? technician.hourlyPayRate : null }));
   const total = totals[0];
   if (!total) throw new Error("Operations totals are unavailable.");
   const profitability = projectProfitability.map((project) => { const revenue = Number(project.revenue); const laborCost = Number(project.laborCost); const expenses = Number(project.expenses); const grossProfit = revenue - laborCost - expenses; return { ...project, laborCost, expenses, revenue, outstanding: Number(project.outstanding), grossProfit, marginPercent: revenue > 0 ? (grossProfit / revenue) * 100 : null }; });
