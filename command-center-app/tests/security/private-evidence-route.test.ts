@@ -17,17 +17,28 @@ test("receipt route requires existing Company Operations RBAC", () => {
   assert.match(apiAuth(), /status: 403/);
 });
 
-test("receipt route resolves evidence through tenant-scoped repository and never returns the storage key", () => {
+test("receipt route resolves evidence through tenant-scoped repository and private storage", () => {
   const source = route();
   assert.match(source, /getExpenseReceiptReference\(actor/);
   assert.match(source, /expenseId: context\.params\.expenseId/);
+  assert.match(source, /privateEvidenceStorage\(\)\.get\(receipt\.storageKey\)/);
   assert.doesNotMatch(source, /storageKey\s*:/);
-  assert.match(source, /Cache-Control": "no-store"/);
 });
 
-test("receipt route fails closed until physical private storage exists", () => {
+test("receipt download uses private anti-sniff response headers", () => {
+  const source = route();
+  assert.match(source, /"Cache-Control": "private, no-store"/);
+  assert.match(source, /"Content-Type": object\.contentType/);
+  assert.match(source, /"Content-Disposition"/);
+  assert.match(source, /attachment; filename=/);
+  assert.match(source, /"X-Content-Type-Options": "nosniff"/);
+});
+
+test("receipt route remains fail closed without a physical storage backend", () => {
   const source = route();
   assert.match(source, /status: 503/);
   assert.match(source, /Private receipt storage backend is not configured/);
+  assert.match(source, /status: 404/);
   assert.match(source, /Receipt not found/);
+  assert.match(source, /"Cache-Control": "no-store"/);
 });
