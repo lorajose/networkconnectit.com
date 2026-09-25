@@ -85,3 +85,16 @@ export async function recordCableRunAcceptance(actor:CommercialActor,input:{orga
     return decision;
   });
 }
+
+
+export async function getCableRunProjectSummary(actor:CommercialActor,input:{organizationId:string;workOrderId:string}){
+  const organizationId=input.organizationId.trim();
+  if((actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER")&&actor.organizationId!==organizationId)throw new Error("Cross-tenant cable summary read denied");
+  const rows=await prisma.$queryRaw<Array<{total:bigint;newRuns:bigint;existingRuns:bigint;ready:bigint;accepted:bigint;rejected:bigint;failed:bigint;tested:bigint;totalLength:Prisma.Decimal|null}>>(Prisma.sql`
+    SELECT COUNT(*) total,SUM(scopeType='NEW') newRuns,SUM(scopeType='EXISTING') existingRuns,
+      SUM(status='COMPLETED') ready,SUM(acceptanceStatus='ACCEPTED') accepted,SUM(acceptanceStatus='REJECTED') rejected,
+      SUM(testStatus='FAIL') failed,SUM(testStatus IS NOT NULL) tested,SUM(COALESCE(measuredLength,0)) totalLength
+    FROM ProjectWorkOrderItem WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId}`);
+  const r=rows[0];
+  return {total:Number(r?.total??0),newRuns:Number(r?.newRuns??0),existingRuns:Number(r?.existingRuns??0),ready:Number(r?.ready??0),accepted:Number(r?.accepted??0),rejected:Number(r?.rejected??0),failed:Number(r?.failed??0),tested:Number(r?.tested??0),totalLength:Number(r?.totalLength??0)};
+}
