@@ -50,7 +50,7 @@ test("NCI-014 mobile UI and project summary are wired to the cable execution mod
  assert.match(page,/gigabitLinkStatus/);
  assert.match(page,/evidenceSaved/);
  assert.match(source,/getCableRunProjectSummary/);
- assert.match(source,/Cross-tenant cable summary read denied/);
+ assert.match(source,/commercialReadScope\(actor,input\.organizationId\.trim\(\)\)\.organizationId/);
 });
 
 
@@ -90,7 +90,7 @@ test("NCI-014 exposes tenant-safe floor closeout CRUD and project summary UI",()
  const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
  assert.match(source,/listWorkOrderFloorCloseouts/);
  assert.match(source,/saveWorkOrderFloorCloseout/);
- assert.match(source,/Cross-tenant floor closeout read denied/);
+ assert.match(source,/commercialReadScope\(actor,input\.organizationId\.trim\(\)\)\.organizationId/);
  assert.match(source,/ON DUPLICATE KEY UPDATE/);
  assert.match(actions,/saveFloorCloseoutAction/);
  assert.match(page,/Cable project summary/);
@@ -109,4 +109,11 @@ test("NCI-014 keeps cable length units separate and preserves saved closeout flo
  assert.match(page,/Length \(ft\)/);
  assert.match(page,/Length \(m\)/);
  assert.match(page,/\.\.\.floorCloseouts\.map\(row=>row\.floorLevel\.trim\(\)\)/);
+});
+
+
+test("NCI-074 cable execution reads use the shared fail-closed commercial tenant scope",()=>{
+ assert.match(source,/import \{ commercialReadScope, requireCommercialWriteAccess \}/);
+ const scopedReads=source.match(/commercialReadScope\(actor,input\.organizationId\.trim\(\)\)\.organizationId/g)??[];
+ assert.ok(scopedReads.length>=2,"project summary and floor closeout reads must use shared commercialReadScope");
 });
