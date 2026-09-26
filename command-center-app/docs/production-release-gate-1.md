@@ -11,20 +11,17 @@ This document is the pre-deployment runbook for the consolidated V1 release. Pas
 
 ## Database and migration safety
 
-The NCI-074 branch introduces these migrations:
-
-- `20260922031000_nci074_site_survey_foundation`
-- `20260922033500_nci074_survey_floor_plan_draft`
-
-Both are additive `CREATE TABLE` migrations. They do not contain `DROP TABLE`, `DROP COLUMN`, `TRUNCATE`, or destructive data rewrites.
+The current release contains multiple Prisma migrations created across the Contractor OS / Command Center workstream. Do not assume only the two original NCI-074 migrations are pending, and do not infer production state from source history alone.
 
 Before production deploy:
 
 1. Export a fresh production database backup and record its timestamp/location.
-2. Confirm both migration names are absent from production `_prisma_migrations`.
-3. If either migration is already recorded or its tables already exist unexpectedly, STOP. Do not edit the existing migration and do not mark it applied manually. Reconcile state with a follow-up migration.
-4. Run only `prisma migrate deploy` through the normal startup/deploy path.
-5. Never use the hosted database Import SQL feature for this release.
+2. Run only the read-only migration-history preflight (`node scripts/audit-production-migration-history.mjs`) against the production database and retain sanitized evidence.
+3. Review `_prisma_migrations` state for incomplete active migrations, rolled-back entries, checksum mismatches, or unexpected history. Any such condition is a STOP condition until reconciled safely.
+4. In particular, confirm the watched NCI-079 material-usage migration matches the expected checksum/history before any production mutation.
+5. Do not rewrite an already-applied migration, do not mark a migration applied manually to bypass drift, and do not use the hosted database Import SQL feature for this release.
+6. Only after the read-only audit, backup, environment gate, storage and DB/TLS checks pass may the normal startup/deploy path execute `prisma migrate deploy`.
+7. Record the post-deploy Prisma migration status and confirm each newly applied migration is recorded exactly once.
 
 ## Backup and rollback
 
@@ -137,7 +134,7 @@ Record PASS/FAIL plus evidence for every row. A failure blocks Gate 1 unless an 
 Stop the deployment or rollback application code if any of these occurs:
 
 - release gate script fails;
-- unexpected migration state or pre-existing NCI-074 tables;
+- unexpected migration state, incomplete migration, checksum mismatch, or unresolved migration-history drift;
 - backup cannot be confirmed;
 - auth/base-path failure;
 - cross-tenant data exposure;

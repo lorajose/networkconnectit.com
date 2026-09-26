@@ -7,7 +7,7 @@
 | Release SHA / CI | P0 | PENDING | Frozen SHA equals deployed SHA; Secret Safety, verify and godaddy-root-build green on that exact SHA |
 | NCI-033 Environment | P0 | PENDING-RUNTIME | Production release gate exits 0 using production env; no secret values captured in evidence |
 | NCI-033 Backup | P0 | PENDING-RUNTIME | Fresh pre-deploy DB backup with timestamp/location and previous app SHA recorded |
-| NCI-033 Migrations | P0 | PENDING-RUNTIME | Before deploy, both NCI-074 migrations absent; after deploy, each recorded exactly once via prisma migrate deploy |
+| NCI-033 Migrations | P0 | PENDING-RUNTIME | Read-only migration-history preflight passes with no incomplete active migration/checksum mismatch/unresolved drift; after deploy, newly applied migrations are recorded exactly once via prisma migrate deploy |
 | NCI-033 Recovery/bootstrap | P0 | PENDING-RUNTIME | Bootstrap disabled/token absent; NCI_RECOVER_NCI049 and NCI_RECOVER_ALERT_SCHEMA disabled |
 | NCI-033 DB/TLS | P0 | PENDING-RUNTIME | Production DB endpoint/config verified and provider transport/TLS requirement documented |
 | Private storage | P0 | PENDING-RUNTIME | Config gate passes; upload/read test succeeds without public/service-role leakage |
