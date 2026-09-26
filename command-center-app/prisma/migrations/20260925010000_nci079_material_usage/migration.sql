@@ -8,6 +8,8 @@ ALTER TABLE OperationsExpense
   CHECK (
     (category <> 'MATERIALS' AND materialQuantityPurchased IS NULL AND materialQuantityUsed IS NULL AND materialUnit IS NULL)
     OR
+    (category = 'MATERIALS' AND materialQuantityPurchased IS NULL AND materialQuantityUsed IS NULL AND materialUnit IS NULL)
+    OR
     (category = 'MATERIALS'
       AND materialQuantityPurchased IS NOT NULL
       AND materialQuantityUsed IS NOT NULL
