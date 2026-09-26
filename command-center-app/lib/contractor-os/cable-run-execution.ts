@@ -2,7 +2,7 @@ import { randomUUID } from "node:crypto";
 import { Prisma } from "@prisma/client";
 import { prisma } from "@/lib/db";
 import type { CommercialActor } from "./commercial-access";
-import { requireCommercialWriteAccess } from "./commercial-access";
+import { commercialReadScope, requireCommercialWriteAccess } from "./commercial-access";
 import { requireFieldWorkOrderWriteAccess } from "./field-technician-access";
 
 export type CableRunExecutionInput = {
@@ -109,8 +109,7 @@ export async function recordCableRunAcceptance(actor:CommercialActor,input:{orga
 
 
 export async function getCableRunProjectSummary(actor:CommercialActor,input:{organizationId:string;workOrderId:string}){
-  const organizationId=input.organizationId.trim();
-  if((actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER")&&actor.organizationId!==organizationId)throw new Error("Cross-tenant cable summary read denied");
+  const organizationId=commercialReadScope(actor,input.organizationId.trim()).organizationId;
   const rows=await prisma.$queryRaw<Array<{total:bigint;newRuns:bigint;existingRuns:bigint;ready:bigint;accepted:bigint;rejected:bigint;failed:bigint;tested:bigint;totalLengthFt:Prisma.Decimal|null;totalLengthM:Prisma.Decimal|null}>>(Prisma.sql`
     SELECT COUNT(*) total,SUM(scopeType='NEW') newRuns,SUM(scopeType='EXISTING') existingRuns,
       SUM(status='COMPLETED') ready,SUM(acceptanceStatus='ACCEPTED') accepted,SUM(acceptanceStatus='REJECTED') rejected,
@@ -129,8 +128,7 @@ export type FloorCloseoutInput={
 };
 
 export async function listWorkOrderFloorCloseouts(actor:CommercialActor,input:{organizationId:string;workOrderId:string}){
-  const organizationId=input.organizationId.trim();
-  if((actor.role==="CLIENT_ADMIN"||actor.role==="VIEWER")&&actor.organizationId!==organizationId)throw new Error("Cross-tenant floor closeout read denied");
+  const organizationId=commercialReadScope(actor,input.organizationId.trim()).organizationId;
   return prisma.$queryRaw<Array<{id:string;floorLevel:string;cableSupportPassed:boolean;racewayConduitPassed:boolean;firestopPassed:boolean;labelReconciliationPassed:boolean;cleanupPassed:boolean;workAreaPhotosSaved:boolean;notes:string|null;completedByUserId:string|null;completedAt:Date|null}>>(Prisma.sql`
     SELECT id,floorLevel,cableSupportPassed,racewayConduitPassed,firestopPassed,labelReconciliationPassed,
       cleanupPassed,workAreaPhotosSaved,notes,completedByUserId,completedAt
