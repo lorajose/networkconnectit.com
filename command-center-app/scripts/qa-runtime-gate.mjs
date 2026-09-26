@@ -28,8 +28,15 @@ for (const name of ["NCI_RECOVER_NCI049","NCI_RECOVER_NCI074","NCI_RECOVER_ALERT
   if ((process.env[name] ?? "").trim() === "1") failures.push(`${name} must be disabled in QA`);
 }
 if ((process.env.DATABASE_ADMIN_URL ?? "").trim()) failures.push("DATABASE_ADMIN_URL must not be configured in QA");
+for (const name of ["NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP","ENABLE_FIRST_ADMIN_BOOTSTRAP"]) {
+  const value = (process.env[name] ?? "").trim().toLowerCase();
+  if (value && !["false","0","no","off","disabled"].includes(value)) failures.push(`${name} must be disabled in QA`);
+}
 if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed in QA");
 if (!["","false","0","no","off","disabled"].includes((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase())) failures.push("NCI_ALLOW_DEMO_SEED must be disabled in QA");
+
+const databaseTlsMode = (process.env.NCI_DATABASE_TLS_MODE ?? "").trim().toLowerCase();
+if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) failures.push("NCI_DATABASE_TLS_MODE must explicitly require TLS in QA (required, verify-ca, or verify-identity)");
 
 const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
 if (!databaseUrl) failures.push("QA DATABASE_URL is required");
@@ -39,6 +46,9 @@ else {
     if (["localhost","127.0.0.1","::1"].includes(db.hostname)) failures.push("QA DATABASE_URL must not point to loopback");
     const dbName = db.pathname.replace(/^\//, "").toLowerCase();
     if (!dbName || !/(qa|test|staging)/.test(dbName)) failures.push("QA database name must visibly identify qa, test, or staging");
+    const sslAccept = (db.searchParams.get("sslaccept") ?? "").toLowerCase();
+    if (["verify-ca","verify-identity"].includes(databaseTlsMode) && sslAccept !== "strict") failures.push("QA DATABASE_URL must use sslaccept=strict for verified TLS mode");
+    if (databaseTlsMode === "required" && !["strict","accept_invalid_certs"].includes(sslAccept)) failures.push("QA DATABASE_URL must explicitly enable TLS for NCI_DATABASE_TLS_MODE=required");
   } catch {
     failures.push("QA DATABASE_URL must be a valid connection URL");
   }
@@ -51,9 +61,17 @@ if (storage === "filesystem") {
   if (!root) failures.push("QA private filesystem storage root is required");
   else if (!path.isAbsolute(root)) failures.push("QA private filesystem storage root must be absolute");
   else if (!/(qa|test|staging)/i.test(root)) failures.push("QA private filesystem storage root must visibly identify qa, test, or staging");
+  else {
+    const resolvedRoot = path.resolve(root);
+    const publicDir = path.resolve(process.cwd(), "public");
+    if (resolvedRoot === publicDir || resolvedRoot.startsWith(`${publicDir}${path.sep}`)) failures.push("QA private filesystem storage root must be outside the public directory");
+  }
 } else {
+  const url = (process.env.DESIGN_SUPABASE_URL ?? process.env.BID_SUPABASE_URL ?? "").trim();
+  const key = (process.env.DESIGN_SUPABASE_SERVICE_ROLE_KEY ?? process.env.BID_SUPABASE_SERVICE_ROLE_KEY ?? "").trim();
   const bucket = (process.env.DESIGN_SUPABASE_BUCKET ?? process.env.BID_SUPABASE_BUCKET ?? "").trim();
-  if (!bucket || !/(qa|test|staging)/i.test(bucket)) failures.push("QA Supabase bucket must visibly identify qa, test, or staging");
+  if (!url || !key || !bucket) failures.push("QA private Supabase storage requires URL, service-role key and bucket");
+  if (bucket && !/(qa|test|staging)/i.test(bucket)) failures.push("QA Supabase bucket must visibly identify qa, test, or staging");
 }
 
 if ((process.env.NCI_QA_ALLOW_MIGRATIONS ?? "").trim() === "1") failures.push("NCI_QA_ALLOW_MIGRATIONS is not accepted by runtime startup; run QA migrations separately");
