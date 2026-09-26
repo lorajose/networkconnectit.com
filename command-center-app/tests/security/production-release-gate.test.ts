@@ -126,3 +126,19 @@ test("production migration history audit is read-only and detects checksum drift
   assert.doesNotMatch(audit, /\b(?:DROP|DELETE|UPDATE|INSERT|ALTER|CREATE)\b/i);
   assert.doesNotMatch(audit, /migrate[^\n]*(?:deploy|resolve)/i);
 });
+
+
+test("production startup audits migration history before recovery or migrate deploy", () => {
+  const startup = readFileSync(resolve(process.cwd(), "scripts/start-godaddy.mjs"), "utf8");
+  const gateIndex = startup.indexOf("Running Production Release Gate 1 runtime checks before migrations");
+  const auditIndex = startup.indexOf("Auditing production Prisma migration history before any database mutation");
+  const recovery074Index = startup.indexOf("NCI_RECOVER_NCI074=1: running guarded");
+  const recovery049Index = startup.indexOf("NCI_RECOVER_NCI049=1: running guarded");
+  const migrateIndex = startup.indexOf("Applying pending Prisma migrations");
+  assert.ok(gateIndex >= 0 && auditIndex >= 0 && recovery074Index >= 0 && recovery049Index >= 0 && migrateIndex >= 0);
+  assert.ok(gateIndex < auditIndex, "release gate must run before migration-history audit");
+  assert.ok(auditIndex < recovery074Index, "migration-history audit must run before NCI-074 recovery");
+  assert.ok(auditIndex < recovery049Index, "migration-history audit must run before NCI-049 recovery");
+  assert.ok(auditIndex < migrateIndex, "migration-history audit must run before migrate deploy");
+  assert.match(startup, /if \(auditResult\.status !== 0\)/);
+});
