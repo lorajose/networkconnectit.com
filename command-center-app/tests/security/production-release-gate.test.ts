@@ -114,3 +114,15 @@ test("NCI-074 evidence storage key unique index stays within MariaDB utf8mb4 key
   assert.doesNotMatch(migration, /storageKey VARCHAR\(1024\) NOT NULL/);
   assert.match(migration, /UNIQUE INDEX ProjectWorkOrderEvidence_storage_key \(storageKey\)/);
 });
+
+
+test("production migration history audit is read-only and detects checksum drift", () => {
+  const audit = readFileSync(resolve(process.cwd(), "scripts/audit-production-migration-history.mjs"), "utf8");
+  assert.match(audit, /_prisma_migrations/);
+  assert.match(audit, /createHash\("sha256"\)/);
+  assert.match(audit, /checksum differs from the migration\.sql currently in this release/);
+  assert.match(audit, /incomplete active migration record/);
+  assert.doesNotMatch(audit, /\$executeRaw/);
+  assert.doesNotMatch(audit, /\b(?:DROP|DELETE|UPDATE|INSERT|ALTER|CREATE)\b/i);
+  assert.doesNotMatch(audit, /migrate[^\n]*(?:deploy|resolve)/i);
+});
