@@ -59,4 +59,11 @@ const loopbackDb = gate({ DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/command_ce
 assert.notEqual(loopbackDb.status, 0);
 assert.match(loopbackDb.stderr, /must not point to loopback/);
 
+const designFilesystem = gate({ DESIGN_STORAGE_DRIVER: "filesystem", DESIGN_PRIVATE_STORAGE_ROOT: "/srv/nci-private", BID_STORAGE_DRIVER: "", BID_PRIVATE_STORAGE_ROOT: "" });
+assert.equal(designFilesystem.status, 0, designFilesystem.stderr);
+
+const relativePrivateRoot = gate({ DESIGN_STORAGE_DRIVER: "filesystem", DESIGN_PRIVATE_STORAGE_ROOT: "relative/private", BID_PRIVATE_STORAGE_ROOT: "" });
+assert.notEqual(relativePrivateRoot.status, 0);
+assert.match(relativePrivateRoot.stderr, /absolute path/);
+
 console.log("PASS release gate: canonical auth host/root path, strong secret and non-loopback production DB.");
