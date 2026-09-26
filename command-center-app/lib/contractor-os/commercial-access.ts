@@ -53,3 +53,13 @@ export function assertCommercialProjectBelongsToTenant(
     throw new Error("Project does not belong to the selected organization");
   }
 }
+
+
+export function requireScopedFieldWriteAccess(actor:CommercialActor,requestedOrganizationId:string){
+ if(!requestedOrganizationId)throw new Error("Field write requires organizationId");
+ if(actor.role==="VIEWER"){
+  if(!actor.organizationId||actor.organizationId!==requestedOrganizationId)throw new Error("Cross-tenant field write denied");
+  return requestedOrganizationId;
+ }
+ return requireCommercialWriteAccess(actor,requestedOrganizationId);
+}

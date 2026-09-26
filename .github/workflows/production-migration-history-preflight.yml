@@ -1,0 +1,70 @@
+name: Production Migration History Preflight
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: production-migration-history-preflight
+  cancel-in-progress: false
+
+jobs:
+  audit:
+    name: read-only-migration-history
+    runs-on: ubuntu-latest
+    environment: production
+    defaults:
+      run:
+        working-directory: command-center-app
+    env:
+      DATABASE_URL: ${{ secrets.DATABASE_URL }}
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_NAME: ${{ secrets.DB_NAME }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      NCI_DATABASE_TLS_MODE: ${{ secrets.NCI_DATABASE_TLS_MODE }}
+    steps:
+      - name: Checkout exact ref
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+          cache-dependency-path: command-center-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Prepare database URL without printing secrets
+        shell: bash
+        run: |
+          node <<'NODE'
+          const fs = require("node:fs");
+          const raw = (process.env.DATABASE_URL || "").trim();
+          let usable = false;
+          if (raw) {
+            try {
+              const parsed = new URL(raw);
+              usable = parsed.hostname !== "localhost" && parsed.hostname !== "127.0.0.1";
+            } catch {}
+          }
+          if (usable) process.exit(0);
+          const host=(process.env.DB_HOST||"").trim();
+          const port=(process.env.DB_PORT||"3306").trim();
+          const db=(process.env.DB_NAME||"").trim();
+          const user=(process.env.DB_USER||"").trim();
+          const password=process.env.DB_PASSWORD||"";
+          if(!host||!db||!user) throw new Error("Persistent database configuration is incomplete");
+          const tls=(process.env.NCI_DATABASE_TLS_MODE||"").trim().toLowerCase();
+          const query=tls==="verify-identity"||tls==="verify-ca"?"?sslaccept=strict":tls==="required"?"?sslaccept=accept_invalid_certs":"";
+          const url=`mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}@${host}:${port}/${encodeURIComponent(db)}${query}`;
+          fs.appendFileSync(process.env.GITHUB_ENV, `DATABASE_URL=${url}\n`);
+          NODE
+
+      - name: Run read-only migration history audit
+        run: node scripts/audit-production-migration-history.mjs

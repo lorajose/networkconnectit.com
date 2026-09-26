@@ -40,6 +40,10 @@ const policies = [
   {
     file: "app/(protected)/monitoring-actions.ts",
     required: ["\"use server\"", "requireUser(", "canRunHealthSimulation"]
+  },
+  {
+    file: "app/(protected)/site-surveys/actions.ts",
+    required: ["\"use server\"", "requireRoles(", "fieldUser(", "allowSurveyFieldAction(", "allowWorkOrderFieldAction("]
   }
 ];
 

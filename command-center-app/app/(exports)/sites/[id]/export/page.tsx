@@ -3,6 +3,7 @@ import { notFound } from "next/navigation";
 import { CommissioningReportView } from "@/components/reports/commissioning-report-view";
 import { requireRoles } from "@/lib/auth";
 import { getSiteCommissioningReport } from "@/lib/management/commissioning-report";
+import { applyCommissioningReportProfile, getCommissioningReportProfile } from "@/lib/management/commissioning-report-profile";
 import { routeAccess } from "@/lib/rbac";
 
 type SiteExportPageProps = {
@@ -21,5 +22,10 @@ export default async function SiteExportPage({
     notFound();
   }
 
-  return <CommissioningReportView report={report} />;
+  const profiledReport = applyCommissioningReportProfile(
+    report,
+    getCommissioningReportProfile(user.role)
+  );
+
+  return <CommissioningReportView report={profiledReport} />;
 }

@@ -21,6 +21,7 @@ export const routeAccess = {
   projects: APP_ROLES,
   bids: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   designStudio: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
+  siteSurveys: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   deviceCatalog: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN", "VIEWER"] as const,
   takeoffs: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
   scopeRisks: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
@@ -31,7 +32,9 @@ export const routeAccess = {
   alerts: APP_ROLES,
   viewer: APP_ROLES,
   users: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
-  settings: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const
+  settings: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const,
+  companyOperations: APP_ROLES,
+  companyOperationsWrite: ["SUPER_ADMIN", "INTERNAL_ADMIN", "CLIENT_ADMIN"] as const
 } as const;
 
 export function isCommandCenterAdminRole(role: AppRole) {

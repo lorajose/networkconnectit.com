@@ -72,3 +72,19 @@ export function buildApprovalReceipt(input: ApprovalReceiptInput) {
     immutableReference: `${input.proposalId}:v${input.proposalVersion}:${input.approvedAt.toISOString()}`,
   };
 }
+
+export function resolveApprovedProjectInstallationId(
+  proposalProjectInstallationId: string | null,
+  estimateProjectInstallationId: string | null,
+) {
+  const proposalProjectId = proposalProjectInstallationId?.trim() || null;
+  const estimateProjectId = estimateProjectInstallationId?.trim() || null;
+  if (proposalProjectId && estimateProjectId && proposalProjectId !== estimateProjectId) {
+    throw new Error("Proposal and Estimate project links do not match");
+  }
+  const projectInstallationId = proposalProjectId ?? estimateProjectId;
+  if (!projectInstallationId) {
+    throw new Error("Link the Estimate or Proposal to a ProjectInstallation before approval");
+  }
+  return projectInstallationId;
+}

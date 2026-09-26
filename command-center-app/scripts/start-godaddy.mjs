@@ -10,6 +10,9 @@ const schemaEnginePath = path.join(process.cwd(), "node_modules", "@prisma", "en
 const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
+const nci074RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci074-godaddy.mjs");
+const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");
+const migrationHistoryAuditPath = path.join(process.cwd(), "scripts", "audit-production-migration-history.mjs");
 
 function configureDatabaseUrlFromDiscreteSecrets() {
   const rawDatabaseUrl = process.env.DATABASE_URL?.trim() ?? "";
@@ -40,9 +43,17 @@ function configureDatabaseUrlFromDiscreteSecrets() {
     process.exit(1);
   }
 
+  const tlsMode = (process.env.NCI_DATABASE_TLS_MODE ?? "").trim().toLowerCase();
+  const tlsQuery =
+    tlsMode === "verify-identity" || tlsMode === "verify-ca"
+      ? "?sslaccept=strict"
+      : tlsMode === "required"
+        ? "?sslaccept=accept_invalid_certs"
+        : "";
+
   process.env.DATABASE_URL =
     `mysql://${encodeURIComponent(user)}:${encodeURIComponent(password)}` +
-    `@${host}:${port}/${encodeURIComponent(database)}`;
+    `@${host}:${port}/${encodeURIComponent(database)}${tlsQuery}`;
 
   console.log(`Using DB_* secrets for startup migrations: ${host}:${port}/${database}`);
 }
@@ -71,8 +82,62 @@ if (!fs.existsSync(prismaCliPath)) {
 }
 
 configureDatabaseUrlFromDiscreteSecrets();
+
+if (process.env.NODE_ENV === "production") {
+  if (!fs.existsSync(productionReleaseGatePath)) {
+    console.error(`Production release gate not found: ${productionReleaseGatePath}`);
+    process.exit(1);
+  }
+  console.log("Running Production Release Gate 1 runtime checks before migrations...");
+  const gateResult = spawnSync(process.execPath, [productionReleaseGatePath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+  if (gateResult.status !== 0) {
+    console.error(`Production release gate failed with status ${gateResult.status ?? "unknown"}.`);
+    process.exit(gateResult.status ?? 1);
+  }
+}
+
+if (process.env.NODE_ENV === "production") {
+  if (!fs.existsSync(migrationHistoryAuditPath)) {
+    console.error(`Production migration history audit not found: ${migrationHistoryAuditPath}`);
+    process.exit(1);
+  }
+  console.log("Auditing production Prisma migration history before any database mutation...");
+  const auditResult = spawnSync(process.execPath, [migrationHistoryAuditPath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+  if (auditResult.status !== 0) {
+    console.error(`Production migration history audit failed with status ${auditResult.status ?? "unknown"}.`);
+    process.exit(auditResult.status ?? 1);
+  }
+}
+
 process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
 process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+
+if (process.env.NCI_RECOVER_NCI074 === "1") {
+  if (!fs.existsSync(nci074RecoveryPath)) {
+    console.error(`NCI-074 recovery script not found: ${nci074RecoveryPath}`);
+    process.exit(1);
+  }
+
+  console.log("NCI_RECOVER_NCI074=1: running guarded NCI-074 partial migration recovery before migrate deploy...");
+  const recoveryResult = spawnSync(process.execPath, [nci074RecoveryPath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+
+  if (recoveryResult.status !== 0) {
+    console.error(`NCI-074 recovery failed with status ${recoveryResult.status ?? "unknown"}.`);
+    process.exit(recoveryResult.status ?? 1);
+  }
+}
 
 if (process.env.NCI_RECOVER_NCI049 === "1") {
   if (!fs.existsSync(nci049RecoveryPath)) {
