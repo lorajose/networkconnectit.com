@@ -38,6 +38,7 @@ const legacyBootstrap = (process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").trim().
 if (legacyBootstrap && !["false", "0", "no", "off", "disabled"].includes(legacyBootstrap)) failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
 if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed");
 if ((process.env.NCI_RECOVER_NCI049 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI049 recovery flag must be disabled for release");
+if ((process.env.NCI_RECOVER_NCI074 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI074 recovery flag must be disabled for release");
 if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") failures.push("NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release");
 
 if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
@@ -50,6 +51,10 @@ if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) failu
 const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
 const hasDiscreteDatabaseSecrets = ["DB_HOST", "DB_NAME", "DB_USER"].every((name) => (process.env[name] ?? "").trim().length > 0);
 if (!databaseUrl && !hasDiscreteDatabaseSecrets) failures.push("Production database connection must be configured with DATABASE_URL or DB_HOST/DB_NAME/DB_USER");
+if (!databaseUrl && hasDiscreteDatabaseSecrets) {
+  const dbHost = (process.env.DB_HOST ?? "").trim().toLowerCase();
+  if (["localhost", "127.0.0.1", "::1"].includes(dbHost)) failures.push("Production DB_HOST must not point to loopback");
+}
 if (databaseUrl) {
   try {
     const db = new URL(databaseUrl);

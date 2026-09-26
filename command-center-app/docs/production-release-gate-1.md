@@ -85,18 +85,18 @@ This classification is for Release Gate 1 only. A ticket is not marked Done mere
 
 ### Release blockers / must be evidenced before Gate 1 PASS
 
-- NCI-012 Proposal Builder: keep open until production-grade PDF/output and proposal analytics acceptance criteria are evidenced or explicitly deferred from V1.
+- NCI-012 Proposal Builder: ticket-level implementation/acceptance is Done; Gate 1 still requires the production commercial-flow smoke and customer-safe output checks.
 - NCI-021 / NCI-031 Client-safe commissioning exports: code and regression evidence exist; production role/tenant/export smoke remains required. Confirm the final policy satisfies the explicit allowlist requirement.
 - NCI-032 Tenant isolation/direct-ID policy: regression coverage exists; production role/tenant smoke remains required.
 - NCI-033 Production environment hardening: pre-deploy environment, migration, backup, recovery-flag, storage, and DB transport evidence remains required.
 - NCI-073 Design Studio QA: target-runtime browser/iPad/E2E checks remain required after the controlled deploy.
 - NCI-074 Production Release Gate 1: remains In Progress until every required pre-deploy and post-deploy item passes.
 
-### Partial implementation; do not close as Done
+### Accepted V1 implementation; runtime evidence still required
 
-- NCI-013 Site Survey: mobile/photo/structured/project linkage exists; offline/poor-connectivity behavior and survey report output remain open.
-- NCI-014 Cable execution: Work Order lifecycle provides substantial execution coverage, but deeper cable-specific acceptance remains open.
-- NCI-015 Closeout: package structure exists, but true branded immutable PDF, customer signature/auth flow, and As-Built output remain open.
+- NCI-013 Site Survey: ticket-level V1 acceptance is Done; Gate 1 still requires the assigned-technician mobile/structured/photo flow and floor-plan handoff runtime smoke. Offline-first expansion remains outside this accepted V1 scope.
+- NCI-014 Cable execution: ticket-level acceptance and later release hardening are Done; Gate 1 still requires runtime stage/test/evidence/closeout behavior.
+- NCI-015 Closeout: ticket-level closeout-package acceptance is Done; Gate 1 still requires runtime package generation, evidence completeness and tenant-boundary checks. Additional professional binary-PDF hardening remains tracked separately.
 
 ### Post-V1 / not a reason to silently expand this release
 

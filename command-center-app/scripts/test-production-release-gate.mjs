@@ -44,6 +44,10 @@ const demoSeed = gate({ NCI_ALLOW_DEMO_SEED: "true" });
 assert.notEqual(demoSeed.status, 0);
 assert.match(demoSeed.stderr, /DEMO_SEED must be disabled/);
 
+const nci074Recovery = gate({ NCI_RECOVER_NCI074: "1" });
+assert.notEqual(nci074Recovery.status, 0);
+assert.match(nci074Recovery.stderr, /NCI_RECOVER_NCI074 recovery flag must be disabled/);
+
 const missingTls = gate({ NCI_DATABASE_TLS_MODE: "" });
 assert.notEqual(missingTls.status, 0);
 assert.match(missingTls.stderr, /DATABASE_TLS_MODE must explicitly require TLS/);
@@ -58,6 +62,15 @@ assert.match(declaredVerifiedTlsWithoutUrlTls.stderr, /sslaccept=strict/);
 const loopbackDb = gate({ DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/command_center" });
 assert.notEqual(loopbackDb.status, 0);
 assert.match(loopbackDb.stderr, /must not point to loopback/);
+
+const discreteLoopbackDb = gate({
+  DATABASE_URL: "",
+  DB_HOST: "127.0.0.1",
+  DB_NAME: "command_center",
+  DB_USER: "ci"
+});
+assert.notEqual(discreteLoopbackDb.status, 0);
+assert.match(discreteLoopbackDb.stderr, /DB_HOST must not point to loopback/);
 
 const designFilesystem = gate({ DESIGN_STORAGE_DRIVER: "filesystem", DESIGN_PRIVATE_STORAGE_ROOT: "/srv/nci-private", BID_STORAGE_DRIVER: "", BID_PRIVATE_STORAGE_ROOT: "" });
 assert.equal(designFilesystem.status, 0, designFilesystem.stderr);

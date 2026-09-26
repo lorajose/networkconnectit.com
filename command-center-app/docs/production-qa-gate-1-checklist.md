@@ -77,7 +77,7 @@ Use two test organizations (Tenant A and Tenant B). Never use real customer secr
 - [ ] NCI-073 browser/iPad/performance checks completed on the production target.
 
 ## Runtime/data integrity
-- [ ] Both NCI-074 migrations are recorded exactly once after deployment.
+- [ ] Every migration included in the frozen release candidate that was pending before deployment is recorded exactly once after `prisma migrate deploy`; no unexpected, duplicate, incomplete, rolled-back or checksum-mismatched migration is present.
 - [ ] Existing production projects/sites/users remain accessible.
 - [ ] No demo seed was run and no demo dataset was introduced.
 - [ ] No unexpected destructive schema/data changes observed.
