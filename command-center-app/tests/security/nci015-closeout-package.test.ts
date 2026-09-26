@@ -85,3 +85,13 @@ test("immutable closeout snapshots project summary design topology devices and p
  assert.match(repository,/FROM Device WHERE organizationId=/);
  assert.match(repository,/FROM DeviceLink l JOIN Device/);
 });
+
+
+test("closed work orders reject post-closeout operational mutations",()=>{
+ const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ assert.match(repository,/async function requireOpenWorkOrder/);
+ assert.match(repository,/status==="CLOSED"/);
+ assert.match(repository,/Closed work orders are immutable/);
+ const guarded=(repository.match(/await requireOpenWorkOrder\(organizationId,input\.workOrderId\)/g)||[]).length;
+ assert.ok(guarded>=4,"expected closed-work-order guard on item updates, evidence, technician assignment and punch creation");
+});
