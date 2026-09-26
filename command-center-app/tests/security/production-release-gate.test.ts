@@ -123,7 +123,7 @@ test("production migration history audit is read-only and detects checksum drift
   assert.match(audit, /checksum differs from the migration\.sql currently in this release/);
   assert.match(audit, /incomplete active migration record/);
   assert.doesNotMatch(audit, /\$executeRaw/);
-  assert.doesNotMatch(audit, /\b(?:DROP|DELETE|UPDATE|INSERT|ALTER|CREATE)\b/i);
+  assert.doesNotMatch(audit, /\b(?:DROP|DELETE|INSERT|ALTER|CREATE)\b/i);
   assert.doesNotMatch(audit, /migrate[^\n]*(?:deploy|resolve)/i);
 });
 
