@@ -98,3 +98,15 @@ test("NCI-014 exposes tenant-safe floor closeout CRUD and project summary UI",()
  assert.match(page,/getCableRunProjectSummary/);
  assert.match(page,/listWorkOrderFloorCloseouts/);
 });
+
+
+test("NCI-014 keeps cable length units separate and preserves saved closeout floors",()=>{
+ const page=readFileSync(resolve(process.cwd(),"app/(protected)/site-surveys/[sessionId]/page.tsx"),"utf8");
+ assert.match(source,/totalLengthFt/);
+ assert.match(source,/totalLengthM/);
+ assert.match(source,/CASE WHEN lengthUnit='FT'/);
+ assert.match(source,/CASE WHEN lengthUnit='M'/);
+ assert.match(page,/Length \(ft\)/);
+ assert.match(page,/Length \(m\)/);
+ assert.match(page,/\.\.\.floorCloseouts\.map\(row=>row\.floorLevel\.trim\(\)\)/);
+});
