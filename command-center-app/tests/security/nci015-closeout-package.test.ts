@@ -103,7 +103,9 @@ test("closed work orders reject all post-closeout operational mutations",()=>{
  const closeEnd=repository.indexOf("export async function recordFinalAcceptance",closeStart);
  const closeSource=repository.slice(closeStart,closeEnd);
  assert.match(closeSource,/requireOpenWorkOrder\(organizationId,input\.workOrderId,tx,true\)/);
- assert.match(closeSource,/SELECT COUNT\(\*\) total/);
+ assert.match(closeSource,/evaluateWorkOrderCloseout\(tx,organizationId,input\.workOrderId\)/);
+ assert.match(repository,/async function evaluateWorkOrderCloseout\(db:CloseoutReadDb/);
+ assert.match(repository,/SELECT COUNT\(\*\) total/);
  assert.match(closeSource,/ProjectFinalAcceptance/);
  assert.match(closeSource,/status='CLOSED'/);
 });
