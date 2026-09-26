@@ -3,17 +3,12 @@ ALTER TABLE OperationsExpense
   ADD COLUMN materialQuantityUsed DECIMAL(12,3) NULL AFTER materialQuantityPurchased,
   ADD COLUMN materialUnit VARCHAR(32) NULL AFTER materialQuantityUsed;
 
--- Existing MATERIALS rows predate quantity tracking. Preserve them as historical
--- records; the application requires quantity/unit fields for all new MATERIALS rows.
-UPDATE OperationsExpense
-SET category = 'OTHER'
-WHERE category = 'MATERIALS'
-  AND (materialQuantityPurchased IS NULL OR materialQuantityUsed IS NULL OR materialUnit IS NULL);
-
 ALTER TABLE OperationsExpense
   ADD CONSTRAINT OperationsExpense_material_quantity_chk
   CHECK (
     (category <> 'MATERIALS' AND materialQuantityPurchased IS NULL AND materialQuantityUsed IS NULL AND materialUnit IS NULL)
+    OR
+    (category = 'MATERIALS' AND materialQuantityPurchased IS NULL AND materialQuantityUsed IS NULL AND materialUnit IS NULL)
     OR
     (category = 'MATERIALS'
       AND materialQuantityPurchased IS NOT NULL
