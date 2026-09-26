@@ -38,6 +38,7 @@ const legacyBootstrap = (process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").trim().
 if (legacyBootstrap && !["false", "0", "no", "off", "disabled"].includes(legacyBootstrap)) failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
 if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed");
 if ((process.env.NCI_RECOVER_NCI049 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI049 recovery flag must be disabled for release");
+if ((process.env.NCI_RECOVER_NCI074 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI074 recovery flag must be disabled for release");
 if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") failures.push("NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release");
 
 if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
