@@ -13,10 +13,10 @@
 | Private storage | P0 | PENDING-RUNTIME | Config gate passes; upload/read test succeeds without public/service-role leakage |
 | NCI-021 / NCI-031 Client-safe exports | P0 | CODE-EVIDENCE | Runtime CLIENT_ADMIN/VIEWER customer-safe export plus internal export; forbidden fields absent |
 | NCI-032 Tenant/RBAC | P0 | CODE-EVIDENCE | Cross-tenant direct-ID runtime attempts rejected for Site, Project, Capacity, Survey Asset, WO Evidence, Closeout, Bid, Takeoff and Design export |
-| NCI-012 Proposal | P0 | PARTIAL | Estimate→Proposal runtime path, branding/scope/pricing/terms, immutable sent snapshot; separately record PDF and analytics gaps |
-| NCI-015 Closeout | P0 | PARTIAL | Completed WO + evidence + no open punch + accepted final acceptance → versioned closeout package; cross-tenant access rejected |
-| NCI-013 Site Survey V1 | V1 | PARTIAL | Assigned technician completes mobile/structured/photo survey linked to project/site; floor-plan handoff works |
-| NCI-014 Work Order V1 | V1 | PARTIAL | Assigned technician stage updates; FAIL blocks completion; PASS + required evidence permits completion |
+| NCI-012 Proposal | P0 | CODE-ACCEPTED / RUNTIME-PENDING | Estimate→Proposal runtime path, branding/scope/pricing/terms, immutable sent snapshot; separately record PDF and analytics gaps |
+| NCI-015 Closeout | P0 | CODE-ACCEPTED / RUNTIME-PENDING | Completed WO + evidence + no open punch + accepted final acceptance → versioned closeout package; cross-tenant access rejected |
+| NCI-013 Site Survey V1 | V1 | CODE-ACCEPTED / RUNTIME-PENDING | Assigned technician completes mobile/structured/photo survey linked to project/site; floor-plan handoff works |
+| NCI-014 Work Order V1 | V1 | CODE-ACCEPTED / RUNTIME-PENDING | Assigned technician stage updates; FAIL blocks completion; PASS + required evidence permits completion |
 | NCI-042 Estimating Workspace | P1/V1 | QA | Production smoke of bid intake/workspace and tenant boundary |
 | NCI-043 Takeoff/BOM | P1/V1 | QA | Production takeoff/BOM capture and handoff |
 | NCI-044 Risk Analyzer | P1/V1 | QA | Production scope-gap/assumption/risk flow with intended authorization |
