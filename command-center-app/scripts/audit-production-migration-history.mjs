@@ -1,4 +1,7 @@
-import { PrismaClient } from "@prisma/client";\nimport { createHash } from "node:crypto";\nimport { readFileSync } from "node:fs";\nimport { resolve } from "node:path";
+import { createHash } from "node:crypto";
+import { readFileSync } from "node:fs";
+import { resolve } from "node:path";
+import { PrismaClient } from "@prisma/client";
 
 const watchedMigrations = [
   "20260925010000_nci079_material_usage"
@@ -11,14 +14,23 @@ function fail(message) {
   process.exitCode = 1;
 }
 
+function localChecksum(migrationName) {
+  const sql = readFileSync(
+    resolve(process.cwd(), "prisma", "migrations", migrationName, "migration.sql")
+  );
+  return createHash("sha256").update(sql).digest("hex");
+}
+
 try {
   const tableRows = await prisma.$queryRawUnsafe(
     "SELECT COUNT(*) AS count FROM information_schema.TABLES WHERE TABLE_SCHEMA = DATABASE() AND TABLE_NAME = '_prisma_migrations'"
   );
+
   if (Number(tableRows[0]?.count ?? 0) !== 1) {
     fail("_prisma_migrations table is missing");
   } else {
-    for (const migrationName of watchedMigrations) {\n      const expectedChecksum = localChecksum(migrationName);
+    for (const migrationName of watchedMigrations) {
+      const expectedChecksum = localChecksum(migrationName);
       const rows = await prisma.$queryRawUnsafe(
         "SELECT migration_name migrationName, checksum, started_at startedAt, finished_at finishedAt, rolled_back_at rolledBackAt, applied_steps_count appliedStepsCount FROM _prisma_migrations WHERE migration_name = ? ORDER BY started_at DESC",
         migrationName
@@ -43,10 +55,18 @@ try {
       if (rows.some((row) => !row.finishedAt && !row.rolledBackAt)) {
         fail(`${migrationName} has an incomplete active migration record`);
       }
+
+      const appliedRows = rows.filter((row) => row.finishedAt && !row.rolledBackAt);
+      if (appliedRows.some((row) => row.checksum !== expectedChecksum)) {
+        fail(`${migrationName} checksum differs from the migration.sql currently in this release`);
+      }
     }
   }
 } catch (error) {
-  console.error("Migration history audit failed:", error instanceof Error ? error.message : String(error));
+  console.error(
+    "Migration history audit failed:",
+    error instanceof Error ? error.message : String(error)
+  );
   process.exitCode = 1;
 } finally {
   await prisma.$disconnect();
