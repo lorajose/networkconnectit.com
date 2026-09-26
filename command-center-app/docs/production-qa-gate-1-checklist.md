@@ -12,8 +12,8 @@
 - [ ] `prisma migrate deploy` completed successfully; no manual migration-table edits or hosted DB Import SQL used.
 
 ## P0 — Health, auth, routing
-- [ ] `/tools/command-center/api/health` responds successfully.
-- [ ] Login works at the production path and redirects remain under `/tools/command-center`.
+- [ ] `https://command.networkconnectit.com/api/health` responds successfully.
+- [ ] Login works at `https://command.networkconnectit.com/` and auth redirects remain on the canonical `command.networkconnectit.com` host.
 - [ ] Logout works and protected pages reject an unauthenticated session.
 - [ ] SUPER_ADMIN and INTERNAL_ADMIN can access intended internal workflows.
 - [ ] CLIENT_ADMIN is restricted to its tenant.
