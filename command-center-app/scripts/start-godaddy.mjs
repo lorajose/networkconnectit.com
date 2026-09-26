@@ -11,7 +11,7 @@ const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
 const nci074RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci074-godaddy.mjs");
-const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");
+const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");\nconst migrationHistoryAuditPath = path.join(process.cwd(), "scripts", "audit-production-migration-history.mjs");
 
 function configureDatabaseUrlFromDiscreteSecrets() {
   const rawDatabaseUrl = process.env.DATABASE_URL?.trim() ?? "";
@@ -96,6 +96,23 @@ if (process.env.NODE_ENV === "production") {
   if (gateResult.status !== 0) {
     console.error(`Production release gate failed with status ${gateResult.status ?? "unknown"}.`);
     process.exit(gateResult.status ?? 1);
+  }
+}
+
+if (process.env.NODE_ENV === "production") {
+  if (!fs.existsSync(migrationHistoryAuditPath)) {
+    console.error(`Production migration history audit not found: ${migrationHistoryAuditPath}`);
+    process.exit(1);
+  }
+  console.log("Auditing production Prisma migration history before any database mutation...");
+  const auditResult = spawnSync(process.execPath, [migrationHistoryAuditPath], {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  });
+  if (auditResult.status !== 0) {
+    console.error(`Production migration history audit failed with status ${auditResult.status ?? "unknown"}.`);
+    process.exit(auditResult.status ?? 1);
   }
 }
 
