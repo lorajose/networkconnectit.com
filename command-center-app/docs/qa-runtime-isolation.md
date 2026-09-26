@@ -21,9 +21,12 @@ NODE_ENV=production
 NEXTAUTH_URL=https://<qa-host>/api/auth
 NEXT_PUBLIC_APP_BASE_PATH=
 NEXT_PUBLIC_MARKETING_SITE_URL=https://networkconnectit.com
+NCI_RUNTIME_ENV=qa
+NCI_DATABASE_TLS_MODE=verify-identity
+NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP=false
 ENABLE_FIRST_ADMIN_BOOTSTRAP=false
 FIRST_ADMIN_BOOTSTRAP_TOKEN=
-DATABASE_URL=mysql://<qa-only-connection>
+DATABASE_URL=mysql://<qa-only-connection>?sslaccept=strict
 DESIGN_STORAGE_DRIVER=filesystem
 DESIGN_PRIVATE_STORAGE_ROOT=/absolute/private/qa/path
 ```
@@ -40,7 +43,9 @@ Before the first QA runtime start:
 4. Never enable demo seeding against production.
 5. Create representative non-production organizations/users/projects for cross-tenant testing.
 
-The current `start-godaddy.mjs` runs `prisma migrate deploy` during startup. Therefore it must not be invoked for QA until the isolated QA database connection has been independently confirmed.
+QA runtime startup is intentionally migration-free. Use `npm run start:qa` (`scripts/start-qa.mjs`) only after the isolated QA database identity and runtime configuration pass the QA gate. `start:qa` validates the QA boundary and starts the standalone application; it does **not** run `prisma migrate deploy`.
+
+Run migrations as a separate, controlled operation against the independently confirmed QA database before starting the candidate. Never use `scripts/start-godaddy.mjs` for QA: that is the production startup path and includes `prisma migrate deploy`.
 
 ## NCI-073 runtime evidence
 
