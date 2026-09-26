@@ -12,8 +12,8 @@
 - [ ] `prisma migrate deploy` completed successfully; no manual migration-table edits or hosted DB Import SQL used.
 
 ## P0 — Health, auth, routing
-- [ ] `/tools/command-center/api/health` responds successfully.
-- [ ] Login works at the production path and redirects remain under `/tools/command-center`.
+- [ ] `https://command.networkconnectit.com/api/health` responds successfully.
+- [ ] Login works at `https://command.networkconnectit.com/` and auth redirects remain on the canonical `command.networkconnectit.com` host.
 - [ ] Logout works and protected pages reject an unauthenticated session.
 - [ ] SUPER_ADMIN and INTERNAL_ADMIN can access intended internal workflows.
 - [ ] CLIENT_ADMIN is restricted to its tenant.
@@ -77,7 +77,7 @@ Use two test organizations (Tenant A and Tenant B). Never use real customer secr
 - [ ] NCI-073 browser/iPad/performance checks completed on the production target.
 
 ## Runtime/data integrity
-- [ ] Both NCI-074 migrations are recorded exactly once after deployment.
+- [ ] Every migration included in the frozen release candidate that was pending before deployment is recorded exactly once after `prisma migrate deploy`; no unexpected, duplicate, incomplete, rolled-back or checksum-mismatched migration is present.
 - [ ] Existing production projects/sites/users remain accessible.
 - [ ] No demo seed was run and no demo dataset was introduced.
 - [ ] No unexpected destructive schema/data changes observed.

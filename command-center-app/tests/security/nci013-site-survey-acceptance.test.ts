@@ -38,3 +38,11 @@ test("NCI-013 poor-connectivity behavior is explicit and server acknowledged", (
   assert.match(connectivity, /server action succeeds/);
   assert.match(connectivity, /server acknowledgement before completion/);
 });
+
+
+test("NCI-074 survey session start is serialized, idempotent, and cannot restart completed work",()=>{
+ assert.match(repository,/SELECT disciplinesJson,status FROM SurveyAssignment[\s\S]*FOR UPDATE/);
+ assert.match(repository,/SELECT id,status FROM SurveySession[\s\S]*LIMIT 1 FOR UPDATE/);
+ assert.match(repository,/existing\[0\]\?\.status === "IN_PROGRESS"\) return existing\[0\]\.id/);
+ assert.match(repository,/Completed survey assignments cannot be restarted/);
+});

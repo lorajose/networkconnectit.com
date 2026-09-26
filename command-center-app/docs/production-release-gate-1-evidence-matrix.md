@@ -7,16 +7,16 @@
 | Release SHA / CI | P0 | PENDING | Frozen SHA equals deployed SHA; Secret Safety, verify and godaddy-root-build green on that exact SHA |
 | NCI-033 Environment | P0 | PENDING-RUNTIME | Production release gate exits 0 using production env; no secret values captured in evidence |
 | NCI-033 Backup | P0 | PENDING-RUNTIME | Fresh pre-deploy DB backup with timestamp/location and previous app SHA recorded |
-| NCI-033 Migrations | P0 | PENDING-RUNTIME | Before deploy, both NCI-074 migrations absent; after deploy, each recorded exactly once via prisma migrate deploy |
+| NCI-033 Migrations | P0 | PENDING-RUNTIME | Read-only migration-history preflight passes with no incomplete active migration/checksum mismatch/unresolved drift; after deploy, newly applied migrations are recorded exactly once via prisma migrate deploy |
 | NCI-033 Recovery/bootstrap | P0 | PENDING-RUNTIME | Bootstrap disabled/token absent; NCI_RECOVER_NCI049 and NCI_RECOVER_ALERT_SCHEMA disabled |
 | NCI-033 DB/TLS | P0 | PENDING-RUNTIME | Production DB endpoint/config verified and provider transport/TLS requirement documented |
 | Private storage | P0 | PENDING-RUNTIME | Config gate passes; upload/read test succeeds without public/service-role leakage |
 | NCI-021 / NCI-031 Client-safe exports | P0 | CODE-EVIDENCE | Runtime CLIENT_ADMIN/VIEWER customer-safe export plus internal export; forbidden fields absent |
 | NCI-032 Tenant/RBAC | P0 | CODE-EVIDENCE | Cross-tenant direct-ID runtime attempts rejected for Site, Project, Capacity, Survey Asset, WO Evidence, Closeout, Bid, Takeoff and Design export |
-| NCI-012 Proposal | P0 | PARTIAL | Estimate→Proposal runtime path, branding/scope/pricing/terms, immutable sent snapshot; separately record PDF and analytics gaps |
-| NCI-015 Closeout | P0 | PARTIAL | Completed WO + evidence + no open punch + accepted final acceptance → versioned closeout package; cross-tenant access rejected |
-| NCI-013 Site Survey V1 | V1 | PARTIAL | Assigned technician completes mobile/structured/photo survey linked to project/site; floor-plan handoff works |
-| NCI-014 Work Order V1 | V1 | PARTIAL | Assigned technician stage updates; FAIL blocks completion; PASS + required evidence permits completion |
+| NCI-012 Proposal | P0 | CODE-ACCEPTED / RUNTIME-PENDING | Estimate→Proposal runtime path, branding/scope/pricing/terms, immutable sent snapshot; separately record PDF and analytics gaps |
+| NCI-015 Closeout | P0 | CODE-ACCEPTED / RUNTIME-PENDING | Completed WO + evidence + no open punch + accepted final acceptance → versioned closeout package; cross-tenant access rejected |
+| NCI-013 Site Survey V1 | V1 | CODE-ACCEPTED / RUNTIME-PENDING | Assigned technician completes mobile/structured/photo survey linked to project/site; floor-plan handoff works |
+| NCI-014 Work Order V1 | V1 | CODE-ACCEPTED / RUNTIME-PENDING | Assigned technician stage updates; FAIL blocks completion; PASS + required evidence permits completion |
 | NCI-042 Estimating Workspace | P1/V1 | QA | Production smoke of bid intake/workspace and tenant boundary |
 | NCI-043 Takeoff/BOM | P1/V1 | QA | Production takeoff/BOM capture and handoff |
 | NCI-044 Risk Analyzer | P1/V1 | QA | Production scope-gap/assumption/risk flow with intended authorization |

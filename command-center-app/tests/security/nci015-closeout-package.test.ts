@@ -85,3 +85,41 @@ test("immutable closeout snapshots project summary design topology devices and p
  assert.match(repository,/FROM Device WHERE organizationId=/);
  assert.match(repository,/FROM DeviceLink l JOIN Device/);
 });
+
+
+test("closed work orders reject all post-closeout operational mutations",()=>{
+ const lifecycle=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/work-order-lifecycle.ts"),"utf8");
+ const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ const cable=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/cable-run-execution.ts"),"utf8");
+ const requirements=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/closeout-requirements.ts"),"utf8");
+ assert.match(lifecycle,/export async function requireOpenWorkOrder/);
+ assert.match(lifecycle,/FOR UPDATE/);
+ assert.match(lifecycle,/status==="CLOSED"/);
+ assert.match(lifecycle,/Closed work orders are immutable/);
+ assert.ok((repository.match(/await requireOpenWorkOrder\(organizationId,input\.workOrderId,tx,true\)/g)||[]).length>=7,"expected transactional locks on work-order item, evidence, assignment, punch, close and final acceptance mutations");
+ assert.ok((cable.match(/await requireOpenWorkOrder\(organizationId,input\.workOrderId,tx,true\)/g)||[]).length>=3,"expected transactional locks on cable execution, cable acceptance and floor closeout mutations");
+ assert.match(requirements,/await requireOpenWorkOrder\(organizationId,input\.workOrderId,tx,true\)/);
+ const closeStart=repository.indexOf("export async function closeWorkOrder");
+ const closeEnd=repository.indexOf("export async function recordFinalAcceptance",closeStart);
+ const closeSource=repository.slice(closeStart,closeEnd);
+ assert.match(closeSource,/requireOpenWorkOrder\(organizationId,input\.workOrderId,tx,true\)/);
+ assert.match(closeSource,/evaluateWorkOrderCloseout\(tx,organizationId,input\.workOrderId\)/);
+ assert.match(repository,/async function evaluateWorkOrderCloseout\(db:CloseoutReadDb/);
+ assert.match(repository,/SELECT COUNT\(\*\) total/);
+ assert.match(closeSource,/ProjectFinalAcceptance/);
+ assert.match(closeSource,/status='CLOSED'/);
+});
+
+
+test("final acceptance revalidates closeout atomically under the work-order lock",()=>{
+ const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ assert.match(repository,/async function evaluateWorkOrderCloseout\(db:CloseoutReadDb/);
+ const start=repository.indexOf("export async function recordFinalAcceptance");
+ const end=repository.indexOf("export async function generateCloseoutPackageManifest",start);
+ const source=repository.slice(start,end);
+ const lockIndex=source.indexOf("requireOpenWorkOrder(organizationId,input.workOrderId,tx,true)");
+ const gateIndex=source.indexOf("evaluateWorkOrderCloseout(tx,organizationId,input.workOrderId)");
+ assert.ok(lockIndex>=0,"expected final acceptance to lock the work order");
+ assert.ok(gateIndex>lockIndex,"expected closeout gate revalidation after the work-order lock");
+ assert.doesNotMatch(source,/validateWorkOrderCloseout\(actor/);
+});

@@ -1,3 +1,5 @@
+import path from "node:path";
+
 const required = ["NEXTAUTH_URL", "NEXTAUTH_SECRET"];
 const legacyBasePath = "/tools/command-center";
 const rootDomain = "command.networkconnectit.com";
@@ -31,63 +33,57 @@ if (authUrl) {
 }
 
 const namespacedBootstrap = (process.env.NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").trim();
-if (namespacedBootstrap && !["false", "0", "no", "off", "disabled"].includes(namespacedBootstrap.toLowerCase())) {
-  failures.push("NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
-}
+if (namespacedBootstrap && !["false", "0", "no", "off", "disabled"].includes(namespacedBootstrap.toLowerCase())) failures.push("NCI_ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
 const legacyBootstrap = (process.env.ENABLE_FIRST_ADMIN_BOOTSTRAP ?? "").trim().toLowerCase();
-if (legacyBootstrap && !["false", "0", "no", "off", "disabled"].includes(legacyBootstrap)) {
-  failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
-}
-if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) {
-  failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed");
-}
+if (legacyBootstrap && !["false", "0", "no", "off", "disabled"].includes(legacyBootstrap)) failures.push("ENABLE_FIRST_ADMIN_BOOTSTRAP must be disabled when present");
+if ((process.env.FIRST_ADMIN_BOOTSTRAP_TOKEN ?? "").trim()) failures.push("FIRST_ADMIN_BOOTSTRAP_TOKEN must be empty/removed");
 if ((process.env.NCI_RECOVER_NCI049 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI049 recovery flag must be disabled for release");
+if ((process.env.NCI_RECOVER_NCI074 ?? "").trim() === "1") failures.push("NCI_RECOVER_NCI074 recovery flag must be disabled for release");
 if ((process.env.NCI_RECOVER_ALERT_SCHEMA ?? "").trim() === "1") failures.push("NCI_RECOVER_ALERT_SCHEMA recovery flag must be disabled for release");
 
 if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
 if ((process.env.DATABASE_ADMIN_URL ?? "").trim()) failures.push("DATABASE_ADMIN_URL must not be configured in production");
-
-if ((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase() && !["false","0","no","off","disabled"].includes((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase())) {
-  failures.push("NCI_ALLOW_DEMO_SEED must be disabled in production");
-}
+if ((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase() && !["false","0","no","off","disabled"].includes((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase())) failures.push("NCI_ALLOW_DEMO_SEED must be disabled in production");
 
 const databaseTlsMode = (process.env.NCI_DATABASE_TLS_MODE ?? "").trim().toLowerCase();
-if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) {
-  failures.push("NCI_DATABASE_TLS_MODE must explicitly require TLS (required, verify-ca, or verify-identity)");
-}
+if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) failures.push("NCI_DATABASE_TLS_MODE must explicitly require TLS (required, verify-ca, or verify-identity)");
 
 const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
-const hasDiscreteDatabaseSecrets = ["DB_HOST", "DB_NAME", "DB_USER"].every(
-  (name) => (process.env[name] ?? "").trim().length > 0
-);
-if (!databaseUrl && !hasDiscreteDatabaseSecrets) {
-  failures.push("Production database connection must be configured with DATABASE_URL or DB_HOST/DB_NAME/DB_USER");
+const hasDiscreteDatabaseSecrets = ["DB_HOST", "DB_NAME", "DB_USER"].every((name) => (process.env[name] ?? "").trim().length > 0);
+if (!databaseUrl && !hasDiscreteDatabaseSecrets) failures.push("Production database connection must be configured with DATABASE_URL or DB_HOST/DB_NAME/DB_USER");
+if (!databaseUrl && hasDiscreteDatabaseSecrets) {
+  const dbHost = (process.env.DB_HOST ?? "").trim().toLowerCase();
+  if (["localhost", "127.0.0.1", "::1"].includes(dbHost)) failures.push("Production DB_HOST must not point to loopback");
 }
 if (databaseUrl) {
   try {
     const db = new URL(databaseUrl);
-    if (["localhost", "127.0.0.1"].includes(db.hostname)) {
-      failures.push("Production DATABASE_URL must not point to loopback");
-    }
+    if (["localhost", "127.0.0.1"].includes(db.hostname)) failures.push("Production DATABASE_URL must not point to loopback");
     const sslAccept = (db.searchParams.get("sslaccept") ?? "").toLowerCase();
     if (databaseTlsMode === "verify-identity" || databaseTlsMode === "verify-ca") {
       if (sslAccept !== "strict") failures.push("DATABASE_URL must use sslaccept=strict for verified TLS mode");
-    } else if (databaseTlsMode === "required" && !["strict","accept_invalid_certs"].includes(sslAccept)) {
-      failures.push("DATABASE_URL must explicitly enable TLS for NCI_DATABASE_TLS_MODE=required");
-    }
+    } else if (databaseTlsMode === "required" && !["strict","accept_invalid_certs"].includes(sslAccept)) failures.push("DATABASE_URL must explicitly enable TLS for NCI_DATABASE_TLS_MODE=required");
   } catch {
     failures.push("DATABASE_URL must be a valid connection URL when configured");
   }
 }
 
-const storage = (process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
-if (!["filesystem", "supabase"].includes(storage)) failures.push("BID_STORAGE_DRIVER must be filesystem or supabase");
+const storage = (process.env.DESIGN_STORAGE_DRIVER ?? process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
+if (!["filesystem", "supabase"].includes(storage)) failures.push("Private storage driver must be filesystem or supabase");
 if (storage === "supabase") {
-  for (const name of ["BID_SUPABASE_URL", "BID_SUPABASE_SERVICE_ROLE_KEY", "BID_SUPABASE_BUCKET"]) {
-    if (!(process.env[name]?.trim())) failures.push(`${name} is required when BID_STORAGE_DRIVER=supabase`);
+  const url = process.env.DESIGN_SUPABASE_URL?.trim() || process.env.BID_SUPABASE_URL?.trim();
+  const key = process.env.DESIGN_SUPABASE_SERVICE_ROLE_KEY?.trim() || process.env.BID_SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const bucket = process.env.DESIGN_SUPABASE_BUCKET?.trim() || process.env.BID_SUPABASE_BUCKET?.trim();
+  if (!url || !key || !bucket) failures.push("Private Supabase storage requires URL, service-role key and bucket");
+} else {
+  const root = process.env.DESIGN_PRIVATE_STORAGE_ROOT?.trim() || process.env.BID_PRIVATE_STORAGE_ROOT?.trim();
+  if (!root) failures.push("Private filesystem storage root is required");
+  else if (!path.isAbsolute(root)) failures.push("Private filesystem storage root must be an absolute path");
+  else {
+    const resolvedRoot = path.resolve(root);
+    const publicDir = path.resolve(process.cwd(), "public");
+    if (resolvedRoot === publicDir || resolvedRoot.startsWith(`${publicDir}${path.sep}`)) failures.push("Private filesystem storage root must be outside the public directory");
   }
-} else if (storage === "filesystem" && !(process.env.BID_PRIVATE_STORAGE_ROOT?.trim())) {
-  failures.push("BID_PRIVATE_STORAGE_ROOT is required when BID_STORAGE_DRIVER=filesystem");
 }
 
 for (const warning of warnings) console.warn(`WARNING: ${warning}`);

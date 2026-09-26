@@ -11,20 +11,17 @@ This document is the pre-deployment runbook for the consolidated V1 release. Pas
 
 ## Database and migration safety
 
-The NCI-074 branch introduces these migrations:
-
-- `20260922031000_nci074_site_survey_foundation`
-- `20260922033500_nci074_survey_floor_plan_draft`
-
-Both are additive `CREATE TABLE` migrations. They do not contain `DROP TABLE`, `DROP COLUMN`, `TRUNCATE`, or destructive data rewrites.
+The current release contains multiple Prisma migrations created across the Contractor OS / Command Center workstream. Do not assume only the two original NCI-074 migrations are pending, and do not infer production state from source history alone.
 
 Before production deploy:
 
 1. Export a fresh production database backup and record its timestamp/location.
-2. Confirm both migration names are absent from production `_prisma_migrations`.
-3. If either migration is already recorded or its tables already exist unexpectedly, STOP. Do not edit the existing migration and do not mark it applied manually. Reconcile state with a follow-up migration.
-4. Run only `prisma migrate deploy` through the normal startup/deploy path.
-5. Never use the hosted database Import SQL feature for this release.
+2. Run only the read-only migration-history preflight (`node scripts/audit-production-migration-history.mjs`) against the production database and retain sanitized evidence.
+3. Review `_prisma_migrations` state for incomplete active migrations, rolled-back entries, checksum mismatches, or unexpected history. Any such condition is a STOP condition until reconciled safely.
+4. In particular, confirm the watched NCI-079 material-usage migration matches the expected checksum/history before any production mutation.
+5. Do not rewrite an already-applied migration, do not mark a migration applied manually to bypass drift, and do not use the hosted database Import SQL feature for this release.
+6. Only after the read-only audit, backup, environment gate, storage and DB/TLS checks pass may the normal startup/deploy path execute `prisma migrate deploy`.
+7. Record the post-deploy Prisma migration status and confirm each newly applied migration is recorded exactly once.
 
 ## Backup and rollback
 
@@ -50,11 +47,11 @@ Required checks:
 - Private bid/survey/work-order storage configuration is complete and server-only.
 - Production contains no demo seed dataset.
 
-Current path-based deployment must be treated as authoritative unless the release plan explicitly migrates hosts:
-`NEXTAUTH_URL=https://networkconnectit.com/tools/command-center/api/auth`
-`NEXT_PUBLIC_APP_BASE_PATH=/tools/command-center`
+The canonical production deployment is the dedicated Command Center host:
+`NEXTAUTH_URL=https://command.networkconnectit.com/api/auth`
+`NEXT_PUBLIC_APP_BASE_PATH=` (empty root-domain base path)
 
-Do not switch to `app.networkconnectit.com` as part of this release without a separate DNS/proxy/auth migration plan.
+The legacy `/tools/command-center/` route is compatibility/fallback only and must not be used as the authoritative production auth/base-path configuration. Any future host or path migration requires a separate DNS/proxy/auth migration plan.
 
 ## Database transport / TLS
 
@@ -88,18 +85,18 @@ This classification is for Release Gate 1 only. A ticket is not marked Done mere
 
 ### Release blockers / must be evidenced before Gate 1 PASS
 
-- NCI-012 Proposal Builder: keep open until production-grade PDF/output and proposal analytics acceptance criteria are evidenced or explicitly deferred from V1.
+- NCI-012 Proposal Builder: ticket-level implementation/acceptance is Done; Gate 1 still requires the production commercial-flow smoke and customer-safe output checks.
 - NCI-021 / NCI-031 Client-safe commissioning exports: code and regression evidence exist; production role/tenant/export smoke remains required. Confirm the final policy satisfies the explicit allowlist requirement.
 - NCI-032 Tenant isolation/direct-ID policy: regression coverage exists; production role/tenant smoke remains required.
 - NCI-033 Production environment hardening: pre-deploy environment, migration, backup, recovery-flag, storage, and DB transport evidence remains required.
 - NCI-073 Design Studio QA: target-runtime browser/iPad/E2E checks remain required after the controlled deploy.
 - NCI-074 Production Release Gate 1: remains In Progress until every required pre-deploy and post-deploy item passes.
 
-### Partial implementation; do not close as Done
+### Accepted V1 implementation; runtime evidence still required
 
-- NCI-013 Site Survey: mobile/photo/structured/project linkage exists; offline/poor-connectivity behavior and survey report output remain open.
-- NCI-014 Cable execution: Work Order lifecycle provides substantial execution coverage, but deeper cable-specific acceptance remains open.
-- NCI-015 Closeout: package structure exists, but true branded immutable PDF, customer signature/auth flow, and As-Built output remain open.
+- NCI-013 Site Survey: ticket-level V1 acceptance is Done; Gate 1 still requires the assigned-technician mobile/structured/photo flow and floor-plan handoff runtime smoke. Offline-first expansion remains outside this accepted V1 scope.
+- NCI-014 Cable execution: ticket-level acceptance and later release hardening are Done; Gate 1 still requires runtime stage/test/evidence/closeout behavior.
+- NCI-015 Closeout: ticket-level closeout-package acceptance is Done; Gate 1 still requires runtime package generation, evidence completeness and tenant-boundary checks. Additional professional binary-PDF hardening remains tracked separately.
 
 ### Post-V1 / not a reason to silently expand this release
 
@@ -115,7 +112,7 @@ Record PASS/FAIL plus evidence for every row. A failure blocks Gate 1 unless an 
 | --- | --- | --- |
 | Release | Deployed commit equals frozen SHA | deployed git revision |
 | Runtime | health endpoint through the public base path | HTTP success + timestamp |
-| Auth | login, callback, logout under /tools/command-center | successful session flow |
+| Auth | login, callback, logout on `https://command.networkconnectit.com/` | successful session flow on canonical host |
 | Roles | SUPER_ADMIN, INTERNAL_ADMIN, CLIENT_ADMIN, VIEWER | expected allow/deny result per role |
 | Tenant security | direct-ID request across organizations | denial without data leakage |
 | Exports | Project commissioning customer copy | customer-safe output |
@@ -137,7 +134,7 @@ Record PASS/FAIL plus evidence for every row. A failure blocks Gate 1 unless an 
 Stop the deployment or rollback application code if any of these occurs:
 
 - release gate script fails;
-- unexpected migration state or pre-existing NCI-074 tables;
+- unexpected migration state, incomplete migration, checksum mismatch, or unresolved migration-history drift;
 - backup cannot be confirmed;
 - auth/base-path failure;
 - cross-tenant data exposure;

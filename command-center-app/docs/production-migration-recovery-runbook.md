@@ -5,7 +5,7 @@ This runbook is a release-gate procedure. It does not authorize or perform a pro
 ## Required evidence before migration
 1. Record the exact candidate Git SHA and confirm all required CI jobs are green for that SHA.
 2. Run `npm run release:gate` with the production environment and retain the successful output.
-3. Record the current production Prisma migration state with `npx prisma migrate status`.
+3. Run the approved read-only preflight first: `node scripts/audit-production-migration-history.mjs`. Retain only sanitized evidence. Do not run startup, recovery, `prisma migrate deploy`, or any migration-table mutation as part of this audit.
 4. Create a timestamped MySQL backup before any schema change:
    `mysqldump --single-transaction --routines --triggers --set-gtid-purged=OFF "$DB_NAME" > "command-center-predeploy-$TIMESTAMP.sql"`
    Use the production host/user through the approved secret mechanism; do not commit credentials or the dump.
@@ -46,7 +46,7 @@ If the schema/data must be restored:
 - candidate Git SHA
 - CI run URL/results
 - release-gate output
-- pre-migration `prisma migrate status`
+- read-only preflight result from `node scripts/audit-production-migration-history.mjs`
 - backup timestamp, byte size and SHA-256 (never the dump itself)
 - post-migration `prisma migrate status`
 - smoke-check results

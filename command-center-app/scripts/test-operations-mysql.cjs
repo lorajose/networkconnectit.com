@@ -28,8 +28,16 @@ async function main() {
     createdAt DATETIME(3) NOT NULL, updatedAt DATETIME(3) NOT NULL,
     UNIQUE INDEX FieldTechnicianProfile_user_key (organizationId,userId)
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  // Apply the base operations migration first, seed a legacy MATERIALS expense,
+  // then continue the upgrade. This proves NCI-079 can upgrade real historical data.
+  {
+    const migration = fs.readFileSync('prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql', 'utf8');
+    for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
+  }
+  await prisma.$executeRawUnsafe(`INSERT INTO OperationsExpense
+    (id, organizationId, category, description, amount, expenseDate, reimbursable, createdByUserId, createdAt, updatedAt)
+    VALUES ('legacy-material-expense', 'a', 'MATERIALS', 'Legacy cable purchase', 75, '2029-12-31', FALSE, 'admin-a', NOW(3), NOW(3))`);
   for (const migrationPath of [
-    'prisma/migrations/20260924210000_nci075_082_company_operations/migration.sql',
     'prisma/migrations/20260925010000_nci079_material_usage/migration.sql',
     'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql',
     'prisma/migrations/20260925143000_nci082_operations_settings_audit/migration.sql',
@@ -38,6 +46,11 @@ async function main() {
     const migration = fs.readFileSync(migrationPath, 'utf8');
     for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
   }
+  const legacyMaterial = await prisma.$queryRawUnsafe("SELECT category, materialQuantityPurchased, materialQuantityUsed, materialUnit FROM OperationsExpense WHERE id = 'legacy-material-expense'");
+  assert.equal(legacyMaterial[0].category, 'MATERIALS');
+  assert.equal(legacyMaterial[0].materialQuantityPurchased, null);
+  assert.equal(legacyMaterial[0].materialQuantityUsed, null);
+  assert.equal(legacyMaterial[0].materialUnit, null);
   const engines = await prisma.$queryRaw`SELECT ENGINE FROM information_schema.TABLES WHERE TABLE_SCHEMA = 'operations_ci_test'`;
   assert.ok(engines.every(row => row.ENGINE === 'InnoDB'));
   const policy = load('lib/company-operations/policy.ts', {});

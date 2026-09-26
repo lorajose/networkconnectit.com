@@ -10,7 +10,7 @@ on:
       - '.htaccess'
       - '.github/workflows/public-site-quality.yml'
   push:
-    branches: [main]
+    branches: [dev, qa, uat, main]
     paths:
       - '*.html'
       - 'tools/**'
