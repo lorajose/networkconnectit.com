@@ -95,17 +95,26 @@ export async function startSurveySession(
   input: { organizationId: string; assignmentId: string; technicianUserId: string },
 ) {
   const organizationId = requireCommercialWriteAccess(actor, input.organizationId.trim());
-  const assignments = await prisma.$queryRaw<Array<{ disciplinesJson: string }>>(Prisma.sql`
-    SELECT disciplinesJson FROM SurveyAssignment
-    WHERE id=${input.assignmentId} AND organizationId=${organizationId} LIMIT 1
-  `);
-  const assignment = assignments[0];
-  if (!assignment) throw new Error("Survey assignment not found");
-  const disciplines = JSON.parse(assignment.disciplinesJson) as SurveyDiscipline[];
-  const checklist = checklistForDisciplines(disciplines);
-  const id = randomUUID();
-
-  await prisma.$transaction(async (tx) => {
+  return prisma.$transaction(async (tx) => {
+    const assignments = await tx.$queryRaw<Array<{ disciplinesJson: string; status: string }>>(Prisma.sql`
+      SELECT disciplinesJson,status FROM SurveyAssignment
+      WHERE id=${input.assignmentId} AND organizationId=${organizationId}
+      FOR UPDATE
+    `);
+    const assignment = assignments[0];
+    if (!assignment) throw new Error("Survey assignment not found");
+    const existing = await tx.$queryRaw<Array<{ id:string; status:string }>>(Prisma.sql`
+      SELECT id,status FROM SurveySession
+      WHERE assignmentId=${input.assignmentId} AND organizationId=${organizationId}
+      ORDER BY createdAt DESC LIMIT 1 FOR UPDATE
+    `);
+    if (existing[0]?.status === "IN_PROGRESS") return existing[0].id;
+    if (assignment.status === "COMPLETE" || existing[0]?.status === "COMPLETE") {
+      throw new Error("Completed survey assignments cannot be restarted");
+    }
+    const disciplines = JSON.parse(assignment.disciplinesJson) as SurveyDiscipline[];
+    const checklist = checklistForDisciplines(disciplines);
+    const id = randomUUID();
     await tx.$executeRaw(Prisma.sql`
       INSERT INTO SurveySession
         (id,organizationId,assignmentId,technicianUserId,status,checklistSnapshotJson,startedAt,createdAt,updatedAt)
@@ -117,10 +126,9 @@ export async function startSurveySession(
       UPDATE SurveyAssignment SET status='IN_PROGRESS',updatedAt=NOW(3)
       WHERE id=${input.assignmentId} AND organizationId=${organizationId}
     `);
+    return id;
   });
-  return id;
 }
-
 
 export type SurveySessionWorkspace = {
   session: { id:string; organizationId:string; assignmentId:string; technicianUserId:string; status:string; checklistSnapshotJson:string; startedAt:Date; completedAt:Date|null; notes:string|null };
