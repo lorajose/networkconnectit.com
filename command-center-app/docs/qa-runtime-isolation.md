@@ -62,3 +62,20 @@ Against the exact QA candidate SHA, record:
 ## Promotion rule
 
 A green QA CI build is necessary but not sufficient. QA → UAT is allowed only after the required QA runtime evidence is complete and no release-blocking defect remains. MAIN and GoDaddy production remain separate later gates.
+
+## Provisioning runbook
+
+Provisioning is intentionally provider-neutral until an isolated QA host, database and private-storage target are selected. Do not point these steps at production.
+
+1. Create a dedicated QA hostname (for example, a QA-only subdomain) that is not `command.networkconnectit.com`.
+2. Create a dedicated MySQL database whose host/database identity visibly indicates QA/test/staging and whose transport satisfies the configured TLS mode.
+3. Create QA-only private storage. For filesystem storage, use an absolute path outside the application `public/` tree. For Supabase storage, use a QA-only project/service-role credential and a bucket name that visibly identifies QA/test/staging.
+4. Configure runtime secrets out-of-repository using the Required QA identity above. Keep both first-admin bootstrap flags disabled and leave recovery/admin database variables absent.
+5. Run `npm run qa:gate` before any migration or application start. A gate failure is a hard stop.
+6. Independently verify the non-secret QA database identity, then run the required Prisma migration deployment as a separate controlled QA operation. Do not use `start-godaddy.mjs`.
+7. Start the exact candidate with `npm run start:qa`. Record candidate SHA, QA URL, deployment reference and test-data identity in the NCI-073 evidence sheet.
+8. Execute the browser/device, import/export, reviewed E2E, private-asset and cross-tenant/direct-ID checks. Only recorded real execution may change those rows from PENDING.
+
+### Provisioning stop conditions
+
+Stop without migration/start if the hostname resolves to production, the database is production or cannot be independently identified as QA, storage is shared with production, TLS does not satisfy the QA gate, a bootstrap/recovery flag is enabled, or any required credential is missing/placeholder.
