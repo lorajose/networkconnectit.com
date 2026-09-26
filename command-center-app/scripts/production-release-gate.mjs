@@ -80,14 +80,17 @@ if (databaseUrl) {
   }
 }
 
-const storage = (process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
-if (!["filesystem", "supabase"].includes(storage)) failures.push("BID_STORAGE_DRIVER must be filesystem or supabase");
+const storage = (process.env.DESIGN_STORAGE_DRIVER ?? process.env.BID_STORAGE_DRIVER ?? "filesystem").trim().toLowerCase();
+if (!["filesystem", "supabase"].includes(storage)) failures.push("Private storage driver must be filesystem or supabase");
 if (storage === "supabase") {
-  for (const name of ["BID_SUPABASE_URL", "BID_SUPABASE_SERVICE_ROLE_KEY", "BID_SUPABASE_BUCKET"]) {
-    if (!(process.env[name]?.trim())) failures.push(`${name} is required when BID_STORAGE_DRIVER=supabase`);
-  }
-} else if (storage === "filesystem" && !(process.env.BID_PRIVATE_STORAGE_ROOT?.trim())) {
-  failures.push("BID_PRIVATE_STORAGE_ROOT is required when BID_STORAGE_DRIVER=filesystem");
+  const url = process.env.DESIGN_SUPABASE_URL?.trim() || process.env.BID_SUPABASE_URL?.trim();
+  const key = process.env.DESIGN_SUPABASE_SERVICE_ROLE_KEY?.trim() || process.env.BID_SUPABASE_SERVICE_ROLE_KEY?.trim();
+  const bucket = process.env.DESIGN_SUPABASE_BUCKET?.trim() || process.env.BID_SUPABASE_BUCKET?.trim();
+  if (!url || !key || !bucket) failures.push("Private Supabase storage requires URL, service-role key and bucket");
+} else {
+  const root = process.env.DESIGN_PRIVATE_STORAGE_ROOT?.trim() || process.env.BID_PRIVATE_STORAGE_ROOT?.trim();
+  if (!root) failures.push("Private filesystem storage root is required");
+  else if (!root.startsWith("/")) failures.push("Private filesystem storage root must be an absolute path");
 }
 
 for (const warning of warnings) console.warn(`WARNING: ${warning}`);
