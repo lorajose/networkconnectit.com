@@ -44,6 +44,10 @@ const demoSeed = gate({ NCI_ALLOW_DEMO_SEED: "true" });
 assert.notEqual(demoSeed.status, 0);
 assert.match(demoSeed.stderr, /DEMO_SEED must be disabled/);
 
+const nci074Recovery = gate({ NCI_RECOVER_NCI074: "1" });
+assert.notEqual(nci074Recovery.status, 0);
+assert.match(nci074Recovery.stderr, /NCI_RECOVER_NCI074 recovery flag must be disabled/);
+
 const missingTls = gate({ NCI_DATABASE_TLS_MODE: "" });
 assert.notEqual(missingTls.status, 0);
 assert.match(missingTls.stderr, /DATABASE_TLS_MODE must explicitly require TLS/);
