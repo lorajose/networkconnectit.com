@@ -50,6 +50,10 @@ if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) failu
 const databaseUrl = (process.env.DATABASE_URL ?? "").trim();
 const hasDiscreteDatabaseSecrets = ["DB_HOST", "DB_NAME", "DB_USER"].every((name) => (process.env[name] ?? "").trim().length > 0);
 if (!databaseUrl && !hasDiscreteDatabaseSecrets) failures.push("Production database connection must be configured with DATABASE_URL or DB_HOST/DB_NAME/DB_USER");
+if (!databaseUrl && hasDiscreteDatabaseSecrets) {
+  const dbHost = (process.env.DB_HOST ?? "").trim().toLowerCase();
+  if (["localhost", "127.0.0.1", "::1"].includes(dbHost)) failures.push("Production DB_HOST must not point to loopback");
+}
 if (databaseUrl) {
   try {
     const db = new URL(databaseUrl);
