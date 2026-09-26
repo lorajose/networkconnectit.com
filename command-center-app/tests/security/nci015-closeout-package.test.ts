@@ -87,11 +87,15 @@ test("immutable closeout snapshots project summary design topology devices and p
 });
 
 
-test("closed work orders reject post-closeout operational mutations",()=>{
+test("closed work orders reject all post-closeout operational mutations",()=>{
+ const lifecycle=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/work-order-lifecycle.ts"),"utf8");
  const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
- assert.match(repository,/async function requireOpenWorkOrder/);
- assert.match(repository,/status==="CLOSED"/);
- assert.match(repository,/Closed work orders are immutable/);
- const guarded=(repository.match(/await requireOpenWorkOrder\(organizationId,input\.workOrderId\)/g)||[]).length;
- assert.ok(guarded>=4,"expected closed-work-order guard on item updates, evidence, technician assignment and punch creation");
+ const cable=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/cable-run-execution.ts"),"utf8");
+ const requirements=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/closeout-requirements.ts"),"utf8");
+ assert.match(lifecycle,/export async function requireOpenWorkOrder/);
+ assert.match(lifecycle,/status==="CLOSED"/);
+ assert.match(lifecycle,/Closed work orders are immutable/);
+ assert.ok((repository.match(/await requireOpenWorkOrder\(organizationId,input\.workOrderId\)/g)||[]).length>=6,"expected guards on work-order item, evidence, assignment, punch and final acceptance mutations");
+ assert.ok((cable.match(/await requireOpenWorkOrder\(organizationId,input\.workOrderId\)/g)||[]).length>=3,"expected guards on cable execution, cable acceptance and floor closeout mutations");
+ assert.match(requirements,/await requireOpenWorkOrder\(organizationId,input\.workOrderId\)/);
 });

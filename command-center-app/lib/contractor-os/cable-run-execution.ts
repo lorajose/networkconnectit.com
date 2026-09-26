@@ -4,6 +4,7 @@ import { prisma } from "@/lib/db";
 import type { CommercialActor } from "./commercial-access";
 import { commercialReadScope, requireCommercialWriteAccess } from "./commercial-access";
 import { requireFieldWorkOrderWriteAccess } from "./field-technician-access";
+import { requireOpenWorkOrder } from "./work-order-lifecycle";
 
 export type CableRunExecutionInput = {
   organizationId:string; workOrderId:string; itemId:string; runIdentifier:string; scopeType:"NEW"|"EXISTING";
@@ -19,6 +20,7 @@ const validResult=(value:string|null|undefined)=>!value||["PASS","FAIL","NA"].in
 
 export async function updateCableRunExecution(actor:CommercialActor & {id:string},input:CableRunExecutionInput){
   const organizationId=input.organizationId.trim();
+  await requireOpenWorkOrder(organizationId,input.workOrderId);
   const wo=(await prisma.$queryRaw<Array<{surveySessionId:string;projectInstallationId:string}>>(Prisma.sql`
     SELECT surveySessionId,projectInstallationId FROM ProjectWorkOrder
     WHERE id=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
@@ -88,6 +90,7 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
 
 export async function recordCableRunAcceptance(actor:CommercialActor,input:{organizationId:string;workOrderId:string;itemId:string;accepted:boolean;note?:string|null;userId:string}){
   const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
+  await requireOpenWorkOrder(organizationId,input.workOrderId);
   return prisma.$transaction(async tx=>{
     const item=(await tx.$queryRaw<Array<{runIdentifier:string|null;status:string}>>(Prisma.sql`SELECT runIdentifier,status FROM ProjectWorkOrderItem WHERE id=${input.itemId} AND workOrderId=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
     if(!item)throw new Error("Cable run not found");
@@ -139,6 +142,7 @@ export async function listWorkOrderFloorCloseouts(actor:CommercialActor,input:{o
 
 export async function saveWorkOrderFloorCloseout(actor:CommercialActor & {id:string},input:FloorCloseoutInput){
   const organizationId=input.organizationId.trim();
+  await requireOpenWorkOrder(organizationId,input.workOrderId);
   const wo=(await prisma.$queryRaw<Array<{surveySessionId:string}>>(Prisma.sql`
     SELECT surveySessionId FROM ProjectWorkOrder WHERE id=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
   if(!wo)throw new Error("Work order not found");
