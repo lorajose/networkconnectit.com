@@ -107,3 +107,17 @@ test("closed work orders reject all post-closeout operational mutations",()=>{
  assert.match(closeSource,/ProjectFinalAcceptance/);
  assert.match(closeSource,/status='CLOSED'/);
 });
+
+
+test("final acceptance revalidates closeout atomically under the work-order lock",()=>{
+ const repository=fs.readFileSync(path.resolve(process.cwd(),"lib/contractor-os/project-approval-work-order.ts"),"utf8");
+ assert.match(repository,/async function evaluateWorkOrderCloseout\(db:CloseoutReadDb/);
+ const start=repository.indexOf("export async function recordFinalAcceptance");
+ const end=repository.indexOf("export async function generateCloseoutPackageManifest",start);
+ const source=repository.slice(start,end);
+ const lockIndex=source.indexOf("requireOpenWorkOrder(organizationId,input.workOrderId,tx,true)");
+ const gateIndex=source.indexOf("evaluateWorkOrderCloseout(tx,organizationId,input.workOrderId)");
+ assert.ok(lockIndex>=0,"expected final acceptance to lock the work order");
+ assert.ok(gateIndex>lockIndex,"expected closeout gate revalidation after the work-order lock");
+ assert.doesNotMatch(source,/validateWorkOrderCloseout\(actor/);
+});
