@@ -50,11 +50,11 @@ Required checks:
 - Private bid/survey/work-order storage configuration is complete and server-only.
 - Production contains no demo seed dataset.
 
-Current path-based deployment must be treated as authoritative unless the release plan explicitly migrates hosts:
-`NEXTAUTH_URL=https://networkconnectit.com/tools/command-center/api/auth`
-`NEXT_PUBLIC_APP_BASE_PATH=/tools/command-center`
+The canonical production deployment is the dedicated Command Center host:
+`NEXTAUTH_URL=https://command.networkconnectit.com/api/auth`
+`NEXT_PUBLIC_APP_BASE_PATH=` (empty root-domain base path)
 
-Do not switch to `app.networkconnectit.com` as part of this release without a separate DNS/proxy/auth migration plan.
+The legacy `/tools/command-center/` route is compatibility/fallback only and must not be used as the authoritative production auth/base-path configuration. Any future host or path migration requires a separate DNS/proxy/auth migration plan.
 
 ## Database transport / TLS
 
@@ -115,7 +115,7 @@ Record PASS/FAIL plus evidence for every row. A failure blocks Gate 1 unless an 
 | --- | --- | --- |
 | Release | Deployed commit equals frozen SHA | deployed git revision |
 | Runtime | health endpoint through the public base path | HTTP success + timestamp |
-| Auth | login, callback, logout under /tools/command-center | successful session flow |
+| Auth | login, callback, logout on `https://command.networkconnectit.com/` | successful session flow on canonical host |
 | Roles | SUPER_ADMIN, INTERNAL_ADMIN, CLIENT_ADMIN, VIEWER | expected allow/deny result per role |
 | Tenant security | direct-ID request across organizations | denial without data leakage |
 | Exports | Project commissioning customer copy | customer-safe output |
