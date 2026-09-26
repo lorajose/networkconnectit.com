@@ -6,14 +6,14 @@ on:
       - 'package.json'
       - 'package-lock.json'
       - 'command-center-app/**'
-      - '.github/workflows/command-center-ci.yml'
+      - '.github/workflows/**'
   push:
     branches: [dev, qa, uat, main]
     paths:
       - 'package.json'
       - 'package-lock.json'
       - 'command-center-app/**'
-      - '.github/workflows/command-center-ci.yml'
+      - '.github/workflows/**'
 
 permissions:
   contents: read
