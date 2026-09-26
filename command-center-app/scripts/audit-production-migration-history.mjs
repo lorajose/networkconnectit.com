@@ -1,4 +1,4 @@
-import { PrismaClient } from "@prisma/client";
+import { PrismaClient } from "@prisma/client";\nimport { createHash } from "node:crypto";\nimport { readFileSync } from "node:fs";\nimport { resolve } from "node:path";
 
 const watchedMigrations = [
   "20260925010000_nci079_material_usage"
@@ -18,7 +18,7 @@ try {
   if (Number(tableRows[0]?.count ?? 0) !== 1) {
     fail("_prisma_migrations table is missing");
   } else {
-    for (const migrationName of watchedMigrations) {
+    for (const migrationName of watchedMigrations) {\n      const expectedChecksum = localChecksum(migrationName);
       const rows = await prisma.$queryRawUnsafe(
         "SELECT migration_name migrationName, checksum, started_at startedAt, finished_at finishedAt, rolled_back_at rolledBackAt, applied_steps_count appliedStepsCount FROM _prisma_migrations WHERE migration_name = ? ORDER BY started_at DESC",
         migrationName
