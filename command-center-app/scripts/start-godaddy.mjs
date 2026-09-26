@@ -11,7 +11,8 @@ const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
 const nci074RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci074-godaddy.mjs");
-const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");\nconst migrationHistoryAuditPath = path.join(process.cwd(), "scripts", "audit-production-migration-history.mjs");
+const productionReleaseGatePath = path.join(process.cwd(), "scripts", "production-release-gate.mjs");
+const migrationHistoryAuditPath = path.join(process.cwd(), "scripts", "audit-production-migration-history.mjs");
 
 function configureDatabaseUrlFromDiscreteSecrets() {
   const rawDatabaseUrl = process.env.DATABASE_URL?.trim() ?? "";
