@@ -20,7 +20,6 @@ const validResult=(value:string|null|undefined)=>!value||["PASS","FAIL","NA"].in
 
 export async function updateCableRunExecution(actor:CommercialActor & {id:string},input:CableRunExecutionInput){
   const organizationId=input.organizationId.trim();
-  await requireOpenWorkOrder(organizationId,input.workOrderId);
   const wo=(await prisma.$queryRaw<Array<{surveySessionId:string;projectInstallationId:string}>>(Prisma.sql`
     SELECT surveySessionId,projectInstallationId FROM ProjectWorkOrder
     WHERE id=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
@@ -30,6 +29,7 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
   if(input.measuredLength!=null&&(!Number.isFinite(input.measuredLength)||input.measuredLength<0))throw new Error("Measured length must be positive");
   if(!validResult(input.wiremapStatus)||!validResult(input.gigabitLinkStatus)||!validResult(input.overallTestStatus))throw new Error("Invalid cable test result");
   return prisma.$transaction(async tx=>{
+    await requireOpenWorkOrder(organizationId,input.workOrderId,tx,true);
     const current=(await tx.$queryRaw<Array<{id:string;acceptanceStatus:string|null;pulledInstalled:boolean;isTerminated:boolean;terminatedEndA:boolean;terminatedEndB:boolean;labeled:boolean;wiremapStatus:string|null;gigabitLinkStatus:string|null;testStatus:string|null;evidenceSaved:boolean;status:string}>>(Prisma.sql`
       SELECT id,acceptanceStatus,pulledInstalled,isTerminated,terminatedEndA,terminatedEndB,labeled,wiremapStatus,gigabitLinkStatus,testStatus,evidenceSaved,status FROM ProjectWorkOrderItem
       WHERE id=${input.itemId} AND workOrderId=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
@@ -90,8 +90,8 @@ export async function updateCableRunExecution(actor:CommercialActor & {id:string
 
 export async function recordCableRunAcceptance(actor:CommercialActor,input:{organizationId:string;workOrderId:string;itemId:string;accepted:boolean;note?:string|null;userId:string}){
   const organizationId=requireCommercialWriteAccess(actor,input.organizationId.trim());
-  await requireOpenWorkOrder(organizationId,input.workOrderId);
   return prisma.$transaction(async tx=>{
+    await requireOpenWorkOrder(organizationId,input.workOrderId,tx,true);
     const item=(await tx.$queryRaw<Array<{runIdentifier:string|null;status:string}>>(Prisma.sql`SELECT runIdentifier,status FROM ProjectWorkOrderItem WHERE id=${input.itemId} AND workOrderId=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
     if(!item)throw new Error("Cable run not found");
     if(input.accepted&&item.status!=="COMPLETED")throw new Error("Cable run must be Ready before acceptance");
@@ -142,18 +142,19 @@ export async function listWorkOrderFloorCloseouts(actor:CommercialActor,input:{o
 
 export async function saveWorkOrderFloorCloseout(actor:CommercialActor & {id:string},input:FloorCloseoutInput){
   const organizationId=input.organizationId.trim();
-  await requireOpenWorkOrder(organizationId,input.workOrderId);
   const wo=(await prisma.$queryRaw<Array<{surveySessionId:string}>>(Prisma.sql`
     SELECT surveySessionId FROM ProjectWorkOrder WHERE id=${input.workOrderId} AND organizationId=${organizationId} LIMIT 1`))[0];
   if(!wo)throw new Error("Work order not found");
   await requireFieldWorkOrderWriteAccess(actor,{organizationId,sessionId:wo.surveySessionId,workOrderId:input.workOrderId});
   const floorLevel=input.floorLevel.trim();if(!floorLevel)throw new Error("Floor / area is required");
   const complete=input.cableSupportPassed&&input.racewayConduitPassed&&input.firestopPassed&&input.labelReconciliationPassed&&input.cleanupPassed&&input.workAreaPhotosSaved;
-  const existing=(await prisma.$queryRaw<Array<{id:string}>>(Prisma.sql`
+  return prisma.$transaction(async tx=>{
+  await requireOpenWorkOrder(organizationId,input.workOrderId,tx,true);
+  const existing=(await tx.$queryRaw<Array<{id:string}>>(Prisma.sql`
     SELECT id FROM ProjectWorkOrderFloorCloseout
     WHERE organizationId=${organizationId} AND workOrderId=${input.workOrderId} AND floorLevel=${floorLevel} LIMIT 1`))[0];
   const id=existing?.id??randomUUID();
-  await prisma.$executeRaw(Prisma.sql`
+  await tx.$executeRaw(Prisma.sql`
     INSERT INTO ProjectWorkOrderFloorCloseout
       (id,organizationId,workOrderId,floorLevel,cableSupportPassed,racewayConduitPassed,firestopPassed,labelReconciliationPassed,cleanupPassed,workAreaPhotosSaved,notes,completedByUserId,completedAt,createdAt,updatedAt)
     VALUES (${id},${organizationId},${input.workOrderId},${floorLevel},${input.cableSupportPassed},${input.racewayConduitPassed},${input.firestopPassed},${input.labelReconciliationPassed},${input.cleanupPassed},${input.workAreaPhotosSaved},${clean(input.notes)},${complete?input.userId:null},${complete?new Date():null},NOW(3),NOW(3))
@@ -162,4 +163,5 @@ export async function saveWorkOrderFloorCloseout(actor:CommercialActor & {id:str
       workAreaPhotosSaved=VALUES(workAreaPhotosSaved),notes=VALUES(notes),completedByUserId=VALUES(completedByUserId),
       completedAt=VALUES(completedAt),updatedAt=NOW(3)`);
   return {id,floorLevel,complete};
+  });
 }
