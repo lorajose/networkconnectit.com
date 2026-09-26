@@ -66,4 +66,8 @@ const relativePrivateRoot = gate({ DESIGN_STORAGE_DRIVER: "filesystem", DESIGN_P
 assert.notEqual(relativePrivateRoot.status, 0);
 assert.match(relativePrivateRoot.stderr, /absolute path/);
 
-console.log("PASS release gate: canonical auth host/root path, strong secret and non-loopback production DB.");
+const incompleteObjectStorage = gate({ DESIGN_STORAGE_DRIVER: "supabase", DESIGN_SUPABASE_URL: "https://storage.invalid", DESIGN_SUPABASE_SERVICE_ROLE_KEY: "", DESIGN_SUPABASE_BUCKET: "private-evidence", BID_SUPABASE_SERVICE_ROLE_KEY: "" });
+assert.notEqual(incompleteObjectStorage.status, 0);
+assert.match(incompleteObjectStorage.stderr, /requires URL, service-role key and bucket/);
+
+console.log("PASS release gate: auth, database TLS and private storage configuration.");
