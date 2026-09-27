@@ -83,6 +83,11 @@ if (!fs.existsSync(prismaCliPath)) {
 
 configureDatabaseUrlFromDiscreteSecrets();
 
+// Configure the GoDaddy-compatible Prisma engines before any child process
+// (including the read-only migration history audit) creates PrismaClient.
+process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
+process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
+
 if (process.env.NODE_ENV === "production") {
   if (!fs.existsSync(productionReleaseGatePath)) {
     console.error(`Production release gate not found: ${productionReleaseGatePath}`);
@@ -116,9 +121,6 @@ if (process.env.NODE_ENV === "production") {
     process.exit(auditResult.status ?? 1);
   }
 }
-
-process.env.PRISMA_SCHEMA_ENGINE_BINARY = schemaEnginePath;
-process.env.PRISMA_QUERY_ENGINE_LIBRARY = enginePath;
 
 if (process.env.NCI_RECOVER_NCI074 === "1") {
   if (!fs.existsSync(nci074RecoveryPath)) {
