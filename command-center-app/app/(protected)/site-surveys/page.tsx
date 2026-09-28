@@ -1,3 +1,4 @@
+import Link from "next/link";
 import { Camera, ClipboardCheck, MapPinned, Radio, ShieldCheck, Wifi } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
@@ -31,9 +32,32 @@ export default async function SiteSurveysPage({ searchParams }: Props) {
         listSurveyAssignments({ role: user.role, organizationId: tenantOrganizationId }, selectedOrganizationId),
         prisma.projectInstallation.findMany({ where: { organizationId: selectedOrganizationId }, select: { id: true, name: true }, orderBy: { updatedAt: "desc" } }),
         prisma.site.findMany({ where: { organizationId: selectedOrganizationId }, select: { id: true, name: true }, orderBy: { name: "asc" } }),
-        prisma.user.findMany({ where: { organizationId: selectedOrganizationId }, select: { id: true, name: true, email: true }, orderBy: { name: "asc" } }),
+        prisma.$queryRaw<Array<{ id: string; name: string | null; email: string; profileName: string }>>`
+          SELECT u.id, u.name, u.email, t.displayName AS profileName
+          FROM FieldTechnicianProfile t
+          JOIN User u ON u.organizationId=t.organizationId
+            AND (u.id=t.userId OR (t.email IS NOT NULL AND LOWER(u.email)=LOWER(t.email)))
+          WHERE t.organizationId=${selectedOrganizationId}
+            AND t.status='ACTIVE' AND t.employmentStatus='ACTIVE'
+          ORDER BY t.displayName ASC
+        `,
       ])
     : [[], [], [], []];
+
+  const activeSessions = selectedOrganizationId
+    ? await prisma.$queryRaw<Array<{ assignmentId: string; sessionId: string }>>`
+        SELECT ss.assignmentId, ss.id AS sessionId
+        FROM SurveySession ss
+        JOIN (
+          SELECT assignmentId, MAX(createdAt) AS latestCreatedAt
+          FROM SurveySession
+          WHERE organizationId=${selectedOrganizationId}
+          GROUP BY assignmentId
+        ) latest ON latest.assignmentId=ss.assignmentId AND latest.latestCreatedAt=ss.createdAt
+        WHERE ss.organizationId=${selectedOrganizationId} AND ss.status='IN_PROGRESS'
+      `
+    : [];
+  const sessionByAssignment = new Map(activeSessions.map((session) => [session.assignmentId, session.sessionId]));
 
   return <div className="space-y-6">
     <div className="space-y-2">
@@ -52,14 +76,14 @@ export default async function SiteSurveysPage({ searchParams }: Props) {
 
     {selectedOrganizationId ? <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_minmax(380px,0.8fr)]">
       <Card><CardHeader><CardTitle>Survey assignments</CardTitle><CardDescription>{assignments.length} survey assignment{assignments.length===1?"":"s"}.</CardDescription></CardHeader><CardContent className="space-y-3">
-        {assignments.length===0 ? <div className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">No site surveys assigned yet.</div> : assignments.map(a=><div key={a.id} className="rounded-2xl border p-4"><div className="flex items-start justify-between gap-3"><div><h2 className="font-semibold">{a.title}</h2><p className="mt-1 text-sm text-muted-foreground">{a.projectName} · {a.siteName}</p><p className="mt-2 text-xs text-muted-foreground">{(JSON.parse(a.disciplinesJson) as string[]).map(d=>labels[d as keyof typeof labels]??d).join(" + ")}</p></div><span className="text-sm font-medium">{a.status}</span></div>{a.status==="ASSIGNED" ? <form action={startSurveySessionAction} className="mt-3"><input type="hidden" name="organizationId" value={selectedOrganizationId}/><input type="hidden" name="assignmentId" value={a.id}/><Button type="submit" size="sm">Start survey</Button></form>:null}</div>)}
+        {assignments.length===0 ? <div className="rounded-2xl border border-dashed p-6 text-sm text-muted-foreground">No site surveys assigned yet.</div> : assignments.map(a=>{const sessionId=sessionByAssignment.get(a.id);return <div key={a.id} className="rounded-2xl border p-4"><div className="flex flex-wrap items-start justify-between gap-3"><div className="min-w-0"><h2 className="font-semibold">{a.title}</h2><p className="mt-1 break-words text-sm text-muted-foreground">{a.projectName} · {a.siteName}</p><p className="mt-2 text-xs text-muted-foreground">{(JSON.parse(a.disciplinesJson) as string[]).map(d=>labels[d as keyof typeof labels]??d).join(" + ")}</p>{a.technicianName?<p className="mt-2 text-xs text-muted-foreground">Assigned technician: {a.technicianName}</p>:null}</div><span className="shrink-0 rounded-full border px-2.5 py-1 text-xs font-medium">{a.status}</span></div><div className="mt-3 flex flex-wrap gap-2">{a.status==="ASSIGNED" ? <form action={startSurveySessionAction}><input type="hidden" name="organizationId" value={selectedOrganizationId}/><input type="hidden" name="assignmentId" value={a.id}/><Button type="submit" size="sm">Start survey</Button></form>:null}{a.status==="IN_PROGRESS"&&sessionId?<Button asChild size="sm"><Link href={`/site-surveys/${sessionId}?organizationId=${encodeURIComponent(selectedOrganizationId)}`}>Continue survey</Link></Button>:null}</div></div>})}
       </CardContent></Card>
 
       <Card><CardHeader><CardTitle>Create survey assignment</CardTitle><CardDescription>Select one or multiple systems for the same visit.</CardDescription></CardHeader><CardContent><form action={createSurveyAssignmentAction} className="space-y-4"><input type="hidden" name="organizationId" value={selectedOrganizationId}/>
         <div className="space-y-2"><Label>Survey title</Label><Input name="title" placeholder="Warehouse CCTV + Network Survey" required/></div>
         <div className="space-y-2"><Label>Project</Label><Select name="projectInstallationId" required><option value="">Select project</option>{projects.map(p=><option key={p.id} value={p.id}>{p.name}</option>)}</Select></div>
         <div className="space-y-2"><Label>Site</Label><Select name="siteId" required><option value="">Select site</option>{sites.map(s=><option key={s.id} value={s.id}>{s.name}</option>)}</Select></div>
-        <div className="space-y-2"><Label>Assigned technician</Label><Select name="assignedToUserId"><option value="">Unassigned</option>{technicians.map(t=><option key={t.id} value={t.id}>{t.name??t.email}</option>)}</Select></div>
+        <div className="space-y-2"><Label>Assigned technician</Label><Select name="assignedToUserId"><option value="">Unassigned</option>{technicians.map(t=><option key={t.id} value={t.id}>{t.profileName}{t.email?` · ${t.email}`:""}</option>)}</Select></div>
         <fieldset className="space-y-2"><Label>Disciplines</Label><div className="grid gap-2 sm:grid-cols-2">{SURVEY_DISCIPLINES.map(d=><label key={d} className="flex items-center gap-2 rounded-xl border p-3 text-sm"><input type="checkbox" name="disciplines" value={d}/>{d==="CCTV"?<Camera className="h-4 w-4"/>:d==="NETWORK"?<Wifi className="h-4 w-4"/>:d==="RADIO_WIRELESS"?<Radio className="h-4 w-4"/>:<ShieldCheck className="h-4 w-4"/>}{labels[d]}</label>)}</div></fieldset>
         <div className="space-y-2"><Label>Technician instructions</Label><Input name="instructions" placeholder="Meet site contact at loading dock..."/></div>
         <Button type="submit" className="w-full">Assign site survey</Button>
