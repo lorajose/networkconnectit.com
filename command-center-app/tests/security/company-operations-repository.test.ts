@@ -65,7 +65,7 @@ test("invalid inputs fail before any write and zero hourly rate is persisted", a
   await assert.rejects(() => api.createTimeEntry(admin, { technicianProfileId: "t", workDate: "2026-09-24", regularHours: 23, overtimeHours: 2 }));
   await assert.rejects(() => api.createTechnician(admin, { displayName: "Test", workerType: "W2" }), /Organization is required/);
   assert.equal(queries.length, 0);
-  await api.createTechnician(admin, { organizationId: "org", displayName: "Test", workerType: "W2", hourlyPayRate: 0 });
+  await api.createTechnician(admin, { organizationId: "org", displayName: "Test", workerType: "W2", externalTechnicianId: "SEC-TECH-001", hourlyPayRate: 0 });
   assert.equal(queries.filter(query => query.sql.includes("INSERT INTO FieldTechnicianProfile")).length, 1);
   assert.ok(queries.find(query => query.sql.includes("INSERT INTO FieldTechnicianProfile"))!.values.includes(0));
 });
