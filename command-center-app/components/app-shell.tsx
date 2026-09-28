@@ -33,8 +33,8 @@ export function AppShell({ user, children }: AppShellProps) {
       <div className="pointer-events-none absolute inset-x-0 top-0 h-[420px] bg-[radial-gradient(circle_at_top,_rgba(56,189,248,0.18),_transparent_58%)]" />
       <div className="relative mx-auto max-w-[1600px] p-4 sm:p-6">
         <div className="grid min-w-0 gap-6 xl:grid-cols-[296px_minmax(0,1fr)]">
-          <aside className="min-w-0 xl:sticky xl:top-6 xl:h-[calc(100vh-3rem)] xl:overflow-y-auto xl:overscroll-contain xl:pr-1">
-            <div className="flex min-h-full flex-col gap-4">
+          <aside className="min-w-0 xl:sticky xl:top-6 xl:max-h-[calc(100dvh-3rem)] xl:overflow-y-scroll xl:overscroll-contain xl:pr-2 [scrollbar-gutter:stable]">
+            <div className="flex min-h-0 flex-col gap-4">
               <Card className="command-surface shrink-0 border-sky-400/15">
                 <CardContent className="space-y-5 p-5">
                   <div className="flex items-start justify-between gap-4">
@@ -56,7 +56,7 @@ export function AppShell({ user, children }: AppShellProps) {
                 </CardContent>
               </Card>
 
-              <Card className="min-h-0 flex-1 border-border/80 bg-card/70">
+              <Card className="shrink-0 border-border/80 bg-card/70">
                 <CardContent className="h-full p-4">
                   <SidebarNav role={user.role} />
                 </CardContent>

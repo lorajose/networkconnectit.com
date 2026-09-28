@@ -112,7 +112,10 @@ export default async function OperationsPage({ searchParams = {} }: Props) {
         <h3 className="font-semibold">Technicians / Team</h3><input type="hidden" name="organizationId" value={organizationId} />
         <input className={field} name="displayName" placeholder="Technician name" required />
         <div className="grid gap-3 sm:grid-cols-2"><select className={field} name="workerType"><option value="1099">1099 contractor</option><option value="W2">W-2 employee</option></select><input className={field} name="hourlyPayRate" type="number" min="0" step="0.01" placeholder="Pay rate / hour" /></div>
-        <input className={field} name="email" type="email" placeholder="Email (optional)" /><button className={button}>Add technician</button>
+        <input className={field} name="email" type="email" placeholder="Email" />
+        <div className="grid gap-3 sm:grid-cols-2"><input className={field} name="externalTechnicianId" placeholder="Technician / employee ID" /><input className={field} name="licenseNumber" placeholder="Professional license number" /></div>
+        <p className="text-xs text-muted-foreground">Provide at least one verification key: email, technician ID, or license number. Existing matches are blocked to prevent duplicate technician profiles. Do not enter SSNs.</p>
+        <button className={button}>Verify & add technician</button>
       </form>
 
       <form action={createScheduleAction} className="space-y-3 rounded-2xl border p-4">

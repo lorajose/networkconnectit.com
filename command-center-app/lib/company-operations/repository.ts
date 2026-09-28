@@ -304,20 +304,48 @@ export async function getPayPeriodSummary(actor: OperationsActor, input: {
 
 export async function createTechnician(actor: OperationsActor, input: {
   organizationId?: string; displayName: string; workerType: string; email?: string; hourlyPayRate?: number;
+  externalTechnicianId?: string; licenseNumber?: string;
 }) {
   const organizationId = scopedOrganizationId(actor, input.organizationId);
   if (input.hourlyPayRate !== undefined) requireSensitiveOperationsFinancials(actor);
   input.displayName = requiredText(input.displayName, "Technician name", 191);
   choice(input.workerType, ["1099", "W2"], "worker type");
   const email = optionalEmail(input.email);
+  const externalTechnicianId = input.externalTechnicianId?.trim() || null;
+  const licenseNumber = input.licenseNumber?.trim() || null;
+  if (externalTechnicianId && externalTechnicianId.length > 128) throw new Error("Technician ID is too long.");
+  if (licenseNumber && licenseNumber.length > 128) throw new Error("License number is too long.");
+  if (!email && !externalTechnicianId && !licenseNumber) {
+    throw new Error("Provide an email, technician ID, or license number to verify the technician and prevent duplicates.");
+  }
   if (input.hourlyPayRate !== undefined) nonNegativeDecimal(input.hourlyPayRate, "Hourly rate", 9999999999.99);
+
+  const duplicates = await prisma.$queryRaw<Array<{ id: string; displayName: string }>>(Prisma.sql`
+    SELECT id, displayName FROM FieldTechnicianProfile
+    WHERE organizationId = ${organizationId}
+      AND (
+        (${email} IS NOT NULL AND LOWER(email) = LOWER(${email}))
+        OR (${externalTechnicianId} IS NOT NULL AND externalTechnicianId = ${externalTechnicianId})
+        OR (${licenseNumber} IS NOT NULL AND licenseNumber = ${licenseNumber})
+      )
+    LIMIT 1
+  `);
+  if (duplicates[0]) throw new Error(`Technician already exists: ${duplicates[0].displayName}. Verify the existing profile instead of creating a duplicate.`);
+
+  const linkedUsers = email ? await prisma.$queryRaw<Array<{ id: string }>>(Prisma.sql`
+    SELECT id FROM User WHERE organizationId = ${organizationId} AND LOWER(email) = LOWER(${email}) LIMIT 1
+  `) : [];
   const id = randomUUID();
+  const userId = linkedUsers[0]?.id ?? "ops:" + id;
   await prisma.$executeRaw(Prisma.sql`
     INSERT INTO FieldTechnicianProfile
-      (id, organizationId, userId, displayName, status, workerType, email, hourlyPayRate, availabilityStatus, createdAt, updatedAt)
+      (id, organizationId, userId, displayName, status, workerType, email, externalTechnicianId, licenseNumber, hourlyPayRate, availabilityStatus, createdAt, updatedAt)
     VALUES
-      (${id}, ${organizationId}, ${"ops:" + id}, ${input.displayName}, 'ACTIVE', ${input.workerType}, ${email}, ${input.hourlyPayRate ?? null}, 'AVAILABLE', NOW(3), NOW(3))`);
-  await appendOperationsAuditEvent(organizationId, actor.id, "TECHNICIAN_CREATED", "TECHNICIAN", id, { workerType: input.workerType, hasPayRate: input.hourlyPayRate !== undefined });
+      (${id}, ${organizationId}, ${userId}, ${input.displayName}, 'ACTIVE', ${input.workerType}, ${email}, ${externalTechnicianId}, ${licenseNumber}, ${input.hourlyPayRate ?? null}, 'AVAILABLE', NOW(3), NOW(3))`);
+  await appendOperationsAuditEvent(organizationId, actor.id, "TECHNICIAN_CREATED", "TECHNICIAN", id, {
+    workerType: input.workerType, hasPayRate: input.hourlyPayRate !== undefined,
+    hasExternalTechnicianId: Boolean(externalTechnicianId), hasLicenseNumber: Boolean(licenseNumber), linkedToUser: Boolean(linkedUsers[0])
+  });
   return id;
 }
 
