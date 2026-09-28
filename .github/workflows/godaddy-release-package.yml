@@ -1,0 +1,99 @@
+name: GoDaddy Release Package
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  package:
+    runs-on: ubuntu-latest
+    defaults:
+      run:
+        working-directory: command-center-app
+    env:
+      DATABASE_URL: mysql://release_user:release_password@127.0.0.1:3306/release_build
+      NEXTAUTH_SECRET: release-build-only-not-production
+      NEXTAUTH_URL: https://command.networkconnectit.com/api/auth
+      NEXT_PUBLIC_APP_BASE_PATH: ''
+      PRISMA_CLI_BINARY_TARGETS: linux-musl-openssl-3.0.x
+    steps:
+      - name: Checkout exact revision
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+          cache-dependency-path: command-center-app/package-lock.json
+
+      - name: Install dependencies
+        run: npm ci
+
+      - name: Verify release source
+        run: npm run verify:ci
+
+      - name: Verify release runtime inputs
+        shell: bash
+        run: |
+          set -euo pipefail
+          test -f .next/server/middleware-manifest.json
+          test -f .next/standalone/prisma-engine/libquery_engine-linux-musl-openssl-3.0.x.so.node
+          test -f node_modules/@prisma/engines/schema-engine-linux-musl-openssl-3.0.x
+          test -f node_modules/next/dist/bin/next
+          test -f scripts/start-godaddy.mjs
+
+      - name: Assemble source package
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -rf ../godaddy-release
+          mkdir -p ../godaddy-release
+          rsync -a ./ ../godaddy-release/ \
+            --exclude node_modules \
+            --exclude .next \
+            --exclude '.env*' \
+            --exclude '.git*' \
+            --exclude '.security-test-build' \
+            --exclude '*.log'
+          printf '%s\n' "${GITHUB_SHA}" > ../godaddy-release/RELEASE_SHA.txt
+
+      - name: Validate package contents
+        shell: bash
+        working-directory: .
+        run: |
+          set -euo pipefail
+          test -f godaddy-release/package.json
+          test -f godaddy-release/package-lock.json
+          test -f godaddy-release/scripts/start-godaddy.mjs
+          test -f godaddy-release/prisma/schema.prisma
+          test -f godaddy-release/RELEASE_SHA.txt
+          test "$(cat godaddy-release/RELEASE_SHA.txt)" = "$GITHUB_SHA"
+          ! find godaddy-release -type f -name '.env*' -print -quit | grep -q .
+          ! test -d godaddy-release/node_modules
+          ! test -d godaddy-release/.next
+
+      - name: Create deterministic release ZIP and checksums
+        shell: bash
+        working-directory: .
+        run: |
+          set -euo pipefail
+          find godaddy-release -exec touch -t 202001010000 {} +
+          (
+            cd godaddy-release
+            find . -type f -print0 | sort -z | xargs -0 zip -X -q "../networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip"
+          )
+          sha256sum "networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip" > "networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip.sha256"
+          cat "networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip.sha256"
+
+      - name: Upload release package
+        uses: actions/upload-artifact@v4
+        with:
+          name: godaddy-release-${{ github.sha }}
+          path: |
+            networkconnectit-command-center-godaddy-${{ github.sha }}.zip
+            networkconnectit-command-center-godaddy-${{ github.sha }}.zip.sha256
+          if-no-files-found: error
+          retention-days: 14
