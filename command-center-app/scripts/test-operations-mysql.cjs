@@ -41,7 +41,8 @@ async function main() {
     'prisma/migrations/20260925010000_nci079_material_usage/migration.sql',
     'prisma/migrations/20260925130000_nci076_schedule_timezone/migration.sql',
     'prisma/migrations/20260925143000_nci082_operations_settings_audit/migration.sql',
-    'prisma/migrations/20260925160000_nci075_technician_lifecycle/migration.sql'
+    'prisma/migrations/20260925160000_nci075_technician_lifecycle/migration.sql',
+    'prisma/migrations/20260928015000_technician_identity_dedup/migration.sql'
   ]) {
     const migration = fs.readFileSync(migrationPath, 'utf8');
     for (const sql of migration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
@@ -59,7 +60,7 @@ async function main() {
   const other = { id: 'admin-b', role: 'CLIENT_ADMIN', organizationId: 'b' };
   const internalActor = { id: 'internal-a', role: 'INTERNAL_ADMIN', organizationId: null };
   await assert.rejects(() => repo.createTechnician(actor, { displayName: 'Blocked pay technician', workerType: 'W2', hourlyPayRate: 25 }), /sensitive operations financial/i);
-  const technician = await repo.createTechnician(internalActor, { organizationId: 'a', displayName: 'QA technician', workerType: 'W2', hourlyPayRate: 0 });
+  const technician = await repo.createTechnician(internalActor, { organizationId: 'a', displayName: 'QA technician', workerType: 'W2', externalTechnicianId: 'CI-TECH-001', hourlyPayRate: 0 });
   await repo.updateTechnicianProfile(actor, {
     technicianProfileId: technician,
     skills: ['CAT6', 'CCTV'],
