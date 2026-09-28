@@ -1,13 +1,13 @@
 import fs from "node:fs";
 import path from "node:path";
 import { spawnSync } from "node:child_process";
-import { pathToFileURL } from "node:url";
 
 const engineName = "libquery_engine-linux-musl-openssl-3.0.x.so.node";
 const schemaEngineName = "schema-engine-linux-musl-openssl-3.0.x";
 const enginePath = path.join(process.cwd(), ".next", "standalone", "prisma-engine", engineName);
 const schemaEnginePath = path.join(process.cwd(), "node_modules", "@prisma", "engines", schemaEngineName);
-const serverPath = path.join(process.cwd(), ".next", "standalone", "server.js");
+const nextCliPath = path.join(process.cwd(), "node_modules", "next", "dist", "bin", "next");
+const nextBuildManifestPath = path.join(process.cwd(), ".next", "server", "middleware-manifest.json");
 const prismaCliPath = path.join(process.cwd(), "node_modules", "prisma", "build", "index.js");
 const nci049RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci049-godaddy.mjs");
 const nci074RecoveryPath = path.join(process.cwd(), "scripts", "recover-nci074-godaddy.mjs");
@@ -71,8 +71,13 @@ if (!fs.existsSync(schemaEnginePath)) {
   process.exit(1);
 }
 
-if (!fs.existsSync(serverPath)) {
-  console.error(`Next standalone server not found: ${serverPath}`);
+if (!fs.existsSync(nextCliPath)) {
+  console.error(`Next.js CLI not found: ${nextCliPath}`);
+  process.exit(1);
+}
+
+if (!fs.existsSync(nextBuildManifestPath)) {
+  console.error(`Next.js build manifest not found: ${nextBuildManifestPath}`);
   process.exit(1);
 }
 
@@ -179,9 +184,25 @@ if (migrationResult.status !== 0) {
 
 console.log("Prisma migrations are up to date.");
 
-process.env.HOSTNAME = "0.0.0.0";
+const hostname = "0.0.0.0";
+const port = process.env.PORT ?? "3000";
 
 console.log(`Using Prisma query engine: ${enginePath}`);
-console.log(`Binding Next.js standalone server to ${process.env.HOSTNAME}:${process.env.PORT ?? "3000"}`);
+console.log(`Starting Next.js production server from .next on ${hostname}:${port}`);
 
-await import(pathToFileURL(serverPath).href);
+const nextResult = spawnSync(
+  process.execPath,
+  [nextCliPath, "start", "-H", hostname, "-p", port],
+  {
+    cwd: process.cwd(),
+    env: process.env,
+    stdio: "inherit"
+  }
+);
+
+if (nextResult.error) {
+  console.error(`Next.js production server failed to start: ${nextResult.error.message}`);
+  process.exit(1);
+}
+
+process.exit(nextResult.status ?? 0);
