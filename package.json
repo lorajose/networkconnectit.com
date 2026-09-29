@@ -6,7 +6,7 @@
   "scripts": {
     "postinstall": "npm --prefix command-center-app install",
     "build": "npm --prefix command-center-app run build",
-    "dev": "npm --prefix command-center-app run dev",
+    "dev": "npm run build && npm run start",
     "start": "npm --prefix command-center-app run start"
   }
 }
