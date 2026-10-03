@@ -19,7 +19,14 @@ function parseDisciplines(json: string): SurveyDiscipline[] {
   try { return JSON.parse(json) as SurveyDiscipline[]; } catch { return []; }
 }
 
-export type FieldScopeSurveyWorkspace = {\n  session: { id: string };\n  assignment: { disciplinesJson: string; projectInstallationId: string; siteId: string };\n  areas: Array<{ id: string; name: string }>;\n  points: Array<{ id: string; areaId: string | null; discipline: string; pointType: string; lifecycle: string; label: string | null; notes: string | null }>;\n};\n\nexport type SurveyFieldScopeSeed = {
+export type FieldScopeSurveyWorkspace = {
+  session: { id: string };
+  assignment: { disciplinesJson: string; projectInstallationId: string; siteId: string };
+  areas: Array<{ id: string; name: string }>;
+  points: Array<{ id: string; areaId: string | null; discipline: string; pointType: string; lifecycle: string; label: string | null; notes: string | null }>;
+};
+
+export type SurveyFieldScopeSeed = {
   surveyPointId: string;
   draft: FieldScopeDraft;
 };
