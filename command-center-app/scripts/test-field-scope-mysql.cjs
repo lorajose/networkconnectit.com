@@ -36,11 +36,17 @@ async function main(){
   await repo.applyApprovedFieldScopeTakeoff(actor,{organizationId:'a',workspaceId:'w-a',handoff});
   const rows=await prisma.$queryRawUnsafe(`SELECT itemCode,source FROM TakeoffItem WHERE takeoffWorkspaceId='w-a' ORDER BY itemCode`);
   assert.deepEqual(rows.map(r=>[r.itemCode,r.source]),[['CAM-001','AI_SUGGESTED'],['CAM-OTHER','AI_SUGGESTED'],['MAN-1','MANUAL']]);
+  // Prove replacement is atomic: force the replacement insert to fail after the prior
+  // handoff rows have been selected/deleted inside the transaction, then verify rollback.
+  const failingHandoff={...handoff,items:[handoff.items[0],{...handoff.items[0],description:'Duplicate item code forces rollback'}]};
+  await assert.rejects(()=>repo.applyApprovedFieldScopeTakeoff(actor,{organizationId:'a',workspaceId:'w-a',handoff:failingHandoff}));
+  const afterRollback=await prisma.$queryRawUnsafe(`SELECT itemCode,source FROM TakeoffItem WHERE takeoffWorkspaceId='w-a' ORDER BY itemCode`);
+  assert.deepEqual(afterRollback.map(r=>[r.itemCode,r.source]),[['CAM-001','AI_SUGGESTED'],['CAM-OTHER','AI_SUGGESTED'],['MAN-1','MANUAL']]);
   const bom=await prisma.$queryRawUnsafe(`SELECT COUNT(*) total FROM TakeoffBomItem WHERE takeoffWorkspaceId='w-a'`);
   assert.equal(Number(bom[0].total),1);
   await assert.rejects(()=>repo.applyApprovedFieldScopeTakeoff(other,{organizationId:'b',workspaceId:'w-a',handoff}),/Takeoff workspace not found/);
   const foreign=await prisma.$queryRawUnsafe(`SELECT COUNT(*) total FROM TakeoffItem WHERE takeoffWorkspaceId='w-b'`);
   assert.equal(Number(foreign[0].total),0);
-  console.log('PASS NCI-011 MySQL: idempotent Field Scope apply, unrelated AI/manual preservation and tenant isolation.');
+  console.log('PASS NCI-011 MySQL: idempotent Field Scope apply, transaction rollback, unrelated AI/manual preservation and tenant isolation.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>prisma.$disconnect());
