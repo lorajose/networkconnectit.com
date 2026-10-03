@@ -42,10 +42,10 @@ export function seedFieldScopeFromSurvey(workspace: FieldScopeSurveyWorkspace): 
   return workspace.points
     .filter((point) => point.lifecycle === "PROPOSED")
     .filter((point) => disciplines.has(point.discipline as SurveyDiscipline))
-    .map((point, index) => {
+    .map((point) => {
       const discipline = point.discipline as SurveyDiscipline;
       const location = point.areaId ? areaById.get(point.areaId) ?? null : null;
-      const stableKey = point.label?.trim() || `${point.pointType}-${String(index + 1).padStart(3, "0")}`;
+      const stableKey = point.label?.trim() || `SURVEY-${point.id}`;
       const note = point.notes?.trim() || null;
 
       return {
