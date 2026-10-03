@@ -107,3 +107,5 @@ jobs:
       - run: npm ci
       - name: Verify real MySQL operations lifecycle, concurrency and profitability
         run: node scripts/test-operations-mysql.cjs
+      - name: Verify Field Scope to Takeoff/BOM idempotency and tenant isolation
+        run: node scripts/test-field-scope-mysql.cjs
