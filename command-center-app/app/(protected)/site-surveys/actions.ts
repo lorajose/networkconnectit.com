@@ -161,16 +161,13 @@ export async function applyFieldScopeReviewToTakeoffAction(formData:FormData){
  for(const seed of seeds){
   const suffix=seed.surveyPointId;if(formData.get(`approve:${suffix}`)!=="on")continue;
   const environment=optional(`environment:${suffix}`),accessEquipment=optional(`accessEquipment:${suffix}`);
-  const patch:FieldScopeReviewPatch={
-   deviceType:optional(`deviceType:${suffix}`)??seed.draft.deviceType.value,
-   location:optional(`location:${suffix}`)??seed.draft.location.value,
-   quantity:numeric(`quantity:${suffix}`)??seed.draft.quantity.value,
-   mountingHeightFt:numeric(`mountingHeightFt:${suffix}`),mountingSurface:optional(`mountingSurface:${suffix}`),
-   cableType:optional(`cableType:${suffix}`),estimatedCableLengthFt:numeric(`estimatedCableLengthFt:${suffix}`),
-   pathway:optional(`pathway:${suffix}`),destination:optional(`destination:${suffix}`),
-   environment:environment&&["INDOOR","OUTDOOR","UNKNOWN"].includes(environment)?environment as "INDOOR"|"OUTDOOR"|"UNKNOWN":null,
-   accessEquipment:accessEquipment&&["NONE","LADDER","LIFT","UNKNOWN"].includes(accessEquipment)?accessEquipment as "NONE"|"LADDER"|"LIFT"|"UNKNOWN":null,
-  };
+  const patch:FieldScopeReviewPatch={};
+  const deviceType=optional(`deviceType:${suffix}`),location=optional(`location:${suffix}`),quantity=numeric(`quantity:${suffix}`);
+  const mountingHeightFt=numeric(`mountingHeightFt:${suffix}`),mountingSurface=optional(`mountingSurface:${suffix}`),cableType=optional(`cableType:${suffix}`),estimatedCableLengthFt=numeric(`estimatedCableLengthFt:${suffix}`),pathway=optional(`pathway:${suffix}`),destination=optional(`destination:${suffix}`);
+  if(deviceType!==null)patch.deviceType=deviceType;if(location!==null)patch.location=location;if(quantity!==null)patch.quantity=quantity;
+  if(mountingHeightFt!==null)patch.mountingHeightFt=mountingHeightFt;if(mountingSurface!==null)patch.mountingSurface=mountingSurface;if(cableType!==null)patch.cableType=cableType;if(estimatedCableLengthFt!==null)patch.estimatedCableLengthFt=estimatedCableLengthFt;if(pathway!==null)patch.pathway=pathway;if(destination!==null)patch.destination=destination;
+  if(environment&&["INDOOR","OUTDOOR","UNKNOWN"].includes(environment))patch.environment=environment as "INDOOR"|"OUTDOOR"|"UNKNOWN";
+  if(accessEquipment&&["NONE","LADDER","LIFT","UNKNOWN"].includes(accessEquipment))patch.accessEquipment=accessEquipment as "NONE"|"LADDER"|"LIFT"|"UNKNOWN";
   const reviewedScope=reviewFieldScopeDraft(seed.draft,patch,{userId:user.id,reviewedAt});reviewed.push(reviewedScope);approvedStableKeys.push(reviewedScope.stableKey);
  }
  if(!reviewed.length)throw new Error("Select at least one Field Scope item to approve");
