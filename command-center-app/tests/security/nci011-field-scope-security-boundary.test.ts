@@ -6,10 +6,10 @@ import { routeAccess } from "../../lib/rbac";
 import { seedFieldScopeFromSurvey, type FieldScopeSurveyWorkspace } from "../../lib/contractor-os/site-survey-field-scope-handoff";
 
 const workspace: FieldScopeSurveyWorkspace = {
-  session:{id:"ss-a",organizationId:"org-a"},
+  session:{id:"ss-a"},
   assignment:{disciplinesJson:JSON.stringify(["CCTV"]),projectInstallationId:"project-a",siteId:"site-a"},
   areas:[{id:"area-a",name:"West Entrance"}],
-  points:[{id:"sp-a",areaId:"area-a",assetId:null,discipline:"CCTV",pointType:"CAMERA",lifecycle:"PROPOSED",label:"CAM-001",notes:"Observed field note"}],
+  points:[{id:"sp-a",areaId:"area-a",discipline:"CCTV",pointType:"CAMERA",lifecycle:"PROPOSED",label:"CAM-001",notes:"Observed field note"}],
 };
 
 test("Field Scope commercial route excludes VIEWER and field-only roles",()=>{
