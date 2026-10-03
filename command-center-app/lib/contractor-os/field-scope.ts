@@ -93,6 +93,29 @@ export function validateFieldScopeDraft(draft: FieldScopeDraft) {
   return draft;
 }
 
+export function reviewFieldScopeDraft(draft: FieldScopeDraft, patch: FieldScopeReviewPatch, reviewer: { userId: string; reviewedAt: string }): ReviewedFieldScope {
+  validateFieldScopeDraft(draft);
+  if (!reviewer.userId.trim()) throw new Error("Reviewer is required");
+  if (!reviewer.reviewedAt.trim() || Number.isNaN(Date.parse(reviewer.reviewedAt))) throw new Error("Valid review timestamp is required");
+
+  const next = structuredClone(draft);
+  const valueKeys = ["deviceType","location","environment","quantity","mountingHeightFt","mountingSurface","cableType","estimatedCableLengthFt","pathway","destination","accessEquipment"] as const;
+  for (const key of valueKeys) {
+    if (Object.prototype.hasOwnProperty.call(patch, key)) {
+      (next[key] as FieldScopeValue<unknown>) = { ...next[key], value: patch[key] as never, confidence: "HIGH", assumption: null };
+    }
+  }
+  for (const key of ["requestedAccessories","suggestedAccessories","laborDrivers","assumptions","exclusions"] as const) {
+    if (patch[key]) next[key] = [...patch[key]!];
+  }
+  next.missingInformation = draft.missingInformation.filter((key) => {
+    const reviewKey = key as keyof FieldScopeReviewPatch;
+    return !(Object.prototype.hasOwnProperty.call(patch, reviewKey) && patch[reviewKey] != null);
+  });
+  validateFieldScopeDraft(next);
+  return { ...next, reviewedByUserId: reviewer.userId, reviewedAt: reviewer.reviewedAt };
+}
+
 /**
  * Creates editable AI-suggested takeoff inputs only.
  * This contract deliberately does not assign unit cost, sell price, markup or margin.
