@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { seedFieldScopeFromSurvey } from "../../lib/contractor-os/site-survey-field-scope-handoff";
-import type { SurveySessionWorkspace } from "../../lib/contractor-os/site-survey-repository";
+import type { FieldScopeSurveyWorkspace } from "../../lib/contractor-os/site-survey-field-scope-handoff";
 
 const workspace = {
   session: { id: "survey-1", organizationId: "org-1" },
@@ -25,7 +25,7 @@ const workspace = {
     notes: "Exterior brick wall",
     createdAt: new Date(),
   }],
-} as unknown as SurveySessionWorkspace;
+} as unknown as FieldScopeSurveyWorkspace;
 
 test("NCI-013 proposed survey points seed Field Scope without inventing unknowns", () => {
   const seeds = seedFieldScopeFromSurvey(workspace);
@@ -45,6 +45,6 @@ test("existing survey points are not converted into proposed commercial scope", 
   const existing = {
     ...workspace,
     points: [{ ...workspace.points[0], lifecycle: "EXISTING" }],
-  } as SurveySessionWorkspace;
+  } as FieldScopeSurveyWorkspace;
   assert.equal(seedFieldScopeFromSurvey(existing).length, 0);
 });
