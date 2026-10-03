@@ -15,6 +15,11 @@ import { handoffSurveyToDesignStudio } from "@/lib/contractor-os/site-survey-des
 import { assignWorkOrderTechnician, closeWorkOrder, createPunchListItem, generateCloseoutPackageManifest, persistWorkOrderEvidence, recordFinalAcceptance, resolvePunchListItem, recordCustomerFloorPlanDecision, submitFloorPlanForCustomerApproval, updateWorkOrderItem } from "@/lib/contractor-os/project-approval-work-order";
 import { saveWorkOrderFloorCloseout, updateCableRunExecution } from "@/lib/contractor-os/cable-run-execution";
 import { saveWorkOrderCloseoutRequirement } from "@/lib/contractor-os/closeout-requirements";
+import { getSurveySessionWorkspace } from "@/lib/contractor-os/site-survey-repository";
+import { seedFieldScopeFromSurvey } from "@/lib/contractor-os/site-survey-field-scope-handoff";
+import { reviewFieldScopeDraft, type FieldScopeReviewPatch } from "@/lib/contractor-os/field-scope";
+import { approveFieldScopeForTakeoff } from "@/lib/contractor-os/field-scope-takeoff-handoff";
+import { applyApprovedFieldScopeTakeoff } from "@/lib/contractor-os/field-scope-takeoff-repository";
 
 function value(formData: FormData, key: string) {
   const item = formData.get(key);
@@ -143,6 +148,36 @@ export async function linkSurveyPhotoToAreaAction(formData:FormData){
   await allowSurveyFieldAction(user,organizationId,value(formData,"sessionId"));
  await linkSurveyPhotoToArea({id:user.id,role:user.role,organizationId:user.organizationId},{organizationId,sessionId:value(formData,"sessionId"),areaId:value(formData,"areaId"),assetId:value(formData,"assetId"),viewLabel:value(formData,"viewLabel")||null,userId:user.id});
  revalidatePath(`/site-surveys/${value(formData,"sessionId")}`);
+}
+
+
+export async function applyFieldScopeReviewToTakeoffAction(formData:FormData){
+ const user=await requireRoles(routeAccess.takeoffs);
+ const organizationId=surveyOrganization(user,value(formData,"organizationId"));if(!organizationId)throw new Error("Organization context is required");
+ const sessionId=value(formData,"sessionId"),workspaceId=value(formData,"workspaceId");if(!sessionId||!workspaceId)throw new Error("Survey session and Takeoff workspace are required");
+ const workspace=await getSurveySessionWorkspace({role:user.role,organizationId:user.organizationId},sessionId,organizationId);if(!workspace)throw new Error("Survey session not found");
+ const seeds=seedFieldScopeFromSurvey(workspace);const reviewed=[];const approvedStableKeys:string[]=[];const reviewedAt=new Date().toISOString();
+ const optional=(key:string)=>{const raw=value(formData,key);return raw||null;};const numeric=(key:string)=>{const raw=value(formData,key);if(!raw)return null;const parsed=Number(raw);if(!Number.isFinite(parsed))throw new Error(`Invalid numeric Field Scope value for ${key}`);return parsed;};
+ for(const seed of seeds){
+  const suffix=seed.surveyPointId;if(formData.get(`approve:${suffix}`)!=="on")continue;
+  const environment=optional(`environment:${suffix}`),accessEquipment=optional(`accessEquipment:${suffix}`);
+  const patch:FieldScopeReviewPatch={
+   deviceType:optional(`deviceType:${suffix}`)??seed.draft.deviceType.value,
+   location:optional(`location:${suffix}`)??seed.draft.location.value,
+   quantity:numeric(`quantity:${suffix}`)??seed.draft.quantity.value,
+   mountingHeightFt:numeric(`mountingHeightFt:${suffix}`),mountingSurface:optional(`mountingSurface:${suffix}`),
+   cableType:optional(`cableType:${suffix}`),estimatedCableLengthFt:numeric(`estimatedCableLengthFt:${suffix}`),
+   pathway:optional(`pathway:${suffix}`),destination:optional(`destination:${suffix}`),
+   environment:environment&&["INDOOR","OUTDOOR","UNKNOWN"].includes(environment)?environment as "INDOOR"|"OUTDOOR"|"UNKNOWN":null,
+   accessEquipment:accessEquipment&&["NONE","LADDER","LIFT","UNKNOWN"].includes(accessEquipment)?accessEquipment as "NONE"|"LADDER"|"LIFT"|"UNKNOWN":null,
+  };
+  const reviewedScope=reviewFieldScopeDraft(seed.draft,patch,{userId:user.id,reviewedAt});reviewed.push(reviewedScope);approvedStableKeys.push(reviewedScope.stableKey);
+ }
+ if(!reviewed.length)throw new Error("Select at least one Field Scope item to approve");
+ const handoff=approveFieldScopeForTakeoff({surveySessionId:sessionId,reviewedScopes:reviewed,approvedStableKeys,approvedBy:user.id,approvedAt:reviewedAt});
+ await applyApprovedFieldScopeTakeoff({role:user.role,organizationId:user.organizationId},{organizationId,workspaceId,handoff});
+ revalidatePath(`/site-surveys/${sessionId}`);revalidatePath(`/takeoffs/${workspaceId}`);
+ redirect(`/takeoffs/${workspaceId}?organizationId=${encodeURIComponent(organizationId)}`);
 }
 
 
