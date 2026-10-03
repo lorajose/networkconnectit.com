@@ -159,7 +159,7 @@ export async function applyFieldScopeReviewToTakeoffAction(formData:FormData){
  const seeds=seedFieldScopeFromSurvey(workspace);const reviewed=[];const approvedStableKeys:string[]=[];const reviewedAt=new Date().toISOString();
  const optional=(key:string)=>{const raw=value(formData,key);return raw||null;};const numeric=(key:string)=>{const raw=value(formData,key);if(!raw)return null;const parsed=Number(raw);if(!Number.isFinite(parsed))throw new Error(`Invalid numeric Field Scope value for ${key}`);return parsed;};
  for(const seed of seeds){
-  const suffix=seed.surveyPointId;if(formData.get(`approve:${suffix}`)!=="on")continue;
+  const suffix=seed.surveyPointId;if(!suffix)throw new Error("Survey-derived Field Scope requires a survey point identity");if(formData.get(`approve:${suffix}`)!=="on")continue;
   const environment=optional(`environment:${suffix}`),accessEquipment=optional(`accessEquipment:${suffix}`);
   const patch:FieldScopeReviewPatch={};
   const deviceType=optional(`deviceType:${suffix}`),location=optional(`location:${suffix}`),quantity=numeric(`quantity:${suffix}`);
