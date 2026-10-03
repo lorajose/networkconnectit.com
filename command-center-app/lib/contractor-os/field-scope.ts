@@ -96,7 +96,7 @@ export function fieldScopeToTakeoffSuggestions(reviewed: ReviewedFieldScope): Ta
   validateFieldScopeDraft(reviewed);
   const quantity = reviewed.quantity.value ?? 1;
   const description = [
-    reviewed.deviceType.value ?? reviewed.system.replaceAll("_", " "),
+    reviewed.deviceType.value ?? reviewed.system.split("_").join(" "),
     reviewed.location.value ? `— ${reviewed.location.value}` : null,
   ].filter(Boolean).join(" ");
 
