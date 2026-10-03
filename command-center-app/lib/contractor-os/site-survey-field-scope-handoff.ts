@@ -1,6 +1,6 @@
 import type { FieldScopeDraft, FieldScopeSystem, FieldScopeValue } from "./field-scope";
 import type { SurveyDiscipline } from "./site-survey";
-import type { SurveySessionWorkspace } from "./site-survey-repository";
+
 
 const systemByDiscipline: Record<SurveyDiscipline, FieldScopeSystem> = {
   CCTV: "SURVEILLANCE",
@@ -19,7 +19,7 @@ function parseDisciplines(json: string): SurveyDiscipline[] {
   try { return JSON.parse(json) as SurveyDiscipline[]; } catch { return []; }
 }
 
-export type SurveyFieldScopeSeed = {
+export type FieldScopeSurveyWorkspace = {\n  session: { id: string };\n  assignment: { disciplinesJson: string; projectInstallationId: string; siteId: string };\n  areas: Array<{ id: string; name: string }>;\n  points: Array<{ id: string; areaId: string | null; discipline: string; pointType: string; lifecycle: string; label: string | null; notes: string | null }>;\n};\n\nexport type SurveyFieldScopeSeed = {
   surveyPointId: string;
   draft: FieldScopeDraft;
 };
@@ -28,7 +28,7 @@ export type SurveyFieldScopeSeed = {
  * Deterministically seeds Field Scope from authoritative NCI-013 survey data.
  * This does not invoke AI and does not invent missing field conditions.
  */
-export function seedFieldScopeFromSurvey(workspace: SurveySessionWorkspace): SurveyFieldScopeSeed[] {
+export function seedFieldScopeFromSurvey(workspace: FieldScopeSurveyWorkspace): SurveyFieldScopeSeed[] {
   const disciplines = new Set(parseDisciplines(workspace.assignment.disciplinesJson));
   const areaById = new Map(workspace.areas.map((area) => [area.id, area.name]));
 
