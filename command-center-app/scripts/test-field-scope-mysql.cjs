@@ -25,7 +25,7 @@ async function main(){
     `CREATE TABLE TakeoffBomItem (id VARCHAR(191) PRIMARY KEY, organizationId VARCHAR(191) NOT NULL, takeoffWorkspaceId VARCHAR(191) NOT NULL, takeoffItemId VARCHAR(191), catalogCode VARCHAR(191), description TEXT NOT NULL, unit VARCHAR(64) NOT NULL, generatedQuantity DECIMAL(18,3) NOT NULL, overrideQuantity DECIMAL(18,3), costRuleKey VARCHAR(191), notes TEXT, createdAt DATETIME(3) NOT NULL, updatedAt DATETIME(3) NOT NULL) ENGINE=InnoDB`
   ]) await prisma.$executeRawUnsafe(sql);
   await prisma.$executeRawUnsafe(`INSERT INTO TakeoffWorkspace VALUES ('w-a','a',NULL,NULL,'A','DRAFT',NULL,NOW(3),NOW(3)),('w-b','b',NULL,NULL,'B','DRAFT',NULL,NOW(3),NOW(3))`);
-  await prisma.$executeRawUnsafe(`INSERT INTO TakeoffItem VALUES ('manual-a','a','w-a','CCTV','MAN-1','Manual camera','EA',1,NULL,NULL,NULL,'keep me','MANUAL',NOW(3),NOW(3))`);
+  await prisma.$executeRawUnsafe(`INSERT INTO TakeoffItem VALUES ('manual-a','a','w-a','CCTV','MAN-1','Manual camera','EA',1,NULL,NULL,NULL,'keep me','MANUAL',NOW(3),NOW(3)),('other-ai','a','w-a','CCTV','CAM-OTHER','Other handoff camera','EA',1,NULL,NULL,NULL,'Field Scope handoff FIELD-SCOPE:ss-other; keep me','AI_SUGGESTED',NOW(3),NOW(3))`);
   const access=load('lib/contractor-os/commercial-access.ts',{});
   const takeoff=load('lib/contractor-os/takeoff.ts',{'@prisma/client':{Prisma}});
   const repo=load('lib/contractor-os/field-scope-takeoff-repository.ts',{'@/lib/db':{prisma},'@prisma/client':{Prisma},'./commercial-access':access,'./takeoff':takeoff});
@@ -35,12 +35,12 @@ async function main(){
   await repo.applyApprovedFieldScopeTakeoff(actor,{organizationId:'a',workspaceId:'w-a',handoff});
   await repo.applyApprovedFieldScopeTakeoff(actor,{organizationId:'a',workspaceId:'w-a',handoff});
   const rows=await prisma.$queryRawUnsafe(`SELECT itemCode,source FROM TakeoffItem WHERE takeoffWorkspaceId='w-a' ORDER BY itemCode`);
-  assert.deepEqual(rows.map(r=>[r.itemCode,r.source]),[['CAM-001','AI_SUGGESTED'],['MAN-1','MANUAL']]);
+  assert.deepEqual(rows.map(r=>[r.itemCode,r.source]),[['CAM-001','AI_SUGGESTED'],['CAM-OTHER','AI_SUGGESTED'],['MAN-1','MANUAL']]);
   const bom=await prisma.$queryRawUnsafe(`SELECT COUNT(*) total FROM TakeoffBomItem WHERE takeoffWorkspaceId='w-a'`);
   assert.equal(Number(bom[0].total),1);
   await assert.rejects(()=>repo.applyApprovedFieldScopeTakeoff(other,{organizationId:'b',workspaceId:'w-a',handoff}),/Takeoff workspace not found/);
   const foreign=await prisma.$queryRawUnsafe(`SELECT COUNT(*) total FROM TakeoffItem WHERE takeoffWorkspaceId='w-b'`);
   assert.equal(Number(foreign[0].total),0);
-  console.log('PASS NCI-011 MySQL: idempotent Field Scope apply, manual-row preservation and tenant isolation.');
+  console.log('PASS NCI-011 MySQL: idempotent Field Scope apply, unrelated AI/manual preservation and tenant isolation.');
 }
 main().catch(e=>{console.error(e);process.exitCode=1}).finally(()=>prisma.$disconnect());
