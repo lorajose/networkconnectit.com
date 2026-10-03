@@ -52,7 +52,13 @@ export type FieldScopeDraft = {
   sourceNote?: string | null;
 };
 
-export type FieldScopeReviewPatch = Partial<{\n  deviceType: string | null; location: string | null; environment: "INDOOR" | "OUTDOOR" | "UNKNOWN" | null; quantity: number | null;\n  mountingHeightFt: number | null; mountingSurface: string | null; cableType: string | null; estimatedCableLengthFt: number | null; pathway: string | null; destination: string | null;\n  accessEquipment: "NONE" | "LADDER" | "LIFT" | "UNKNOWN" | null; requestedAccessories: string[]; suggestedAccessories: string[]; laborDrivers: string[]; assumptions: string[]; exclusions: string[];\n}>;\n\nexport type ReviewedFieldScope = FieldScopeDraft & {
+export type FieldScopeReviewPatch = Partial<{
+  deviceType: string | null; location: string | null; environment: "INDOOR" | "OUTDOOR" | "UNKNOWN" | null; quantity: number | null;
+  mountingHeightFt: number | null; mountingSurface: string | null; cableType: string | null; estimatedCableLengthFt: number | null; pathway: string | null; destination: string | null;
+  accessEquipment: "NONE" | "LADDER" | "LIFT" | "UNKNOWN" | null; requestedAccessories: string[]; suggestedAccessories: string[]; laborDrivers: string[]; assumptions: string[]; exclusions: string[];
+}>;
+
+export type ReviewedFieldScope = FieldScopeDraft & {
   reviewedByUserId: string;
   reviewedAt: string;
 };
