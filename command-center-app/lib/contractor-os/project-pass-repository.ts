@@ -72,8 +72,10 @@ export async function applyVerifiedProjectPassEvent(input: VerifiedProjectPassEv
       organizationId: string;
       projectInstallationId: string;
       product: string;
+      state: ProjectPassPaymentState;
+      verifiedAt: Date | null;
     }>>(Prisma.sql`
-      SELECT id,organizationId,projectInstallationId,product
+      SELECT id,organizationId,projectInstallationId,product,state,verifiedAt
       FROM ProjectPassPayment
       WHERE provider=${provider} AND providerPaymentId=${providerPaymentId}
       LIMIT 1
@@ -89,6 +91,19 @@ export async function applyVerifiedProjectPassEvent(input: VerifiedProjectPassEv
       ) {
         throw new Error("Provider payment is already bound to a different tenant, project or product");
       }
+      const currentState = paymentRows[0].state;
+      const currentVerifiedAt = paymentRows[0].verifiedAt;
+      const staleEvent = currentVerifiedAt && input.verifiedAt < currentVerifiedAt;
+      const allowedTransition =
+        currentState === input.state ||
+        (currentState === "PENDING" && (input.state === "PAID" || input.state === "FAILED")) ||
+        (currentState === "FAILED" && input.state === "PAID") ||
+        (currentState === "PAID" && input.state === "REFUNDED");
+
+      if (staleEvent || !allowedTransition) {
+        throw new Error("Project Pass payment event would cause an unsafe state transition");
+      }
+
       await tx.$executeRaw(Prisma.sql`
         UPDATE ProjectPassPayment
         SET state=${input.state},amountCents=${input.amountCents},currency=${currency},
@@ -121,13 +136,17 @@ export async function applyVerifiedProjectPassEvent(input: VerifiedProjectPassEv
         ON DUPLICATE KEY UPDATE
           paymentId=VALUES(paymentId),grantedAt=VALUES(grantedAt),revokedAt=NULL,updatedAt=NOW(3)
       `);
-    } else if (input.state === "REFUNDED" || input.state === "FAILED") {
+    } else if (input.state === "REFUNDED") {
+      // A refund may revoke only the entitlement currently authorized by
+      // that exact payment. An older refunded payment must never revoke a
+      // newer repurchase, and FAILED/PENDING events never revoke access.
       await tx.$executeRaw(Prisma.sql`
         UPDATE ProjectPassEntitlement
         SET revokedAt=${input.verifiedAt},updatedAt=NOW(3)
         WHERE organizationId=${organizationId}
           AND projectInstallationId=${projectInstallationId}
           AND product=${input.product}
+          AND paymentId=${paymentId}
           AND revokedAt IS NULL
       `);
     }
