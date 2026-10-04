@@ -15,7 +15,7 @@ function load(relative, imports) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', compiled)((name) => {
     if (Object.hasOwn(imports, name)) return imports[name];
-    if (name === 'crypto') return require('node:crypto');
+    if (name === 'crypto' || name === 'node:crypto') return require('node:crypto');
     throw new Error(`Unexpected dependency: ${name}`);
   }, module, module.exports);
   return module.exports;
