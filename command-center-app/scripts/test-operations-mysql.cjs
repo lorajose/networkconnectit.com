@@ -146,7 +146,26 @@ async function main() {
   assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), false);
   const revoked = await prisma.$queryRawUnsafe("SELECT p.state, e.revokedAt FROM ProjectPassPayment p JOIN ProjectPassEntitlement e ON e.paymentId=p.id WHERE p.providerPaymentId='pay-1'");
   assert.equal(revoked[0].state, 'REFUNDED'); assert.ok(revoked[0].revokedAt);
-  console.log('PASS NCI-016 MySQL: verified PAID grant, replay idempotency, cross-tenant payment binding and REFUNDED revocation.');
+  const repurchase = { ...paidEvent, providerEventId: 'evt-paid-2', providerPaymentId: 'pay-2', verifiedAt: new Date('2030-01-05T12:00:00Z') };
+  await projectPassRepo.applyVerifiedProjectPassEvent(repurchase);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), true);
+
+  await assert.rejects(() => projectPassRepo.applyVerifiedProjectPassEvent({
+    ...paidEvent, providerEventId: 'evt-stale-paid-1', state: 'PAID', verifiedAt: new Date('2030-01-02T12:00:00Z'),
+  }), /unsafe state transition/);
+  const oldPayment = await prisma.$queryRawUnsafe("SELECT state FROM ProjectPassPayment WHERE provider='ci-provider' AND providerPaymentId='pay-1'");
+  assert.equal(oldPayment[0].state, 'REFUNDED');
+
+  const failed = { ...repurchase, providerEventId: 'evt-failed-3', providerPaymentId: 'pay-3', eventType: 'payment.failed', state: 'FAILED', verifiedAt: new Date('2030-01-06T12:00:00Z') };
+  await projectPassRepo.applyVerifiedProjectPassEvent(failed);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), true);
+
+  const currentEntitlement = await prisma.$queryRawUnsafe("SELECT paymentId, revokedAt FROM ProjectPassEntitlement WHERE organizationId='a' AND projectInstallationId='project-a' AND product='CCTV_DIAGRAM_EXPORT'");
+  const currentPayment = await prisma.$queryRawUnsafe("SELECT id FROM ProjectPassPayment WHERE provider='ci-provider' AND providerPaymentId='pay-2'");
+  assert.equal(currentEntitlement[0].paymentId, currentPayment[0].id);
+  assert.equal(currentEntitlement[0].revokedAt, null);
+
+    console.log('PASS NCI-016 MySQL: verified PAID grant, replay idempotency, cross-tenant payment binding and REFUNDED revocation, repurchase protection and stale-event rejection.');
 
   await prisma.$executeRawUnsafe(`CREATE TABLE ProjectWorkOrder (
     id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
