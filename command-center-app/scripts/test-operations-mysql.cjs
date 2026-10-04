@@ -120,10 +120,10 @@ async function main() {
       .replace(/,?\s*CONSTRAINT `ProjectPassPaymentEvent_projectInstallationId_fkey`[^\n]+/g, '')
       .replace(/,?\s*CONSTRAINT `ProjectPassEntitlement_organizationId_fkey`[^\n]+/g, '')
       .replace(/,?\s*CONSTRAINT `ProjectPassEntitlement_projectInstallationId_fkey`[^\n]+/g, '')
-      // Removing the last tenant/project FK can leave the preceding constraint
-      // without a separator; normalize only that disposable-harness boundary.
-      .replace(/(CASCADE)\s+(CONSTRAINT `ProjectPassPaymentEvent_paymentId_fkey`)/g, '$1,\n  $2')
-      .replace(/(CASCADE)\s+(CONSTRAINT `ProjectPassEntitlement_paymentId_fkey`)/g, '$1,\n  $2');
+      // Removing a tenant/project FK also removes its leading comma. Restore
+      // the separator before the remaining payment FK in this disposable harness.
+      .replace(/(INDEX `ProjectPassPaymentEvent_org_project_idx` \([^\n]+\))\s+(CONSTRAINT `ProjectPassPaymentEvent_paymentId_fkey`)/g, '$1,\n  $2')
+      .replace(/(INDEX `ProjectPassEntitlement_org_project_idx` \([^\n]+\))\s+(CONSTRAINT `ProjectPassEntitlement_paymentId_fkey`)/g, '$1,\n  $2');
     for (const sql of projectPassMigration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
   }
   const commercialAccess = load('lib/contractor-os/commercial-access.ts', {});
