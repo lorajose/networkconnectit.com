@@ -107,3 +107,5 @@ jobs:
       - run: npm ci
       - name: Verify real MySQL operations lifecycle, concurrency and profitability
         run: node scripts/test-operations-mysql.cjs
+      - name: Verify Project Pass late refund cannot revoke a newer repurchase
+        run: node scripts/test-project-pass-late-refund-mysql.cjs
