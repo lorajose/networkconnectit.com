@@ -27,7 +27,34 @@ function required(value: string, name: string) {
   return normalized;
 }
 
-function requireHttpUrl(value: string, name: string) {
+function configuredCheckoutOrigins() {
+  const configured = [
+    process.env.NEXTAUTH_URL,
+    process.env.NEXT_PUBLIC_APP_URL,
+  ].filter((value): value is string => Boolean(value && value.trim()));
+
+  const origins = new Set<string>();
+  for (const value of configured) {
+    try {
+      const parsed = new URL(value);
+      if (parsed.protocol === "https:" || parsed.protocol === "http:") {
+        origins.add(parsed.origin);
+      }
+    } catch {
+      // Invalid deployment configuration is ignored here; checkout will fail
+      // closed below when no trusted origin matches the requested return URL.
+    }
+  }
+
+  if (process.env.NODE_ENV !== "production") {
+    origins.add("http://localhost:3000");
+    origins.add("http://127.0.0.1:3000");
+  }
+
+  return origins;
+}
+
+function requireTrustedReturnUrl(value: string, name: string) {
   const normalized = required(value, name);
   let parsed: URL;
   try {
@@ -38,6 +65,12 @@ function requireHttpUrl(value: string, name: string) {
   if (parsed.protocol !== "https:" && parsed.protocol !== "http:") {
     throw new Error(`${name} must use http or https`);
   }
+
+  const trustedOrigins = configuredCheckoutOrigins();
+  if (!trustedOrigins.has(parsed.origin)) {
+    throw new Error(`${name} origin is not allowed for Project Pass checkout`);
+  }
+
   return parsed.toString();
 }
 
@@ -46,7 +79,8 @@ function requireHttpUrl(value: string, name: string) {
  * inputs. Price and currency are resolved exclusively from the server-owned
  * Project Pass catalog; callers cannot override commercial terms.
  *
- * The returned checkout URL is navigation only and never grants entitlement.
+ * Return URLs are restricted to configured application origins. The returned
+ * checkout URL is navigation only and never grants entitlement.
  */
 export async function createProjectPassCheckout(
   provider: ProjectPassPaymentProvider,
@@ -76,8 +110,8 @@ export async function createProjectPassCheckout(
     product: catalogEntry.product,
     amountCents: catalogEntry.amountCents,
     currency: catalogEntry.currency,
-    successUrl: requireHttpUrl(request.successUrl, "successUrl"),
-    cancelUrl: requireHttpUrl(request.cancelUrl, "cancelUrl"),
+    successUrl: requireTrustedReturnUrl(request.successUrl, "successUrl"),
+    cancelUrl: requireTrustedReturnUrl(request.cancelUrl, "cancelUrl"),
   };
 
   return provider.createCheckout(providerRequest);
