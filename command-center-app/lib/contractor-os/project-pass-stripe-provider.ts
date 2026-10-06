@@ -7,6 +7,7 @@ import type {
   ProjectPassWebhookRequest,
   VerifiedProviderProjectPassEvent,
 } from "./project-pass-provider";
+import type { ProjectPassProduct } from "./project-pass";
 import type { ProjectPassStripeConfig } from "./project-pass-stripe-config";
 
 type StripeFetch = (input: string, init?: RequestInit) => Promise<Response>;
@@ -37,11 +38,11 @@ function requiredString(value: unknown, field: string): string {
   return value.trim();
 }
 
-function projectPassProduct(value: unknown) {
+function projectPassProduct(value: unknown): ProjectPassProduct {
   if (value !== "CCTV_DIAGRAM_EXPORT") {
     throw new Error("Unsupported Project Pass product in Stripe metadata");
   }
-  return value;
+  return "CCTV_DIAGRAM_EXPORT";
 }
 
 function secureSignatureMatch(expected: string, candidates: string[]) {
