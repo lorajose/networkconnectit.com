@@ -1,23 +1,13 @@
 import { NextResponse } from "next/server";
 
 import { requireApiRoles } from "@/lib/api-auth";
-import { PROJECT_PASS_PRODUCTS, type ProjectPassProduct } from "@/lib/contractor-os/project-pass";
+import { validateProjectPassCheckoutHttpInput, type ProjectPassCheckoutHttpInput } from "@/lib/contractor-os/project-pass-checkout-http-policy";
 import { decideProjectPassCheckoutRoute } from "@/lib/contractor-os/project-pass-checkout-route-policy";
 import { createProjectPassCheckout } from "@/lib/contractor-os/project-pass-payment-service";
 import { resolveProjectPassPaymentProvider } from "@/lib/contractor-os/project-pass-provider-registry";
 import { routeAccess } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
-
-function isProjectPassProduct(value: unknown): value is ProjectPassProduct {
-  return typeof value === "string" && PROJECT_PASS_PRODUCTS.includes(value as ProjectPassProduct);
-}
-
-type CheckoutBody = {
-  organizationId?: unknown;
-  projectInstallationId?: unknown;
-  product?: unknown;
-};
 
 /**
  * Authenticated Project Pass checkout entry point.
@@ -33,9 +23,9 @@ export async function POST(request: Request) {
     return NextResponse.json({ ok: false }, { status: auth.status });
   }
 
-  let body: CheckoutBody;
+  let body: ProjectPassCheckoutHttpInput;
   try {
-    body = (await request.json()) as CheckoutBody;
+    body = (await request.json()) as ProjectPassCheckoutHttpInput;
   } catch {
     return NextResponse.json(
       { ok: false, error: "A valid JSON request body is required." },
@@ -43,24 +33,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const organizationId =
-    typeof body.organizationId === "string" && body.organizationId.trim()
-      ? body.organizationId.trim()
-      : auth.user.organizationId?.trim() || "";
-  const projectInstallationId =
-    typeof body.projectInstallationId === "string" ? body.projectInstallationId.trim() : "";
-  const product = body.product;
-
-  if (!organizationId || !projectInstallationId || !isProjectPassProduct(product)) {
+  const validation = validateProjectPassCheckoutHttpInput(body, auth.user.organizationId);
+  if (!validation.ok) {
     return NextResponse.json(
-      { ok: false, error: "Valid organization, projectInstallationId and product are required." },
-      { status: 400 }
+      { ok: false, error: validation.message },
+      { status: validation.status }
     );
   }
 
   const providerResolution = resolveProjectPassPaymentProvider();
   const routeDecision = decideProjectPassCheckoutRoute(
-    { organizationId, projectInstallationId, product },
+    validation.input,
     providerResolution.configured
       ? { configured: true }
       : { configured: false, reason: providerResolution.reason }
