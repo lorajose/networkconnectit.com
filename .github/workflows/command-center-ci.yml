@@ -109,3 +109,5 @@ jobs:
         run: node scripts/test-operations-mysql.cjs
       - name: Verify Project Pass late refund cannot revoke a newer repurchase
         run: node scripts/test-project-pass-late-refund-mysql.cjs
+      - name: Verify Project Pass checkout rejects cross-tenant projects before provider invocation
+        run: node scripts/test-project-pass-checkout-mysql.cjs
