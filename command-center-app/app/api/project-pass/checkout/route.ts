@@ -64,15 +64,13 @@ export async function POST(request: Request) {
   }
 
   if (!providerResolution.configured) {
-    // The route policy above is fail-closed; this guard keeps TypeScript and
-    // future refactors from reaching provider code without a configured adapter.
     return NextResponse.json({ ok: false }, { status: 503 });
   }
 
   const requestUrl = new URL(request.url);
   const returnBase = `${requestUrl.origin}/projects/${encodeURIComponent(routeDecision.input.projectInstallationId)}/project-pass/return`;
-  const successUrl = `${returnBase}?status=success&product=${encodeURIComponent(routeDecision.input.product)}`;
-  const cancelUrl = `${returnBase}?status=cancelled&product=${encodeURIComponent(routeDecision.input.product)}`;
+  const successUrl = `${returnBase}?projectPassStatus=success&product=${encodeURIComponent(routeDecision.input.product)}`;
+  const cancelUrl = `${returnBase}?projectPassStatus=cancelled&product=${encodeURIComponent(routeDecision.input.product)}`;
 
   try {
     const checkout = await createProjectPassCheckout(providerResolution.provider, {
