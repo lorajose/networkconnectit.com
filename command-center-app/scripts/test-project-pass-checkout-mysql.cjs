@@ -108,7 +108,7 @@ async function main() {
           successUrl: 'https://app.networkconnectit.com/project-pass/success',
           cancelUrl: 'https://app.networkconnectit.com/project-pass/cancel',
         }),
-      /outside your tenant|not found/i
+      /does not belong to the selected organization/i
     );
     assert.equal(providerCalls, 0, 'cross-tenant project must never reach payment provider');
 
