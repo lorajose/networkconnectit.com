@@ -7,6 +7,11 @@ export type ProjectPassStripeConfigResolution =
   | { configured: true; config: ProjectPassStripeConfig }
   | { configured: false; reason: "STRIPE_NOT_CONFIGURED" };
 
+type ProjectPassStripeEnv = Pick<
+  NodeJS.ProcessEnv,
+  "STRIPE_SECRET_KEY" | "STRIPE_PROJECT_PASS_WEBHOOK_SECRET"
+>;
+
 /**
  * Server-only Stripe configuration for Project Pass.
  *
@@ -15,7 +20,7 @@ export type ProjectPassStripeConfigResolution =
  * fail-closed until both the API key and webhook signing secret are present.
  */
 export function resolveProjectPassStripeConfig(
-  env: NodeJS.ProcessEnv = process.env
+  env: ProjectPassStripeEnv = process.env
 ): ProjectPassStripeConfigResolution {
   const secretKey = env.STRIPE_SECRET_KEY?.trim();
   const webhookSecret = env.STRIPE_PROJECT_PASS_WEBHOOK_SECRET?.trim();
