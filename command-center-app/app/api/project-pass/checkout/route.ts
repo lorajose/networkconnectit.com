@@ -87,7 +87,7 @@ export async function POST(request: Request) {
     });
 
     return NextResponse.json(
-      { ok: true, checkoutUrl: checkout.url },
+      { ok: true, checkoutUrl: checkout.checkoutUrl },
       {
         status: 200,
         headers: { "Cache-Control": "private, no-store" },
