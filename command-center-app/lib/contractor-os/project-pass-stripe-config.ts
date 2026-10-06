@@ -20,10 +20,15 @@ type ProjectPassStripeEnv = {
  * fail-closed until both the API key and webhook signing secret are present.
  */
 export function resolveProjectPassStripeConfig(
-  env: ProjectPassStripeEnv = process.env
+  env?: ProjectPassStripeEnv
 ): ProjectPassStripeConfigResolution {
-  const secretKey = env.STRIPE_SECRET_KEY?.trim();
-  const webhookSecret = env.STRIPE_PROJECT_PASS_WEBHOOK_SECRET?.trim();
+  const source: ProjectPassStripeEnv = env ?? {
+    STRIPE_SECRET_KEY: process.env.STRIPE_SECRET_KEY,
+    STRIPE_PROJECT_PASS_WEBHOOK_SECRET:
+      process.env.STRIPE_PROJECT_PASS_WEBHOOK_SECRET,
+  };
+  const secretKey = source.STRIPE_SECRET_KEY?.trim();
+  const webhookSecret = source.STRIPE_PROJECT_PASS_WEBHOOK_SECRET?.trim();
 
   if (!secretKey || !webhookSecret) {
     return {
