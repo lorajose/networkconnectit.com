@@ -7,10 +7,10 @@ export type ProjectPassStripeConfigResolution =
   | { configured: true; config: ProjectPassStripeConfig }
   | { configured: false; reason: "STRIPE_NOT_CONFIGURED" };
 
-type ProjectPassStripeEnv = Pick<
-  NodeJS.ProcessEnv,
-  "STRIPE_SECRET_KEY" | "STRIPE_PROJECT_PASS_WEBHOOK_SECRET"
->;
+type ProjectPassStripeEnv = {
+  STRIPE_SECRET_KEY?: string;
+  STRIPE_PROJECT_PASS_WEBHOOK_SECRET?: string;
+};
 
 /**
  * Server-only Stripe configuration for Project Pass.
