@@ -9,6 +9,13 @@ const config = {
   webhookSecret: "whsec_example",
 };
 
+function signStripeBody(rawBody: string, timestamp: number) {
+  const signature = createHmac("sha256", config.webhookSecret)
+    .update(`${timestamp}.${rawBody}`, "utf8")
+    .digest("hex");
+  return `t=${timestamp},v1=${signature}`;
+}
+
 test("NCI-016 Stripe checkout keeps price and tenant binding in server-owned request metadata", async () => {
   let body = "";
   const provider = new StripeProjectPassProvider(
@@ -42,6 +49,9 @@ test("NCI-016 Stripe checkout keeps price and tenant binding in server-owned req
   assert.equal(params.get("metadata[projectInstallationId]"), "project-a");
   assert.equal(params.get("metadata[product]"), "CCTV_DIAGRAM_EXPORT");
   assert.equal(params.get("metadata[amountCents]"), "1900");
+  assert.equal(params.get("payment_intent_data[metadata][organizationId]"), "org-a");
+  assert.equal(params.get("payment_intent_data[metadata][projectInstallationId]"), "project-a");
+  assert.equal(params.get("payment_intent_data[metadata][product]"), "CCTV_DIAGRAM_EXPORT");
   assert.equal(checkout.providerPaymentId, "cs_test_project_pass");
 });
 
@@ -68,14 +78,11 @@ test("NCI-016 Stripe webhook grants PAID only after a valid signature and paid C
       },
     },
   });
-  const signature = createHmac("sha256", config.webhookSecret)
-    .update(`${timestamp}.${rawBody}`, "utf8")
-    .digest("hex");
 
   const provider = new StripeProjectPassProvider(config, fetch, () => now);
   const event = await provider.verifyWebhook({
     rawBody,
-    signature: `t=${timestamp},v1=${signature}`,
+    signature: signStripeBody(rawBody, timestamp),
     headers: {},
   });
 
@@ -86,6 +93,75 @@ test("NCI-016 Stripe webhook grants PAID only after a valid signature and paid C
   assert.equal(event.currency, "USD");
 });
 
+test("NCI-016 completed Checkout Session that is not paid stays PENDING", async () => {
+  const now = 1_800_000_000_000;
+  const timestamp = Math.floor(now / 1000);
+  const rawBody = JSON.stringify({
+    id: "evt_unpaid",
+    type: "checkout.session.completed",
+    created: timestamp,
+    data: {
+      object: {
+        id: "cs_unpaid",
+        amount_total: 1900,
+        currency: "usd",
+        payment_status: "unpaid",
+        metadata: {
+          organizationId: "org-a",
+          projectInstallationId: "project-a",
+          product: "CCTV_DIAGRAM_EXPORT",
+          amountCents: "1900",
+          currency: "USD",
+        },
+      },
+    },
+  });
+
+  const provider = new StripeProjectPassProvider(config, fetch, () => now);
+  const event = await provider.verifyWebhook({
+    rawBody,
+    signature: signStripeBody(rawBody, timestamp),
+    headers: {},
+  });
+
+  assert.equal(event.state, "PENDING");
+});
+
+test("NCI-016 Stripe webhook rejects amount or currency that does not match checkout metadata", async () => {
+  const now = 1_800_000_000_000;
+  const timestamp = Math.floor(now / 1000);
+  const rawBody = JSON.stringify({
+    id: "evt_tampered_amount",
+    type: "checkout.session.completed",
+    created: timestamp,
+    data: {
+      object: {
+        id: "cs_tampered_amount",
+        amount_total: 900,
+        currency: "usd",
+        payment_status: "paid",
+        metadata: {
+          organizationId: "org-a",
+          projectInstallationId: "project-a",
+          product: "CCTV_DIAGRAM_EXPORT",
+          amountCents: "1900",
+          currency: "USD",
+        },
+      },
+    },
+  });
+
+  const provider = new StripeProjectPassProvider(config, fetch, () => now);
+  await assert.rejects(
+    provider.verifyWebhook({
+      rawBody,
+      signature: signStripeBody(rawBody, timestamp),
+      headers: {},
+    }),
+    /amount does not match/
+  );
+});
+
 test("NCI-016 Stripe webhook rejects an invalid signature", async () => {
   const provider = new StripeProjectPassProvider(config, fetch, () => 1_800_000_000_000);
   await assert.rejects(
@@ -94,5 +170,21 @@ test("NCI-016 Stripe webhook rejects an invalid signature", async () => {
       signature: "t=1800000000,v1=deadbeef",
       headers: {},
     })
+  );
+});
+
+test("NCI-016 Stripe webhook rejects a valid but stale signature", async () => {
+  const now = 1_800_000_000_000;
+  const staleTimestamp = Math.floor(now / 1000) - 301;
+  const rawBody = "{}";
+  const provider = new StripeProjectPassProvider(config, fetch, () => now);
+
+  await assert.rejects(
+    provider.verifyWebhook({
+      rawBody,
+      signature: signStripeBody(rawBody, staleTimestamp),
+      headers: {},
+    }),
+    /outside the allowed tolerance/
   );
 });
