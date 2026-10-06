@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireApiRoles } from "@/lib/api-auth";
 import { PROJECT_PASS_PRODUCTS, type ProjectPassProduct } from "@/lib/contractor-os/project-pass";
+import { decideProjectPassCheckoutRoute } from "@/lib/contractor-os/project-pass-checkout-route-policy";
 import { createProjectPassCheckout } from "@/lib/contractor-os/project-pass-payment-service";
 import { resolveProjectPassPaymentProvider } from "@/lib/contractor-os/project-pass-provider-registry";
 import { routeAccess } from "@/lib/rbac";
@@ -58,30 +59,41 @@ export async function POST(request: Request) {
   }
 
   const providerResolution = resolveProjectPassPaymentProvider();
-  if (!providerResolution.configured) {
+  const routeDecision = decideProjectPassCheckoutRoute(
+    { organizationId, projectInstallationId, product },
+    providerResolution.configured
+      ? { configured: true }
+      : { configured: false, reason: providerResolution.reason }
+  );
+
+  if (!routeDecision.allowed) {
     return NextResponse.json(
       {
         ok: false,
-        code: providerResolution.reason,
-        error: "Project Pass checkout is not configured yet.",
+        code: routeDecision.code,
+        error: routeDecision.message,
       },
       {
-        status: 503,
+        status: routeDecision.status,
         headers: { "Cache-Control": "private, no-store" },
       }
     );
   }
 
+  if (!providerResolution.configured) {
+    // The route policy above is fail-closed; this guard keeps TypeScript and
+    // future refactors from reaching provider code without a configured adapter.
+    return NextResponse.json({ ok: false }, { status: 503 });
+  }
+
   const requestUrl = new URL(request.url);
-  const returnBase = `${requestUrl.origin}/projects/${encodeURIComponent(projectInstallationId)}/project-pass/return`;
-  const successUrl = `${returnBase}?status=success&product=${encodeURIComponent(product)}`;
-  const cancelUrl = `${returnBase}?status=cancelled&product=${encodeURIComponent(product)}`;
+  const returnBase = `${requestUrl.origin}/projects/${encodeURIComponent(routeDecision.input.projectInstallationId)}/project-pass/return`;
+  const successUrl = `${returnBase}?status=success&product=${encodeURIComponent(routeDecision.input.product)}`;
+  const cancelUrl = `${returnBase}?status=cancelled&product=${encodeURIComponent(routeDecision.input.product)}`;
 
   try {
     const checkout = await createProjectPassCheckout(providerResolution.provider, {
-      organizationId,
-      projectInstallationId,
-      product,
+      ...routeDecision.input,
       successUrl,
       cancelUrl,
     });
