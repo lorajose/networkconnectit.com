@@ -1,6 +1,5 @@
 import { getProjectPassCatalogEntry } from "./project-pass-catalog";
 import type { ProjectPassProduct } from "./project-pass";
-import type { ProjectPassCheckoutRequest } from "./project-pass-provider";
 
 export type ProjectPassCheckoutIntent = {
   organizationId: string;
@@ -12,6 +11,20 @@ export type ProjectPassCheckoutIntent = {
 
 export type ProjectPassCheckoutPolicyOptions = {
   trustedOrigins: ReadonlySet<string>;
+};
+
+/**
+ * Deliberately structural and dependency-light so checkout policy security
+ * tests do not pull persistence/webhook modules into the isolated test build.
+ */
+export type ProjectPassCheckoutTerms = {
+  organizationId: string;
+  projectInstallationId: string;
+  product: ProjectPassProduct;
+  amountCents: number;
+  currency: string;
+  successUrl: string;
+  cancelUrl: string;
 };
 
 function required(value: string, name: string) {
@@ -51,7 +64,7 @@ export function requireTrustedProjectPassReturnUrl(
 export function buildProjectPassCheckoutRequest(
   intent: ProjectPassCheckoutIntent,
   options: ProjectPassCheckoutPolicyOptions
-): ProjectPassCheckoutRequest {
+): ProjectPassCheckoutTerms {
   const organizationId = required(intent.organizationId, "organizationId");
   const projectInstallationId = required(
     intent.projectInstallationId,
