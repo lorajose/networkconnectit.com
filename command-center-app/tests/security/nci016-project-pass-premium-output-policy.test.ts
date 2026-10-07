@@ -106,7 +106,9 @@ test("NCI-016 server renderer escapes project data and accepts canonical manifes
   assert.match(svg, /Network &amp; Recording Infrastructure \(1\)/);
   assert.match(svg, /HQ &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; &amp; West/);
   assert.match(svg, /Front &lt;Camera&gt; &amp; &quot;Door&quot;/);
-  assert.doesNotMatch(svg, /<script>|onclick=/);
+  assert.match(svg, /CCTV-001&quot; onclick=&quot;alert\(1\)/);
+  assert.doesNotMatch(svg, /<script>/);
+  assert.doesNotMatch(svg, /<text[^>]*\sonclick\s*=/i);
 });
 
 test("NCI-016 public CCTV builder has no browser premium unlock authority", () => {
