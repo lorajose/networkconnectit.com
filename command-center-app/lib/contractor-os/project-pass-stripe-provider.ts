@@ -18,7 +18,21 @@ type StripeCheckoutSession = {
   amount_total?: unknown;
   currency?: unknown;
   payment_status?: unknown;
+  payment_intent?: unknown;
   metadata?: unknown;
+};
+
+type StripeCharge = {
+  amount?: unknown;
+  amount_refunded?: unknown;
+  currency?: unknown;
+  refunded?: unknown;
+  payment_intent?: unknown;
+  metadata?: unknown;
+};
+
+type StripeCheckoutSessionList = {
+  data?: unknown;
 };
 
 type StripeEvent = {
@@ -96,81 +110,65 @@ function verifyStripeSignature(
   }
 }
 
-function normalizeStripeEvent(
+function verifiedAt(event: StripeEvent, now: () => number) {
+  const createdSeconds =
+    typeof event.created === "number" && Number.isFinite(event.created)
+      ? event.created
+      : Math.floor(now() / 1000);
+  return new Date(createdSeconds * 1000);
+}
+
+function sessionBinding(session: StripeCheckoutSession) {
+  const metadata =
+    session.metadata && typeof session.metadata === "object"
+      ? (session.metadata as Record<string, unknown>)
+      : {};
+  const organizationId = requiredString(metadata.organizationId, "organization metadata");
+  const projectInstallationId = requiredString(metadata.projectInstallationId, "project metadata");
+  const product = projectPassProduct(metadata.product);
+  const amountCents = Number(requiredString(metadata.amountCents, "amount metadata"));
+  if (!Number.isSafeInteger(amountCents) || amountCents <= 0) {
+    throw new Error("Stripe amount metadata is invalid");
+  }
+  const currency = requiredString(metadata.currency, "currency metadata").toUpperCase();
+  if (session.amount_total !== amountCents) {
+    throw new Error("Stripe amount does not match server checkout metadata");
+  }
+  if (requiredString(session.currency, "currency").toUpperCase() !== currency) {
+    throw new Error("Stripe currency does not match server checkout metadata");
+  }
+  return { organizationId, projectInstallationId, product, amountCents, currency };
+}
+
+function normalizeCheckoutEvent(
   event: StripeEvent,
   now: () => number
 ): VerifiedProviderProjectPassEvent {
   const providerEventId = requiredString(event.id, "event id");
   const eventType = requiredString(event.type, "event type");
-
   const supported = new Set([
     "checkout.session.completed",
     "checkout.session.async_payment_succeeded",
     "checkout.session.async_payment_failed",
     "checkout.session.expired",
   ]);
-  if (!supported.has(eventType)) {
-    throw new Error("Unsupported Stripe Project Pass event");
-  }
-
+  if (!supported.has(eventType)) throw new Error("Unsupported Stripe Project Pass event");
   const session = (event.data?.object ?? null) as StripeCheckoutSession | null;
-  if (!session || typeof session !== "object") {
-    throw new Error("Stripe Checkout Session is required");
-  }
-
-  const metadata =
-    session.metadata && typeof session.metadata === "object"
-      ? (session.metadata as Record<string, unknown>)
-      : {};
-
-  const organizationId = requiredString(metadata.organizationId, "organization metadata");
-  const projectInstallationId = requiredString(
-    metadata.projectInstallationId,
-    "project metadata"
-  );
-  const product = projectPassProduct(metadata.product);
-  const metadataAmount = Number(requiredString(metadata.amountCents, "amount metadata"));
-  if (!Number.isSafeInteger(metadataAmount) || metadataAmount <= 0) {
-    throw new Error("Stripe amount metadata is invalid");
-  }
-
-  const metadataCurrency = requiredString(metadata.currency, "currency metadata").toUpperCase();
-  const amountTotal = session.amount_total;
-  if (typeof amountTotal !== "number" || amountTotal !== metadataAmount) {
-    throw new Error("Stripe amount does not match server checkout metadata");
-  }
-
-  const sessionCurrency = requiredString(session.currency, "currency").toUpperCase();
-  if (sessionCurrency !== metadataCurrency) {
-    throw new Error("Stripe currency does not match server checkout metadata");
-  }
-
+  if (!session || typeof session !== "object") throw new Error("Stripe Checkout Session is required");
+  const binding = sessionBinding(session);
   let state: VerifiedProviderProjectPassEvent["state"];
-  if (
-    eventType === "checkout.session.completed" ||
-    eventType === "checkout.session.async_payment_succeeded"
-  ) {
+  if (eventType === "checkout.session.completed" || eventType === "checkout.session.async_payment_succeeded") {
     state = session.payment_status === "paid" ? "PAID" : "PENDING";
   } else {
     state = "FAILED";
   }
-
-  const createdSeconds =
-    typeof event.created === "number" && Number.isFinite(event.created)
-      ? event.created
-      : Math.floor(now() / 1000);
-
   return {
     providerEventId,
     providerPaymentId: requiredString(session.id, "Checkout Session id"),
     eventType,
     state,
-    organizationId,
-    projectInstallationId,
-    product,
-    amountCents: metadataAmount,
-    currency: metadataCurrency,
-    verifiedAt: new Date(createdSeconds * 1000),
+    ...binding,
+    verifiedAt: verifiedAt(event, now),
   };
 }
 
@@ -183,9 +181,7 @@ export class StripeProjectPassProvider implements ProjectPassPaymentProvider {
     private readonly now: () => number = Date.now
   ) {}
 
-  async createCheckout(
-    request: ProjectPassCheckoutRequest
-  ): Promise<ProjectPassCheckoutSession> {
+  async createCheckout(request: ProjectPassCheckoutRequest): Promise<ProjectPassCheckoutSession> {
     const params = new URLSearchParams();
     params.set("mode", "payment");
     params.set("success_url", request.successUrl);
@@ -193,15 +189,8 @@ export class StripeProjectPassProvider implements ProjectPassPaymentProvider {
     params.set("client_reference_id", request.projectInstallationId);
     params.set("line_items[0][quantity]", "1");
     params.set("line_items[0][price_data][currency]", request.currency.toLowerCase());
-    params.set(
-      "line_items[0][price_data][unit_amount]",
-      String(request.amountCents)
-    );
-    params.set(
-      "line_items[0][price_data][product_data][name]",
-      "NetworkConnectIT Project Pass — CCTV Diagram Export"
-    );
-
+    params.set("line_items[0][price_data][unit_amount]", String(request.amountCents));
+    params.set("line_items[0][price_data][product_data][name]", "NetworkConnectIT Project Pass — CCTV Diagram Export");
     const metadata = {
       organizationId: request.organizationId,
       projectInstallationId: request.projectInstallationId,
@@ -213,53 +202,70 @@ export class StripeProjectPassProvider implements ProjectPassPaymentProvider {
       params.set(`metadata[${key}]`, value);
       params.set(`payment_intent_data[metadata][${key}]`, value);
     }
-
     const response = await this.fetchImpl(STRIPE_API, {
       method: "POST",
-      headers: {
-        Authorization: `Bearer ${this.config.secretKey}`,
-        "Content-Type": "application/x-www-form-urlencoded",
-      },
+      headers: { Authorization: `Bearer ${this.config.secretKey}`, "Content-Type": "application/x-www-form-urlencoded" },
       body: params.toString(),
       cache: "no-store",
     });
-
-    if (!response.ok) {
-      throw new Error("Stripe Checkout Session creation failed");
-    }
-
+    if (!response.ok) throw new Error("Stripe Checkout Session creation failed");
     const session = (await response.json()) as StripeCheckoutSession;
     const id = requiredString(session.id, "Checkout Session id");
     const checkoutUrl = requiredString(session.url, "Checkout Session URL");
+    if (!checkoutUrl.startsWith("https://checkout.stripe.com/")) throw new Error("Stripe returned an unexpected Checkout URL");
+    return { provider: this.name, providerPaymentId: id, checkoutUrl };
+  }
 
-    if (!checkoutUrl.startsWith("https://checkout.stripe.com/")) {
-      throw new Error("Stripe returned an unexpected Checkout URL");
+  private async normalizeFullRefund(event: StripeEvent): Promise<VerifiedProviderProjectPassEvent> {
+    const providerEventId = requiredString(event.id, "event id");
+    const eventType = requiredString(event.type, "event type");
+    const charge = (event.data?.object ?? null) as StripeCharge | null;
+    if (!charge || typeof charge !== "object") throw new Error("Stripe Charge is required");
+    if (charge.refunded !== true) throw new Error("Partial Stripe refund does not revoke Project Pass");
+    if (typeof charge.amount !== "number" || typeof charge.amount_refunded !== "number" || charge.amount_refunded !== charge.amount) {
+      throw new Error("Stripe refund is not a full refund");
     }
-
+    const paymentIntentId = requiredString(charge.payment_intent, "PaymentIntent id");
+    const url = `${STRIPE_API}?payment_intent=${encodeURIComponent(paymentIntentId)}&limit=2`;
+    const response = await this.fetchImpl(url, {
+      method: "GET",
+      headers: { Authorization: `Bearer ${this.config.secretKey}` },
+      cache: "no-store",
+    });
+    if (!response.ok) throw new Error("Stripe Checkout Session lookup for refund failed");
+    const list = (await response.json()) as StripeCheckoutSessionList;
+    if (!Array.isArray(list.data) || list.data.length !== 1) {
+      throw new Error("Stripe refund must resolve to exactly one Checkout Session");
+    }
+    const session = list.data[0] as StripeCheckoutSession;
+    if (requiredString(session.payment_intent, "Checkout Session PaymentIntent") !== paymentIntentId) {
+      throw new Error("Stripe refund PaymentIntent does not match Checkout Session");
+    }
+    const binding = sessionBinding(session);
+    if (charge.amount !== binding.amountCents) throw new Error("Stripe refund amount does not match Project Pass checkout");
+    if (requiredString(charge.currency, "refund currency").toUpperCase() !== binding.currency) {
+      throw new Error("Stripe refund currency does not match Project Pass checkout");
+    }
     return {
-      provider: this.name,
-      providerPaymentId: id,
-      checkoutUrl,
+      providerEventId,
+      providerPaymentId: requiredString(session.id, "Checkout Session id"),
+      eventType,
+      state: "REFUNDED",
+      ...binding,
+      verifiedAt: verifiedAt(event, this.now),
     };
   }
 
-  async verifyWebhook(
-    request: ProjectPassWebhookRequest
-  ): Promise<VerifiedProviderProjectPassEvent> {
-    verifyStripeSignature(
-      request.rawBody,
-      request.signature,
-      this.config.webhookSecret,
-      this.now()
-    );
-
+  async verifyWebhook(request: ProjectPassWebhookRequest): Promise<VerifiedProviderProjectPassEvent> {
+    verifyStripeSignature(request.rawBody, request.signature, this.config.webhookSecret, this.now());
     let event: StripeEvent;
     try {
       event = JSON.parse(request.rawBody) as StripeEvent;
     } catch {
       throw new Error("Stripe webhook body is invalid JSON");
     }
-
-    return normalizeStripeEvent(event, this.now);
+    const eventType = requiredString(event.type, "event type");
+    if (eventType === "charge.refunded") return this.normalizeFullRefund(event);
+    return normalizeCheckoutEvent(event, this.now);
   }
 }
