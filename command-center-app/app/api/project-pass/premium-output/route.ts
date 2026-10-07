@@ -3,6 +3,7 @@ import { NextResponse } from "next/server";
 import { requireApiRoles } from "@/lib/api-auth";
 import { requireServerVerifiedProjectPassAccess } from "@/lib/contractor-os/project-pass-access";
 import { buildProjectPassPremiumOutputManifest } from "@/lib/contractor-os/project-pass-premium-output";
+import { renderProjectPassCctvSvg } from "@/lib/contractor-os/project-pass-svg-renderer";
 import { PROJECT_PASS_PRODUCTS, type ProjectPassProduct } from "@/lib/contractor-os/project-pass";
 import { routeAccess } from "@/lib/rbac";
 
@@ -15,13 +16,22 @@ function isProjectPassProduct(value: string): value is ProjectPassProduct {
 
 const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" } as const;
 
+function safeFilenamePart(value: string) {
+  const normalized = value
+    .normalize("NFKD")
+    .replace(/[^a-zA-Z0-9._-]+/g, "-")
+    .replace(/^-+|-+$/g, "")
+    .slice(0, 80);
+  return normalized || "project";
+}
+
 /**
  * Premium-output delivery boundary.
  *
- * Authorization and project-data loading both happen on the server. The
- * browser cannot supply the premium artifact payload and checkout-return state
- * never participates in entitlement. Renderers attach to the returned
- * project-bound manifest rather than trusting browser-generated diagram data.
+ * Authorization, project-data loading and rendering all happen on the server.
+ * The browser supplies only project/product identity; it cannot supply SVG,
+ * HTML or artifact payload. Checkout-return state never participates in
+ * entitlement or delivery authority.
  */
 export async function POST(request: Request) {
   const auth = await requireApiRoles(routeAccess.projects);
@@ -66,16 +76,18 @@ export async function POST(request: Request) {
       projectInstallationId: access.projectInstallationId,
       product: access.product,
     });
+    const svg = renderProjectPassCctvSvg(manifest);
+    const filename = `${safeFilenamePart(manifest.project.name)}-cctv-diagram.svg`;
 
-    return NextResponse.json(
-      {
-        ok: true,
-        authorized: true,
-        delivery: "PROJECT_BOUND_MANIFEST",
-        manifest,
+    return new Response(svg, {
+      status: 200,
+      headers: {
+        ...PRIVATE_HEADERS,
+        "Content-Type": "image/svg+xml; charset=utf-8",
+        "Content-Disposition": `attachment; filename="${filename}"`,
+        "X-Content-Type-Options": "nosniff",
       },
-      { status: 200, headers: PRIVATE_HEADERS }
-    );
+    });
   } catch {
     return NextResponse.json(
       { ok: false, authorized: false },
