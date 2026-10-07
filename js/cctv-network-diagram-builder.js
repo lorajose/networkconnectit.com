@@ -15,11 +15,8 @@
     // Checkout redirect later without changing the page structure.
     const PREMIUM_EXPORT_CONFIG = {
         bundlePaymentLink: '',
-        unlockStorageKey: 'ncit-cctv-premium-export-unlocked',
         returnQueryParam: 'premiumExport',
-        successValues: ['success', 'paid'],
-        cancelValues: ['cancel', 'cancelled', 'canceled'],
-        trustReturnQueryUnlock: false
+        cancelValues: ['cancel', 'cancelled', 'canceled']
     };
 
     const validationMessage = document.getElementById('diagramBuilderValidation');
@@ -159,52 +156,18 @@
             const params = new URLSearchParams(window.location.search);
             const checkoutState = String(params.get(PREMIUM_EXPORT_CONFIG.returnQueryParam) || '').toLowerCase();
 
-            if (PREMIUM_EXPORT_CONFIG.trustReturnQueryUnlock && PREMIUM_EXPORT_CONFIG.successValues.indexOf(checkoutState) !== -1) {
-                premiumUnlocked = true;
-                try {
-                    window.sessionStorage.setItem(PREMIUM_EXPORT_CONFIG.unlockStorageKey, 'true');
-                } catch (storageError) {
-                    // Ignore storage failures and keep the in-memory state only.
-                }
-            }
-
-            if (!premiumUnlocked) {
-                premiumUnlocked = window.sessionStorage.getItem(PREMIUM_EXPORT_CONFIG.unlockStorageKey) === 'true';
-            }
-
-            if (premiumUnlocked) {
-                return 'unlocked';
-            }
-
             if (PREMIUM_EXPORT_CONFIG.cancelValues.indexOf(checkoutState) !== -1) {
                 return 'cancelled';
             }
         } catch (error) {
-            premiumUnlocked = false;
+            // Query-string state is display-only. It never grants premium access.
         }
 
-        return premiumUnlocked ? 'unlocked' : 'locked';
-    }
-
-    function setPremiumUnlockState(value) {
-        premiumUnlocked = Boolean(value);
-
-        try {
-            if (premiumUnlocked) {
-                window.sessionStorage.setItem(PREMIUM_EXPORT_CONFIG.unlockStorageKey, 'true');
-            } else {
-                window.sessionStorage.removeItem(PREMIUM_EXPORT_CONFIG.unlockStorageKey);
-            }
-        } catch (error) {
-            // Ignore storage failures and keep the in-memory state only.
-        }
-
-        premiumState = premiumUnlocked ? 'unlocked' : 'locked';
-        updatePremiumUi();
+        return 'locked';
     }
 
     function setPremiumState(nextState) {
-        premiumState = premiumUnlocked ? 'unlocked' : nextState;
+        premiumState = nextState === 'cancelled' ? 'cancelled' : 'locked';
         updatePremiumUi();
     }
 
@@ -973,13 +936,8 @@
         premiumStateUnlocked.classList.toggle('d-none', premiumState !== 'unlocked');
         premiumStateCancelled.classList.toggle('d-none', premiumState !== 'cancelled');
 
-        unlockExportBundleButton.disabled = premiumUnlocked;
-        unlockExportBundleButton.textContent = premiumUnlocked ? 'Export Bundle Unlocked' : 'Unlock Export Bundle';
-
-        if (premiumUnlocked) {
-            premiumExportStatus.textContent = 'Premium export bundle is unlocked for this session. PNG and PDF export are available for the current diagram.';
-            return;
-        }
+        unlockExportBundleButton.disabled = false;
+        unlockExportBundleButton.textContent = 'Unlock Export Bundle';
 
         if (premiumState === 'cancelled') {
             premiumExportStatus.textContent = 'Checkout was not completed. Free planning remains available while premium export stays locked.';
@@ -1269,16 +1227,7 @@
     }
 
     function handlePremiumAction(format) {
-        if (premiumUnlocked) {
-            if (format === 'png') {
-                exportPng();
-                return;
-            }
-
-            exportPdf();
-            return;
-        }
-
+        void format;
         openPremiumPrompt();
     }
 
@@ -1371,9 +1320,9 @@
     updatePremiumUi();
     clearGeneratedState();
 
-    // Keep this helper available for future verified Stripe integration work.
+    // Browser state is display-only. Paid export authority lives on the
+    // authenticated server-side Project Pass entitlement boundary.
     window.NetworkConnectITCctvBuilder = {
-        setPremiumUnlocked: setPremiumUnlockState,
         setPremiumState: setPremiumState
     };
 })();
