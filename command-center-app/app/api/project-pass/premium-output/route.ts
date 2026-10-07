@@ -2,34 +2,41 @@ import { NextResponse } from "next/server";
 
 import { requireApiRoles } from "@/lib/api-auth";
 import { requireServerVerifiedProjectPassAccess } from "@/lib/contractor-os/project-pass-access";
+import { buildProjectPassPremiumOutputManifest } from "@/lib/contractor-os/project-pass-premium-output";
 import { PROJECT_PASS_PRODUCTS, type ProjectPassProduct } from "@/lib/contractor-os/project-pass";
 import { routeAccess } from "@/lib/rbac";
 
 export const dynamic = "force-dynamic";
+export const runtime = "nodejs";
 
 function isProjectPassProduct(value: string): value is ProjectPassProduct {
   return PROJECT_PASS_PRODUCTS.includes(value as ProjectPassProduct);
 }
 
+const PRIVATE_HEADERS = { "Cache-Control": "private, no-store" } as const;
+
 /**
  * Premium-output delivery boundary.
  *
- * The actual PNG/PDF renderer can be attached behind this route. Keeping the
- * entitlement check here ensures no paid artifact can be returned before the
- * authenticated tenant/project/product tuple has a server-verified Project
- * Pass. Browser checkout flags are never consulted.
+ * Authorization and project-data loading both happen on the server. The
+ * browser cannot supply the premium artifact payload and checkout-return state
+ * never participates in entitlement. Renderers attach to the returned
+ * project-bound manifest rather than trusting browser-generated diagram data.
  */
 export async function POST(request: Request) {
   const auth = await requireApiRoles(routeAccess.projects);
   if (!auth.ok) {
-    return NextResponse.json({ ok: false }, { status: auth.status });
+    return NextResponse.json({ ok: false }, { status: auth.status, headers: PRIVATE_HEADERS });
   }
 
   let body: unknown;
   try {
     body = await request.json();
   } catch {
-    return NextResponse.json({ ok: false, error: "Valid JSON body is required." }, { status: 400 });
+    return NextResponse.json(
+      { ok: false, error: "Valid JSON body is required." },
+      { status: 400, headers: PRIVATE_HEADERS }
+    );
   }
 
   const input = body && typeof body === "object" ? (body as Record<string, unknown>) : {};
@@ -40,7 +47,7 @@ export async function POST(request: Request) {
   if (!projectInstallationId || !isProjectPassProduct(product)) {
     return NextResponse.json(
       { ok: false, error: "Valid projectInstallationId and product are required." },
-      { status: 400 }
+      { status: 400, headers: PRIVATE_HEADERS }
     );
   }
 
@@ -54,29 +61,25 @@ export async function POST(request: Request) {
       { organizationId, projectInstallationId, product }
     );
 
-    // NCI-016 intentionally stops before returning a fake artifact. The
-    // renderer/exporter must be wired here so entitlement verification remains
-    // inseparable from premium delivery.
+    const manifest = await buildProjectPassPremiumOutputManifest({
+      organizationId: access.organizationId,
+      projectInstallationId: access.projectInstallationId,
+      product: access.product,
+    });
+
     return NextResponse.json(
       {
         ok: true,
         authorized: true,
-        projectInstallationId: access.projectInstallationId,
-        product: access.product,
-        delivery: "RENDERER_REQUIRED",
+        delivery: "PROJECT_BOUND_MANIFEST",
+        manifest,
       },
-      {
-        status: 501,
-        headers: { "Cache-Control": "private, no-store" },
-      }
+      { status: 200, headers: PRIVATE_HEADERS }
     );
   } catch {
     return NextResponse.json(
       { ok: false, authorized: false },
-      {
-        status: 403,
-        headers: { "Cache-Control": "private, no-store" },
-      }
+      { status: 403, headers: PRIVATE_HEADERS }
     );
   }
 }
