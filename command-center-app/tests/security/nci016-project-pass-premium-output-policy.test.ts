@@ -3,6 +3,9 @@ import assert from "node:assert/strict";
 import fs from "node:fs";
 import path from "node:path";
 
+import { renderProjectPassCctvSvg } from "../../lib/contractor-os/project-pass-svg-renderer";
+import type { ProjectPassPremiumOutputManifest } from "../../lib/contractor-os/project-pass-premium-output";
+
 const routePath = path.resolve(
   process.cwd(),
   "app/api/project-pass/premium-output/route.ts"
@@ -21,6 +24,52 @@ const routeSource = fs.readFileSync(routePath, "utf8");
 const manifestSource = fs.readFileSync(manifestPath, "utf8");
 const rendererSource = fs.readFileSync(rendererPath, "utf8");
 const builderSource = fs.readFileSync(builderPath, "utf8");
+
+function sampleManifest(): ProjectPassPremiumOutputManifest {
+  return {
+    schemaVersion: 1,
+    product: "CCTV_DIAGRAM_EXPORT",
+    project: {
+      id: "project-a",
+      organizationId: "org-a",
+      name: `HQ <script>alert("x")</script> & West`,
+      projectCode: `CCTV-001\" onclick=\"alert(1)`,
+      status: "ACTIVE",
+      primarySite: {
+        id: "site-a",
+        name: "Main & Annex",
+        code: "HQ",
+        addressLine1: "1 <Main> Street",
+        city: "New York",
+        stateRegion: "NY",
+        postalCode: "10001",
+      },
+    },
+    devices: [
+      {
+        id: "camera-a",
+        name: `Front <Camera> & \"Door\"`,
+        type: "CAMERA",
+        brand: "Axis & Co",
+        model: "P3265 <LE>",
+        hostname: "cam-01",
+        ipAddress: "10.0.0.10",
+        status: "ACTIVE",
+      },
+      {
+        id: "switch-a",
+        name: "PoE Switch",
+        type: "NETWORK_SWITCH",
+        brand: "Cisco",
+        model: "CBS350",
+        hostname: "sw-01",
+        ipAddress: "10.0.0.2",
+        status: "ACTIVE",
+      },
+    ],
+    generatedAt: "2026-10-07T12:00:00.000Z",
+  };
+}
 
 test("NCI-016 premium output requires server entitlement before project-bound SVG delivery", () => {
   const accessIndex = routeSource.indexOf("requireServerVerifiedProjectPassAccess(");
@@ -50,6 +99,14 @@ test("NCI-016 server renderer escapes project data and accepts canonical manifes
   assert.match(rendererSource, /ProjectPassPremiumOutputManifest/);
   assert.match(rendererSource, /manifest\.product !== "CCTV_DIAGRAM_EXPORT"/);
   assert.doesNotMatch(rendererSource, /dangerouslySetInnerHTML|eval\(|new Function\(/);
+
+  const svg = renderProjectPassCctvSvg(sampleManifest());
+  assert.match(svg, /^<\?xml version="1\.0" encoding="UTF-8"\?>/);
+  assert.match(svg, /Cameras \(1\)/);
+  assert.match(svg, /Network &amp; Recording Infrastructure \(1\)/);
+  assert.match(svg, /HQ &lt;script&gt;alert\(&quot;x&quot;\)&lt;\/script&gt; &amp; West/);
+  assert.match(svg, /Front &lt;Camera&gt; &amp; &quot;Door&quot;/);
+  assert.doesNotMatch(svg, /<script>|onclick=/);
 });
 
 test("NCI-016 public CCTV builder has no browser premium unlock authority", () => {
