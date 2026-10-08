@@ -113,3 +113,5 @@ jobs:
         run: node scripts/test-project-pass-checkout-mysql.cjs
       - name: Verify Project Pass webhook persists paid entitlement and authorizes server access
         run: node scripts/test-project-pass-webhook-mysql.cjs
+      - name: Verify Project Pass full refund revokes entitlement and server access
+        run: node scripts/test-project-pass-refund-webhook-mysql.cjs
