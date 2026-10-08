@@ -15,7 +15,7 @@ function load(relative, imports) {
   const module = { exports: {} };
   new Function('require', 'module', 'exports', compiled)((name) => {
     if (Object.hasOwn(imports, name)) return imports[name];
-    if (name === 'crypto') return require('node:crypto');
+    if (name === 'crypto' || name === 'node:crypto') return require('node:crypto');
     throw new Error(`Unexpected dependency: ${name}`);
   }, module, module.exports);
   return module.exports;
@@ -110,6 +110,63 @@ async function main() {
   ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   await prisma.$executeRaw`INSERT INTO ProjectInstallation (id, organizationId, name, projectCode, status, updatedAt)
     VALUES ('project-a', 'a', 'CI Project', 'CI-001', 'ACTIVE', NOW(3))`;
+  await prisma.$executeRaw`INSERT INTO ProjectInstallation (id, organizationId, name, projectCode, status, updatedAt)
+    VALUES ('project-b', 'b', 'Foreign CI Project', 'CI-002', 'ACTIVE', NOW(3))`;
+  {
+    const projectPassMigration = fs.readFileSync('prisma/migrations/20261004153000_nci016_project_pass/migration.sql', 'utf8')
+      .replace(/,?\s*CONSTRAINT `ProjectPassPayment_organizationId_fkey`[^\n]+/g, '')
+      .replace(/,?\s*CONSTRAINT `ProjectPassPayment_projectInstallationId_fkey`[^\n]+/g, '')
+      .replace(/,?\s*CONSTRAINT `ProjectPassPaymentEvent_organizationId_fkey`[^\n]+/g, '')
+      .replace(/,?\s*CONSTRAINT `ProjectPassPaymentEvent_projectInstallationId_fkey`[^\n]+/g, '')
+      .replace(/,?\s*CONSTRAINT `ProjectPassEntitlement_organizationId_fkey`[^\n]+/g, '')
+      .replace(/,?\s*CONSTRAINT `ProjectPassEntitlement_projectInstallationId_fkey`[^\n]+/g, '')
+      // Removing a tenant/project FK also removes its leading comma. Restore
+      // the separator before the remaining payment FK in this disposable harness.
+      .replace(/(INDEX `ProjectPassPaymentEvent_org_project_idx` \([^\n]+\))\s+(CONSTRAINT `ProjectPassPaymentEvent_paymentId_fkey`)/g, '$1,\n  $2')
+      .replace(/(INDEX `ProjectPassEntitlement_org_project_idx` \([^\n]+\))\s+(CONSTRAINT `ProjectPassEntitlement_paymentId_fkey`)/g, '$1,\n  $2');
+    for (const sql of projectPassMigration.split(';').map(s => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
+  }
+  const commercialAccess = load('lib/contractor-os/commercial-access.ts', {});
+  const projectPass = load('lib/contractor-os/project-pass.ts', {});
+  const projectPassRepo = load('lib/contractor-os/project-pass-repository.ts', {
+    '@/lib/db': { prisma }, '@prisma/client': { Prisma }, './commercial-access': commercialAccess, './project-pass': projectPass,
+  });
+  const paidEvent = { organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT', provider: 'ci-provider', providerEventId: 'evt-paid-1', providerPaymentId: 'pay-1', eventType: 'payment.succeeded', state: 'PAID', amountCents: 4900, currency: 'usd', verifiedAt: new Date('2030-01-03T12:00:00Z') };
+  const paidResult = await projectPassRepo.applyVerifiedProjectPassEvent(paidEvent);
+  assert.equal(paidResult.replayed, false);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), true);
+  const replayResult = await projectPassRepo.applyVerifiedProjectPassEvent(paidEvent);
+  assert.equal(replayResult.replayed, true);
+  const replayCounts = await prisma.$queryRawUnsafe("SELECT (SELECT COUNT(*) FROM ProjectPassPayment) AS payments, (SELECT COUNT(*) FROM ProjectPassPaymentEvent) AS events, (SELECT COUNT(*) FROM ProjectPassEntitlement) AS entitlements");
+  assert.equal(Number(replayCounts[0].payments), 1); assert.equal(Number(replayCounts[0].events), 1); assert.equal(Number(replayCounts[0].entitlements), 1);
+  await assert.rejects(() => projectPassRepo.applyVerifiedProjectPassEvent({ ...paidEvent, organizationId: 'b', projectInstallationId: 'project-b', providerEventId: 'evt-cross-tenant' }), /different tenant, project or product/);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'b', projectInstallationId: 'project-b', product: 'CCTV_DIAGRAM_EXPORT' }), false);
+  const refundResult = await projectPassRepo.applyVerifiedProjectPassEvent({ ...paidEvent, providerEventId: 'evt-refund-1', eventType: 'payment.refunded', state: 'REFUNDED', verifiedAt: new Date('2030-01-04T12:00:00Z') });
+  assert.equal(refundResult.replayed, false);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), false);
+  const revoked = await prisma.$queryRawUnsafe("SELECT p.state, e.revokedAt FROM ProjectPassPayment p JOIN ProjectPassEntitlement e ON e.paymentId=p.id WHERE p.providerPaymentId='pay-1'");
+  assert.equal(revoked[0].state, 'REFUNDED'); assert.ok(revoked[0].revokedAt);
+  const repurchase = { ...paidEvent, providerEventId: 'evt-paid-2', providerPaymentId: 'pay-2', verifiedAt: new Date('2030-01-05T12:00:00Z') };
+  await projectPassRepo.applyVerifiedProjectPassEvent(repurchase);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), true);
+
+  await assert.rejects(() => projectPassRepo.applyVerifiedProjectPassEvent({
+    ...paidEvent, providerEventId: 'evt-stale-paid-1', state: 'PAID', verifiedAt: new Date('2030-01-02T12:00:00Z'),
+  }), /unsafe state transition/);
+  const oldPayment = await prisma.$queryRawUnsafe("SELECT state FROM ProjectPassPayment WHERE provider='ci-provider' AND providerPaymentId='pay-1'");
+  assert.equal(oldPayment[0].state, 'REFUNDED');
+
+  const failed = { ...repurchase, providerEventId: 'evt-failed-3', providerPaymentId: 'pay-3', eventType: 'payment.failed', state: 'FAILED', verifiedAt: new Date('2030-01-06T12:00:00Z') };
+  await projectPassRepo.applyVerifiedProjectPassEvent(failed);
+  assert.equal(await projectPassRepo.hasServerVerifiedProjectPass({ organizationId: 'a', projectInstallationId: 'project-a', product: 'CCTV_DIAGRAM_EXPORT' }), true);
+
+  const currentEntitlement = await prisma.$queryRawUnsafe("SELECT paymentId, revokedAt FROM ProjectPassEntitlement WHERE organizationId='a' AND projectInstallationId='project-a' AND product='CCTV_DIAGRAM_EXPORT'");
+  const currentPayment = await prisma.$queryRawUnsafe("SELECT id FROM ProjectPassPayment WHERE provider='ci-provider' AND providerPaymentId='pay-2'");
+  assert.equal(currentEntitlement[0].paymentId, currentPayment[0].id);
+  assert.equal(currentEntitlement[0].revokedAt, null);
+
+    console.log('PASS NCI-016 MySQL: verified PAID grant, replay idempotency, cross-tenant payment binding and REFUNDED revocation, repurchase protection and stale-event rejection.');
+
   await prisma.$executeRawUnsafe(`CREATE TABLE ProjectWorkOrder (
     id VARCHAR(191) NOT NULL PRIMARY KEY, organizationId VARCHAR(191) NOT NULL,
     projectInstallationId VARCHAR(191) NOT NULL, surveySessionId VARCHAR(191) NOT NULL,
