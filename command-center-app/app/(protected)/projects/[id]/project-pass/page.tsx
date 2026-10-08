@@ -1,6 +1,7 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
 
+import { ProjectPassPremiumDownloadButton } from "@/app/(protected)/projects/[id]/project-pass-premium-download-button";
 import { ProjectPassPurchaseButton } from "@/app/(protected)/projects/[id]/project-pass-purchase-button";
 import { Button } from "@/components/ui/button";
 import {
@@ -19,10 +20,12 @@ type ProjectPassPageProps = {
 };
 
 /**
- * Authenticated Project Pass purchase surface.
+ * Authenticated Project Pass purchase and premium-delivery surface.
  *
  * The browser submits only tenant/project/product intent. Price, currency,
- * return URLs, payment verification and entitlement remain server-owned.
+ * return URLs, payment verification, entitlement and artifact generation remain
+ * server-owned. The download action is safe to show before purchase because the
+ * premium-output route denies delivery unless a verified entitlement is active.
  */
 export default async function ProjectPassPage({ params }: ProjectPassPageProps) {
   const user = await requireRoles(routeAccess.projects);
@@ -54,7 +57,21 @@ export default async function ProjectPassPage({ params }: ProjectPassPageProps) 
           />
 
           <div className="rounded-2xl border border-border/70 bg-background/35 p-4 text-sm text-muted-foreground">
-            Checkout completion in the browser does not grant access. A successful return is followed by a server-side entitlement check before premium delivery can be enabled.
+            Checkout completion in the browser does not grant access. Every premium download is authorized again on the server before the project-bound artifact is generated.
+          </div>
+
+          <div className="space-y-3 rounded-2xl border border-border/70 bg-background/35 p-4">
+            <div>
+              <p className="font-medium">Premium delivery</p>
+              <p className="text-sm text-muted-foreground">
+                If this project already has an active verified Project Pass, generate its server-authorized CCTV diagram below.
+              </p>
+            </div>
+            <ProjectPassPremiumDownloadButton
+              organizationId={project.organizationId}
+              projectInstallationId={project.id}
+              product="CCTV_DIAGRAM_EXPORT"
+            />
           </div>
 
           <div className="flex flex-wrap gap-3">
