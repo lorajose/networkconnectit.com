@@ -7,6 +7,8 @@ import {
   type EffectiveSubscriptionAccess,
   type SubscriptionRecord,
 } from "./subscription-lifecycle";
+import type { SubscriptionFeature } from "./subscription-plan";
+import { subscriptionPlanHasFeature } from "./subscription-plan";
 import { getOrganizationProTrial } from "./subscription-trial-repository";
 
 type SubscriptionRow = {
@@ -96,4 +98,31 @@ export async function getEffectiveSubscriptionAccessForActor(
 ): Promise<EffectiveSubscriptionAccess> {
   const scope = commercialReadScope(actor, requestedOrganizationId);
   return resolveOrganizationEffectiveSubscriptionAccess(scope.organizationId, now);
+}
+
+/**
+ * Returns the effective access only when the requested paid feature is
+ * entitled. Use this from server actions, route handlers and repositories
+ * before executing a Pro/Business-only operation.
+ */
+export async function requireSubscriptionFeatureForActor(
+  actor: CommercialActor,
+  feature: SubscriptionFeature,
+  requestedOrganizationId?: string,
+  now = new Date()
+): Promise<EffectiveSubscriptionAccess> {
+  const access = await getEffectiveSubscriptionAccessForActor(
+    actor,
+    requestedOrganizationId,
+    now
+  );
+
+  if (
+    access.tier === "FREE" ||
+    !subscriptionPlanHasFeature(access.tier, feature)
+  ) {
+    throw new Error(`Subscription feature ${feature} is not entitled`);
+  }
+
+  return access;
 }
