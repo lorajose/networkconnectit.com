@@ -9,6 +9,7 @@ import { resolveDesignReportProfile } from "@/lib/contractor-os/design-report-pr
 import { assertDesignLengthUnit, metersPerDesignUnit } from "@/lib/contractor-os/design-scale";
 import { getDesignProject, listDesignFloors, loadDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { prisma } from "@/lib/db";
+import { requireSubscriptionFeatureForActor } from "@/lib/contractor-os/subscription-access-repository";
 import { routeAccess } from "@/lib/rbac";
 
 type DesignExportPageProps = { params: { projectId: string }; searchParams?: { organizationId?: string; profile?: string; layers?: string } };
@@ -18,6 +19,7 @@ export default async function DesignStudioExportPage({ params, searchParams }: D
   const organizationId = user.organizationId ?? searchParams?.organizationId ?? "";
   if (!organizationId) notFound();
   const actor = { id: user.id ?? undefined, role: user.role, organizationId: user.organizationId };
+  await requireSubscriptionFeatureForActor(actor, "PREMIUM_PROJECT_OUTPUTS", organizationId);
   const exportPolicy = designExportPolicy(actor, organizationId);
   const project = await getDesignProject(actor, params.projectId, exportPolicy.organizationId);
   if (!project) notFound();
