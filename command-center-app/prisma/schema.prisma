@@ -134,6 +134,19 @@ enum AlertStatus {
   RESOLVED
 }
 
+enum SubscriptionPlan {
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
 model User {
   id             String         @id @default(cuid()) @db.VarChar(191)
   name           String?        @db.VarChar(191)
@@ -183,6 +196,8 @@ model Organization {
   networkSegments      NetworkSegment[]
   nvrChannelAssignments NvrChannelAssignment[]
   deviceLinks          DeviceLink[]
+  subscription         OrganizationSubscription?
+  subscriptionEvents   OrganizationSubscriptionEvent[]
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 
@@ -478,4 +493,42 @@ model Alert {
   @@index([deviceId, status])
   @@index([severity, status])
   @@index([detectedAt])
+}
+
+
+model OrganizationSubscription {
+  id                     String             @id @default(cuid()) @db.VarChar(191)
+  organizationId         String             @unique @db.VarChar(191)
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider               String             @db.VarChar(64)
+  providerCustomerId     String             @db.VarChar(191)
+  providerSubscriptionId String             @db.VarChar(191)
+  plan                   SubscriptionPlan
+  status                 SubscriptionStatus
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  verifiedAt             DateTime
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@unique([provider, providerSubscriptionId])
+  @@index([provider, providerCustomerId])
+  @@index([status, currentPeriodEnd])
+}
+
+model OrganizationSubscriptionEvent {
+  id                     String       @id @default(cuid()) @db.VarChar(191)
+  organizationId         String       @db.VarChar(191)
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider               String       @db.VarChar(64)
+  providerEventId        String       @db.VarChar(191)
+  providerSubscriptionId String       @db.VarChar(191)
+  eventType              String       @db.VarChar(96)
+  verified               Boolean      @default(false)
+  receivedAt             DateTime     @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([organizationId, receivedAt])
+  @@index([provider, providerSubscriptionId])
 }
