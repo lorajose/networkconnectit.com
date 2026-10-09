@@ -12,6 +12,8 @@ export const SUBSCRIPTION_STATUSES = [
   "INCOMPLETE",
 ] as const;
 
+export const PRO_TRIAL_DAYS = 30;
+
 export type SubscriptionStatus = (typeof SUBSCRIPTION_STATUSES)[number];
 
 export type SubscriptionRecord = {
@@ -26,6 +28,18 @@ export type SubscriptionRecord = {
   cancelAtPeriodEnd: boolean;
   verifiedAt: string;
 };
+
+export type TrialRecord = {
+  organizationId: string;
+  plan: "PRO";
+  startsAt: string;
+  endsAt: string;
+};
+
+export type EffectiveSubscriptionAccess =
+  | { tier: "FREE"; source: "NONE" | "EXPIRED_TRIAL" }
+  | { tier: "PRO"; source: "TRIAL" | "SUBSCRIPTION" }
+  | { tier: "BUSINESS"; source: "SUBSCRIPTION" };
 
 export type SubscriptionChange =
   | {
@@ -90,6 +104,72 @@ export function validateSubscriptionRecord(
   return subscription;
 }
 
+export function createProTrial(
+  organizationId: string,
+  startsAt = new Date()
+): TrialRecord {
+  if (!organizationId.trim()) {
+    throw new Error("Trial organization is required");
+  }
+
+  const endsAt = new Date(startsAt);
+  endsAt.setUTCDate(endsAt.getUTCDate() + PRO_TRIAL_DAYS);
+
+  return {
+    organizationId,
+    plan: "PRO",
+    startsAt: startsAt.toISOString(),
+    endsAt: endsAt.toISOString(),
+  };
+}
+
+export function isTrialActive(trial: TrialRecord | null, now = new Date()) {
+  if (!trial) return false;
+
+  const startsAt = parseVerifiedDate(trial.startsAt, "trial start");
+  const endsAt = parseVerifiedDate(trial.endsAt, "trial end");
+
+  return startsAt.getTime() <= now.getTime() && endsAt.getTime() > now.getTime();
+}
+
+/**
+ * Resolves the server-owned commercial tier. Paid provider state wins over a
+ * local trial. When no paid subscription is active, a current 30-day PRO
+ * trial grants PRO. Expired trials fall back to FREE without deleting any
+ * organization or project data.
+ */
+export function resolveEffectiveSubscriptionAccess(
+  subscription: SubscriptionRecord | null,
+  trial: TrialRecord | null,
+  now = new Date()
+): EffectiveSubscriptionAccess {
+  if (subscription) {
+    const verified = validateSubscriptionRecord(subscription);
+    const statusGrantsAccess =
+      verified.status === "ACTIVE" || verified.status === "TRIALING";
+    const periodStillValid =
+      !verified.currentPeriodEnd ||
+      parseVerifiedDate(verified.currentPeriodEnd, "period end").getTime() >
+        now.getTime();
+
+    if (statusGrantsAccess && periodStillValid) {
+      return {
+        tier: verified.plan,
+        source: "SUBSCRIPTION",
+      } as EffectiveSubscriptionAccess;
+    }
+  }
+
+  if (isTrialActive(trial, now)) {
+    return { tier: "PRO", source: "TRIAL" };
+  }
+
+  return {
+    tier: "FREE",
+    source: trial ? "EXPIRED_TRIAL" : "NONE",
+  };
+}
+
 /**
  * Subscription access is server-authoritative.
  *
@@ -122,6 +202,17 @@ export function hasSubscriptionFeature(
   }
 
   return subscriptionPlanHasFeature(subscription.plan, feature);
+}
+
+export function hasEffectiveSubscriptionFeature(
+  subscription: SubscriptionRecord | null,
+  trial: TrialRecord | null,
+  feature: SubscriptionFeature,
+  now = new Date()
+) {
+  const access = resolveEffectiveSubscriptionAccess(subscription, trial, now);
+  if (access.tier === "FREE") return false;
+  return subscriptionPlanHasFeature(access.tier, feature);
 }
 
 /**
