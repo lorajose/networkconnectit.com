@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { prisma } from "@/lib/prisma";
+import { prisma } from "@/lib/db";
 
 import { createProTrial, type TrialRecord } from "./subscription-lifecycle";
 
