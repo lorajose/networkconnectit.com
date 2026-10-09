@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
 import { getSubscriptionExperienceSummaryForActor } from "@/lib/contractor-os/subscription-access-repository";
 
+import { startProTrialAction } from "./actions";
+
 const planFeatures = {
   FREE: ["Core contractor workspace", "Secure organization access", "Standard project workflows"],
   PRO: ["Unlimited projects", "Premium project outputs", "Proposal and closeout exports", "Advanced Design Studio"],
@@ -35,6 +37,7 @@ export default async function BillingPage() {
     : subscription.source === "EXPIRED_TRIAL"
       ? "Your Pro trial has ended. Your workspace remains available on Free."
       : null;
+  const canStartTrial = user.role === "CLIENT_ADMIN" && subscription.source === "NONE";
 
   return (
     <div className="space-y-6">
@@ -60,6 +63,19 @@ export default async function BillingPage() {
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
+          {canStartTrial ? (
+            <form action={startProTrialAction} className="rounded-2xl border border-sky-400/25 bg-sky-400/5 p-4">
+              <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+                <div>
+                  <p className="font-medium text-foreground">Try Pro free for 30 days</p>
+                  <p className="mt-1 text-sm text-muted-foreground">Unlock premium outputs, closeout exports and Advanced Design Studio. No trial reset is available after the one-time window ends.</p>
+                </div>
+                <button type="submit" className="shrink-0 rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-400/15">
+                  Start 30-day Pro trial
+                </button>
+              </div>
+            </form>
+          ) : null}
           {trialCopy ? (
             <div className="flex items-start gap-3 rounded-2xl border border-border/70 bg-background/40 p-4">
               <Clock3 className="mt-0.5 h-5 w-5 text-sky-300" />
