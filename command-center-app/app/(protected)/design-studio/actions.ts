@@ -12,6 +12,7 @@ import { updateDesignFloorScale } from "@/lib/contractor-os/design-scale-reposit
 import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
+import { requireSubscriptionFeatureForActor } from "@/lib/contractor-os/subscription-access-repository";
 import { routeAccess } from "@/lib/rbac";
 
 function formString(formData: FormData, key: string) {
@@ -19,11 +20,23 @@ function formString(formData: FormData, key: string) {
   return typeof value === "string" ? value.trim() : "";
 }
 
+async function requireAdvancedDesignStudio(
+  user: { role: Parameters<typeof requireSubscriptionFeatureForActor>[0]["role"]; organizationId?: string | null },
+  organizationId: string
+) {
+  await requireSubscriptionFeatureForActor(
+    { role: user.role, organizationId: user.organizationId },
+    "ADVANCED_DESIGN_STUDIO",
+    organizationId
+  );
+}
+
 export async function createDesignProjectAction(formData: FormData) {
   const user = await requireRoles(routeAccess.designStudio);
   const requestedOrganizationId = formString(formData, "organizationId");
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId;
   if (!organizationId) throw new Error("Select an organization before creating a design project");
+  await requireAdvancedDesignStudio(user, organizationId);
 
   const projectId = await createDesignProject(
     { role: user.role, organizationId: user.organizationId },
@@ -49,6 +62,7 @@ export async function uploadDesignFloorPlanAction(formData: FormData): Promise<v
   const uploaded = formData.get("file");
 
   if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await requireAdvancedDesignStudio(user, organizationId);
   if (!(uploaded instanceof File) || !uploaded.name) throw new Error("Select a PDF, JPG or PNG floor plan");
 
   const bytes = new Uint8Array(await uploaded.arrayBuffer());
@@ -83,6 +97,7 @@ export async function updateDesignFloorBackgroundAction(formData: FormData): Pro
   const opacityPercent = Number(formString(formData, "opacityPercent"));
 
   if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await requireAdvancedDesignStudio(user, organizationId);
   await updateDesignFloorBackgroundSettings(
     { role: user.role, organizationId: user.organizationId },
     {
@@ -107,6 +122,7 @@ export async function updateDesignFloorPdfPageAction(formData: FormData): Promis
   const page = Number(formString(formData, "pdfPage"));
 
   if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await requireAdvancedDesignStudio(user, organizationId);
   await updateDesignFloorPdfPage(
     { role: user.role, organizationId: user.organizationId },
     { organizationId, projectId, floorId, page },
@@ -122,6 +138,7 @@ export async function updateDesignFloorScaleAction(formData: FormData): Promise<
   const floorId = formString(formData, "floorId");
 
   if (!organizationId || !projectId || !floorId) throw new Error("Organization, project and floor are required");
+  await requireAdvancedDesignStudio(user, organizationId);
   await updateDesignFloorScale(
     { role: user.role, organizationId: user.organizationId },
     {
@@ -147,6 +164,7 @@ export async function saveDesignCanvasAction(input: {
   const user = await requireRoles(routeAccess.designStudio);
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : input.organizationId.trim();
   if (!organizationId) throw new Error("Organization context is required");
+  await requireAdvancedDesignStudio(user, organizationId);
   const nextRevision = await saveDesignFloorCanvas(
     { role: user.role, organizationId: user.organizationId },
     { ...input, organizationId },
@@ -164,6 +182,7 @@ export async function createDesignCheckpointAction(input: {
   const user = await requireRoles(routeAccess.designStudio);
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : input.organizationId.trim();
   if (!organizationId) throw new Error("Organization context is required");
+  await requireAdvancedDesignStudio(user, organizationId);
   const version = await createDesignVersionCheckpoint(
     { role: user.role, organizationId: user.organizationId },
     { ...input, organizationId, createdByUserId: user.id },
@@ -180,6 +199,7 @@ export async function getDesignVersionPreviewAction(input: {
   const user = await requireRoles(routeAccess.designStudio);
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : input.organizationId.trim();
   if (!organizationId) throw new Error("Organization context is required");
+  await requireAdvancedDesignStudio(user, organizationId);
   return getDesignVersionSnapshot(
     { role: user.role, organizationId: user.organizationId },
     input.projectId,
@@ -197,6 +217,7 @@ export async function restoreDesignVersionAction(input: {
   const user = await requireRoles(routeAccess.designStudio);
   const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : input.organizationId.trim();
   if (!organizationId) throw new Error("Organization context is required");
+  await requireAdvancedDesignStudio(user, organizationId);
   const revision = await restoreDesignVersion(
     { role: user.role, organizationId: user.organizationId },
     { ...input, organizationId },
