@@ -1,5 +1,7 @@
 import { prisma } from "@/lib/db";
 
+import type { CommercialActor } from "./commercial-access";
+import { commercialReadScope } from "./commercial-access";
 import {
   resolveEffectiveSubscriptionAccess,
   type EffectiveSubscriptionAccess,
@@ -36,10 +38,11 @@ function toSubscriptionRecord(row: SubscriptionRow): SubscriptionRecord {
 }
 
 /**
- * Reads provider-verified subscription state for an authenticated organization.
- * The organization id must be derived server-side from the current session.
+ * Reads provider-verified subscription state for one already-authorized
+ * organization scope. Public callers should prefer the actor-scoped resolver
+ * below so tenant selection cannot come from untrusted browser state.
  */
-export async function getOrganizationSubscription(
+async function getOrganizationSubscription(
   organizationId: string
 ): Promise<SubscriptionRecord | null> {
   if (!organizationId.trim()) {
@@ -65,23 +68,32 @@ export async function getOrganizationSubscription(
   return row ? toSubscriptionRecord(row) : null;
 }
 
-/**
- * Single server-owned entry point for commercial access decisions.
- * Paid provider state wins; otherwise an active one-time Pro trial grants Pro;
- * after trial expiry the organization falls back to Free without data loss.
- */
-export async function getOrganizationEffectiveSubscriptionAccess(
+async function resolveOrganizationEffectiveSubscriptionAccess(
   organizationId: string,
   now = new Date()
 ): Promise<EffectiveSubscriptionAccess> {
-  if (!organizationId.trim()) {
-    throw new Error("Subscription organization is required");
-  }
-
   const [subscription, trial] = await Promise.all([
     getOrganizationSubscription(organizationId),
     getOrganizationProTrial(organizationId),
   ]);
 
   return resolveEffectiveSubscriptionAccess(subscription, trial, now);
+}
+
+/**
+ * Server-owned entry point for commercial access decisions.
+ *
+ * CLIENT_ADMIN / VIEWER are always locked to the organization carried by the
+ * authenticated server session. Internal admins may select an organization,
+ * using the same existing commercialReadScope policy as the rest of the
+ * Contractor OS. Paid provider state wins; otherwise an active one-time Pro
+ * trial grants Pro; after expiry the organization falls back to Free.
+ */
+export async function getEffectiveSubscriptionAccessForActor(
+  actor: CommercialActor,
+  requestedOrganizationId?: string,
+  now = new Date()
+): Promise<EffectiveSubscriptionAccess> {
+  const scope = commercialReadScope(actor, requestedOrganizationId);
+  return resolveOrganizationEffectiveSubscriptionAccess(scope.organizationId, now);
 }
