@@ -1,3 +1,6 @@
+import { createHmac, timingSafeEqual } from "node:crypto";
+
+import type { SubscriptionStatus } from "./subscription-lifecycle";
 import type { SubscriptionPlan } from "./subscription-plan";
 import {
   subscriptionStripePriceId,
@@ -9,6 +12,23 @@ type StripeFetch = (input: string, init?: RequestInit) => Promise<Response>;
 type StripeCheckoutSession = {
   id?: unknown;
   url?: unknown;
+};
+
+type StripeSubscription = {
+  id?: unknown;
+  customer?: unknown;
+  status?: unknown;
+  current_period_start?: unknown;
+  current_period_end?: unknown;
+  cancel_at_period_end?: unknown;
+  metadata?: unknown;
+};
+
+type StripeEvent = {
+  id?: unknown;
+  type?: unknown;
+  created?: unknown;
+  data?: { object?: unknown };
 };
 
 export type SubscriptionCheckoutRequest = {
@@ -24,7 +44,23 @@ export type SubscriptionCheckoutSession = {
   checkoutUrl: string;
 };
 
+export type VerifiedSubscriptionEvent = {
+  provider: "stripe";
+  providerEventId: string;
+  providerSubscriptionId: string;
+  providerCustomerId: string;
+  eventType: string;
+  organizationId: string;
+  plan: SubscriptionPlan;
+  status: SubscriptionStatus;
+  currentPeriodStart: Date | null;
+  currentPeriodEnd: Date | null;
+  cancelAtPeriodEnd: boolean;
+  verifiedAt: Date;
+};
+
 const STRIPE_CHECKOUT_API = "https://api.stripe.com/v1/checkout/sessions";
+const SIGNATURE_TOLERANCE_SECONDS = 300;
 
 function requiredString(value: unknown, field: string): string {
   if (typeof value !== "string" || !value.trim()) {
@@ -33,20 +69,102 @@ function requiredString(value: unknown, field: string): string {
   return value.trim();
 }
 
+function secureSignatureMatch(expected: string, candidates: string[]) {
+  const expectedBuffer = Buffer.from(expected, "utf8");
+  return candidates.some((candidate) => {
+    const candidateBuffer = Buffer.from(candidate, "utf8");
+    return (
+      candidateBuffer.length === expectedBuffer.length &&
+      timingSafeEqual(candidateBuffer, expectedBuffer)
+    );
+  });
+}
+
+function verifyStripeSignature(
+  rawBody: string,
+  signatureHeader: string | null,
+  secret: string,
+  nowMs: number
+) {
+  if (!signatureHeader) throw new Error("Stripe signature is required");
+
+  let timestamp: number | null = null;
+  const signatures: string[] = [];
+  for (const part of signatureHeader.split(",")) {
+    const separator = part.indexOf("=");
+    if (separator <= 0) continue;
+    const key = part.slice(0, separator).trim();
+    const value = part.slice(separator + 1).trim();
+    if (key === "t") timestamp = Number(value);
+    if (key === "v1" && value) signatures.push(value);
+  }
+
+  if (!timestamp || !Number.isFinite(timestamp) || signatures.length === 0) {
+    throw new Error("Stripe signature header is invalid");
+  }
+
+  const nowSeconds = Math.floor(nowMs / 1000);
+  if (Math.abs(nowSeconds - timestamp) > SIGNATURE_TOLERANCE_SECONDS) {
+    throw new Error("Stripe webhook timestamp is outside the allowed tolerance");
+  }
+
+  const expected = createHmac("sha256", secret)
+    .update(`${timestamp}.${rawBody}`, "utf8")
+    .digest("hex");
+
+  if (!secureSignatureMatch(expected, signatures)) {
+    throw new Error("Stripe webhook signature is invalid");
+  }
+}
+
+function subscriptionPlan(value: unknown): SubscriptionPlan {
+  if (value !== "PRO" && value !== "BUSINESS") {
+    throw new Error("Unsupported subscription plan in Stripe metadata");
+  }
+  return value;
+}
+
+function subscriptionStatus(value: unknown): SubscriptionStatus {
+  switch (value) {
+    case "trialing":
+      return "TRIALING";
+    case "active":
+      return "ACTIVE";
+    case "past_due":
+    case "unpaid":
+      return "PAST_DUE";
+    case "canceled":
+      return "CANCELED";
+    case "incomplete":
+    case "incomplete_expired":
+    case "paused":
+      return "INCOMPLETE";
+    default:
+      throw new Error("Unsupported Stripe subscription status");
+  }
+}
+
+function unixDate(value: unknown): Date | null {
+  if (value == null) return null;
+  if (typeof value !== "number" || !Number.isFinite(value)) {
+    throw new Error("Stripe subscription period timestamp is invalid");
+  }
+  return new Date(value * 1000);
+}
+
 /**
  * Stripe Checkout boundary for NCI-017 recurring plans.
  *
- * The caller supplies only the server-resolved organization and plan. Stripe
- * price IDs are looked up from trusted server configuration. Checkout success
- * is navigation only; it must never grant subscription entitlement. A later
- * verified subscription webhook is responsible for persisted access.
+ * Checkout navigation never grants entitlement. Only a verified Stripe
+ * subscription lifecycle event can be normalized into persisted access.
  */
 export class StripeSubscriptionProvider {
   readonly name = "stripe" as const;
 
   constructor(
     private readonly config: SubscriptionStripeConfig,
-    private readonly fetchImpl: StripeFetch = fetch
+    private readonly fetchImpl: StripeFetch = fetch,
+    private readonly now: () => number = Date.now
   ) {}
 
   async createCheckout(
@@ -96,6 +214,59 @@ export class StripeSubscriptionProvider {
       provider: this.name,
       providerCheckoutId,
       checkoutUrl,
+    };
+  }
+
+  verifyWebhook(rawBody: string, signatureHeader: string | null): VerifiedSubscriptionEvent {
+    verifyStripeSignature(
+      rawBody,
+      signatureHeader,
+      this.config.webhookSecret,
+      this.now()
+    );
+
+    const event = JSON.parse(rawBody) as StripeEvent;
+    const providerEventId = requiredString(event.id, "event id");
+    const eventType = requiredString(event.type, "event type");
+
+    if (
+      eventType !== "customer.subscription.created" &&
+      eventType !== "customer.subscription.updated" &&
+      eventType !== "customer.subscription.deleted"
+    ) {
+      throw new Error("Unsupported Stripe subscription event");
+    }
+
+    const subscription = (event.data?.object ?? null) as StripeSubscription | null;
+    if (!subscription || typeof subscription !== "object") {
+      throw new Error("Stripe Subscription is required");
+    }
+
+    const metadata =
+      subscription.metadata && typeof subscription.metadata === "object"
+        ? (subscription.metadata as Record<string, unknown>)
+        : {};
+
+    return {
+      provider: this.name,
+      providerEventId,
+      providerSubscriptionId: requiredString(subscription.id, "subscription id"),
+      providerCustomerId: requiredString(subscription.customer, "customer id"),
+      eventType,
+      organizationId: requiredString(metadata.organizationId, "organization metadata"),
+      plan: subscriptionPlan(metadata.plan),
+      status:
+        eventType === "customer.subscription.deleted"
+          ? "CANCELED"
+          : subscriptionStatus(subscription.status),
+      currentPeriodStart: unixDate(subscription.current_period_start),
+      currentPeriodEnd: unixDate(subscription.current_period_end),
+      cancelAtPeriodEnd: subscription.cancel_at_period_end === true,
+      verifiedAt: new Date(
+        (typeof event.created === "number" && Number.isFinite(event.created)
+          ? event.created * 1000
+          : this.now())
+      ),
     };
   }
 }
