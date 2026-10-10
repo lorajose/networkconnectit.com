@@ -13,6 +13,8 @@ type StoredSubscription = {
   providerSubscriptionId: string;
   plan: SubscriptionPlan;
   status: "TRIALING" | "ACTIVE" | "PAST_DUE" | "CANCELED" | "INCOMPLETE";
+  pendingPlan: SubscriptionPlan | null;
+  providerScheduleId: string | null;
 };
 
 async function loadStoredSubscription(
@@ -29,21 +31,16 @@ async function loadStoredSubscription(
       providerSubscriptionId: true,
       plan: true,
       status: true,
+      pendingPlan: true,
+      providerScheduleId: true,
     },
   });
 
-  if (!subscription) {
-    throw new Error("A paid subscription is required");
-  }
-
+  if (!subscription) throw new Error("A paid subscription is required");
   if (subscription.provider !== "stripe") {
     throw new Error("Unsupported subscription provider");
   }
-
-  if (
-    subscription.status !== "ACTIVE" &&
-    subscription.status !== "TRIALING"
-  ) {
+  if (subscription.status !== "ACTIVE" && subscription.status !== "TRIALING") {
     throw new Error("Only an active subscription can be changed");
   }
 
@@ -52,10 +49,9 @@ async function loadStoredSubscription(
 
 /**
  * Server-authoritative recurring subscription change boundary.
- *
- * The caller provides only the requested commercial outcome. Organization and
- * provider subscription identity are loaded from persisted server state.
- * Stripe webhooks remain the only authority that updates local entitlement.
+ * Stripe confirms provider mutations first. Local scheduled-change state is
+ * persisted only after Stripe has accepted the complete downgrade schedule.
+ * Current entitlement still changes only through verified subscription webhooks.
  */
 export async function changeOrganizationSubscription(
   organizationId: string,
@@ -63,6 +59,10 @@ export async function changeOrganizationSubscription(
 ): Promise<SubscriptionChange> {
   const stored = await loadStoredSubscription(organizationId);
   const change = planSubscriptionChange(stored.plan, requestedPlan);
+
+  if (stored.providerScheduleId || stored.pendingPlan) {
+    throw new Error("A subscription plan change is already scheduled");
+  }
 
   const config = resolveSubscriptionStripeConfig();
   if (!config.configured) {
@@ -81,10 +81,22 @@ export async function changeOrganizationSubscription(
   }
 
   if (change.kind === "DOWNGRADE") {
-    await stripe.downgradeAtPeriodEnd({
+    const scheduled = await stripe.downgradeAtPeriodEnd({
       providerSubscriptionId: stored.providerSubscriptionId,
       organizationId,
       toPlan: change.toPlan,
+    });
+
+    await prisma.organizationSubscription.update({
+      where: {
+        organizationId,
+        providerSubscriptionId: stored.providerSubscriptionId,
+      },
+      data: {
+        pendingPlan: change.toPlan,
+        providerScheduleId: scheduled.providerScheduleId,
+        pendingPlanEffectiveAt: scheduled.effectiveAt,
+      },
     });
     return change;
   }
