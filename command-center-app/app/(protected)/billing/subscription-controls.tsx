@@ -32,11 +32,13 @@ export function SubscriptionPlanAction({
   plan,
   source,
   currentTier,
+  resubscribe = false,
   disabled = false,
 }: {
   plan: Plan;
   source: Source;
   currentTier: "FREE" | Plan;
+  resubscribe?: boolean;
   disabled?: boolean;
 }) {
   const router = useRouter();
@@ -110,7 +112,9 @@ export function SubscriptionPlanAction({
   }
 
   const label = !isPaid
-    ? `Choose ${plan === "PRO" ? "Pro" : "Business"}`
+    ? resubscribe
+      ? `Subscribe again to ${plan === "PRO" ? "Pro" : "Business"}`
+      : `Choose ${plan === "PRO" ? "Pro" : "Business"}`
     : isUpgrade
       ? "Upgrade to Business"
       : isDowngrade
