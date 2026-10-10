@@ -366,8 +366,8 @@ model AccessReference {
   vaultProvider         String?              @db.VarChar(191)
   vaultPath             String?              @db.VarChar(255)
   owner                 String?              @db.VarChar(191)
-  remoteAccessMethod    String?              @db.VarChar(191)
-  notes                 String?              @db.Text
+  remoteAccessMethod    String?               @db.VarChar(191)
+  notes                 String?               @db.Text
   lastValidatedAt       DateTime?
   createdAt             DateTime             @default(now())
   updatedAt             DateTime             @updatedAt
@@ -413,8 +413,8 @@ model NvrChannelAssignment {
   channelNumber    Int
   recordingEnabled Boolean      @default(true)
   notes            String?      @db.Text
-  createdAt        DateTime     @default(now())
-  updatedAt        DateTime     @updatedAt
+  createdAt         DateTime     @default(now())
+  updatedAt         DateTime     @updatedAt
 
   @@unique([nvrDeviceId, channelNumber])
   @@unique([cameraDeviceId])
@@ -508,13 +508,18 @@ model OrganizationSubscription {
   currentPeriodStart     DateTime?
   currentPeriodEnd       DateTime?
   cancelAtPeriodEnd      Boolean            @default(false)
+  pendingPlan            SubscriptionPlan?
+  providerScheduleId     String?            @db.VarChar(191)
+  pendingPlanEffectiveAt DateTime?
   verifiedAt             DateTime
   createdAt              DateTime           @default(now())
   updatedAt              DateTime           @updatedAt
 
   @@unique([provider, providerSubscriptionId])
+  @@unique([provider, providerScheduleId])
   @@index([provider, providerCustomerId])
   @@index([status, currentPeriodEnd])
+  @@index([pendingPlan, pendingPlanEffectiveAt])
 }
 
 model OrganizationSubscriptionEvent {
