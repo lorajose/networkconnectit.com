@@ -3,6 +3,7 @@ import { CheckCircle2, Clock3 } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireUser } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getSubscriptionExperienceSummaryForActor } from "@/lib/contractor-os/subscription-access-repository";
 
 import { startProTrialAction } from "./actions";
@@ -51,6 +52,13 @@ export default async function BillingPage() {
     role: user.role,
     organizationId: user.organizationId,
   });
+  const persistedSubscription = await prisma.organizationSubscription.findUnique({
+    where: { organizationId: user.organizationId },
+    select: { status: true },
+  });
+  const canResubscribe =
+    persistedSubscription?.status === "CANCELED" &&
+    subscription.source !== "SUBSCRIPTION";
 
   const trialCopy =
     subscription.source === "TRIAL"
@@ -211,6 +219,7 @@ export default async function BillingPage() {
                     plan={plan}
                     source={subscription.source}
                     currentTier={subscription.tier}
+                    resubscribe={canResubscribe}
                     disabled={subscription.cancelAtPeriodEnd}
                   />
                 ) : null}
