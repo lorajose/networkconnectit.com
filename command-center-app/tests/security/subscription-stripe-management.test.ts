@@ -67,20 +67,40 @@ test("downgrade preserves Business through the current phase and returns persist
 test("scheduled downgrade release verifies provider schedule and active subscription identity", async () => {
   const calls: Array<{ url: string; method: string }> = [];
   const manager = new StripeSubscriptionManagement(config, async (input, init) => {
-    calls.push({ url: String(input), method: init?.method ?? "GET" });
+    const url = String(input);
+    const method = init?.method ?? "GET";
+    calls.push({ url, method });
+    if (url.endsWith("/subscriptions/sub_123") && method === "GET") {
+      return new Response(JSON.stringify(subscriptionResponse("price_Business456")), { status: 200 });
+    }
     return new Response(JSON.stringify({ id: "sub_sched_123", status: "released", released_subscription: "sub_123" }), { status: 200 });
   });
   await manager.releaseScheduledChange({ providerScheduleId: "sub_sched_123", providerSubscriptionId: "sub_123" });
-  assert.deepEqual(calls, [{ url: "https://api.stripe.com/v1/subscription_schedules/sub_sched_123/release", method: "POST" }]);
+  assert.deepEqual(calls, [
+    { url: "https://api.stripe.com/v1/subscriptions/sub_123", method: "GET" },
+    { url: "https://api.stripe.com/v1/subscription_schedules/sub_sched_123/release", method: "POST" },
+  ]);
 });
 
 test("scheduled downgrade release rejects a different released subscription", async () => {
-  const manager = new StripeSubscriptionManagement(config, async () => new Response(JSON.stringify({ id: "sub_sched_123", status: "released", released_subscription: "sub_attacker" }), { status: 200 }));
+  const manager = new StripeSubscriptionManagement(config, async (input, init) => {
+    const url = String(input);
+    if (url.endsWith("/subscriptions/sub_123") && (init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify(subscriptionResponse("price_Business456")), { status: 200 });
+    }
+    return new Response(JSON.stringify({ id: "sub_sched_123", status: "released", released_subscription: "sub_attacker" }), { status: 200 });
+  });
   await assert.rejects(() => manager.releaseScheduledChange({ providerScheduleId: "sub_sched_123", providerSubscriptionId: "sub_123" }), /unexpected subscription/);
 });
 
 test("scheduled downgrade release rejects an unexpected schedule identity", async () => {
-  const manager = new StripeSubscriptionManagement(config, async () => new Response(JSON.stringify({ id: "sub_sched_other", status: "released", released_subscription: "sub_123" }), { status: 200 }));
+  const manager = new StripeSubscriptionManagement(config, async (input, init) => {
+    const url = String(input);
+    if (url.endsWith("/subscriptions/sub_123") && (init?.method ?? "GET") === "GET") {
+      return new Response(JSON.stringify(subscriptionResponse("price_Business456")), { status: 200 });
+    }
+    return new Response(JSON.stringify({ id: "sub_sched_other", status: "released", released_subscription: "sub_123" }), { status: 200 });
+  });
   await assert.rejects(() => manager.releaseScheduledChange({ providerScheduleId: "sub_sched_123", providerSubscriptionId: "sub_123" }), /unexpected schedule/);
 });
 
