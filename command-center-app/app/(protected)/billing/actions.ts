@@ -22,7 +22,9 @@ export async function startProTrialAction(): Promise<void> {
   const actor = { role: user.role, organizationId } as const;
   const current = await getSubscriptionExperienceSummaryForActor(actor);
 
-  if (current.source === "SUBSCRIPTION") {
+  // The acquisition trial is single-use. Any paid subscription, active trial,
+  // or previously consumed/expired trial must never start a new trial.
+  if (current.source !== "NONE") {
     redirect("/billing");
   }
 
