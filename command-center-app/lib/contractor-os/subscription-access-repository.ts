@@ -6,6 +6,7 @@ import {
   resolveEffectiveSubscriptionAccess,
   type EffectiveSubscriptionAccess,
   type SubscriptionRecord,
+  type TrialRecord,
 } from "./subscription-lifecycle";
 import type { SubscriptionFeature } from "./subscription-plan";
 import { subscriptionPlanHasFeature } from "./subscription-plan";
@@ -21,35 +22,56 @@ type SubscriptionRow = {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  pendingPlan: "PRO" | "BUSINESS" | null;
+  providerScheduleId: string | null;
+  pendingPlanEffectiveAt: Date | null;
   verifiedAt: Date;
 };
 
-function toSubscriptionRecord(row: SubscriptionRow): SubscriptionRecord {
+type StoredSubscriptionState = {
+  record: SubscriptionRecord;
+  pendingPlan: "PRO" | "BUSINESS" | null;
+  providerScheduleId: string | null;
+  pendingPlanEffectiveAt: string | null;
+};
+
+export type SubscriptionExperienceSummary = {
+  tier: "FREE" | "PRO" | "BUSINESS";
+  source: "NONE" | "EXPIRED_TRIAL" | "TRIAL" | "SUBSCRIPTION";
+  label: "Free" | "Pro Trial" | "Pro" | "Business";
+  trialEndsAt: string | null;
+  trialDaysRemaining: number | null;
+  currentPeriodEnd: string | null;
+  cancelAtPeriodEnd: boolean;
+  pendingPlan: "PRO" | "BUSINESS" | null;
+  pendingPlanEffectiveAt: string | null;
+  hasScheduledPlanChange: boolean;
+};
+
+function toStoredSubscriptionState(row: SubscriptionRow): StoredSubscriptionState {
   return {
-    organizationId: row.organizationId,
-    provider: row.provider,
-    providerCustomerId: row.providerCustomerId,
-    providerSubscriptionId: row.providerSubscriptionId,
-    plan: row.plan,
-    status: row.status,
-    currentPeriodStart: row.currentPeriodStart?.toISOString() ?? null,
-    currentPeriodEnd: row.currentPeriodEnd?.toISOString() ?? null,
-    cancelAtPeriodEnd: row.cancelAtPeriodEnd,
-    verifiedAt: row.verifiedAt.toISOString(),
+    record: {
+      organizationId: row.organizationId,
+      provider: row.provider,
+      providerCustomerId: row.providerCustomerId,
+      providerSubscriptionId: row.providerSubscriptionId,
+      plan: row.plan,
+      status: row.status,
+      currentPeriodStart: row.currentPeriodStart?.toISOString() ?? null,
+      currentPeriodEnd: row.currentPeriodEnd?.toISOString() ?? null,
+      cancelAtPeriodEnd: row.cancelAtPeriodEnd,
+      verifiedAt: row.verifiedAt.toISOString(),
+    },
+    pendingPlan: row.pendingPlan,
+    providerScheduleId: row.providerScheduleId,
+    pendingPlanEffectiveAt: row.pendingPlanEffectiveAt?.toISOString() ?? null,
   };
 }
 
-/**
- * Reads provider-verified subscription state for one already-authorized
- * organization scope. Public callers should prefer the actor-scoped resolver
- * below so tenant selection cannot come from untrusted browser state.
- */
 async function getOrganizationSubscription(
   organizationId: string
-): Promise<SubscriptionRecord | null> {
-  if (!organizationId.trim()) {
-    throw new Error("Subscription organization is required");
-  }
+): Promise<StoredSubscriptionState | null> {
+  if (!organizationId.trim()) throw new Error("Subscription organization is required");
 
   const row = await prisma.organizationSubscription.findUnique({
     where: { organizationId },
@@ -63,34 +85,44 @@ async function getOrganizationSubscription(
       currentPeriodStart: true,
       currentPeriodEnd: true,
       cancelAtPeriodEnd: true,
+      pendingPlan: true,
+      providerScheduleId: true,
+      pendingPlanEffectiveAt: true,
       verifiedAt: true,
     },
   });
 
-  return row ? toSubscriptionRecord(row) : null;
+  return row ? toStoredSubscriptionState(row) : null;
+}
+
+async function getOrganizationCommercialState(
+  organizationId: string,
+  now = new Date()
+): Promise<{
+  access: EffectiveSubscriptionAccess;
+  subscription: StoredSubscriptionState | null;
+  trial: TrialRecord | null;
+}> {
+  const [subscription, trial] = await Promise.all([
+    getOrganizationSubscription(organizationId),
+    getOrganizationProTrial(organizationId),
+  ]);
+
+  return {
+    access: resolveEffectiveSubscriptionAccess(subscription?.record ?? null, trial, now),
+    subscription,
+    trial,
+  };
 }
 
 async function resolveOrganizationEffectiveSubscriptionAccess(
   organizationId: string,
   now = new Date()
 ): Promise<EffectiveSubscriptionAccess> {
-  const [subscription, trial] = await Promise.all([
-    getOrganizationSubscription(organizationId),
-    getOrganizationProTrial(organizationId),
-  ]);
-
-  return resolveEffectiveSubscriptionAccess(subscription, trial, now);
+  const state = await getOrganizationCommercialState(organizationId, now);
+  return state.access;
 }
 
-/**
- * Server-owned entry point for commercial access decisions.
- *
- * CLIENT_ADMIN / VIEWER are always locked to the organization carried by the
- * authenticated server session. Internal admins may select an organization,
- * using the same existing commercialReadScope policy as the rest of the
- * Contractor OS. Paid provider state wins; otherwise an active one-time Pro
- * trial grants Pro; after expiry the organization falls back to Free.
- */
 export async function getEffectiveSubscriptionAccessForActor(
   actor: CommercialActor,
   requestedOrganizationId?: string,
@@ -100,11 +132,58 @@ export async function getEffectiveSubscriptionAccessForActor(
   return resolveOrganizationEffectiveSubscriptionAccess(scope.organizationId, now);
 }
 
-/**
- * Returns the effective access only when the requested paid feature is
- * entitled. Use this from server actions, route handlers and repositories
- * before executing a Pro/Business-only operation.
- */
+export async function getSubscriptionExperienceSummaryForActor(
+  actor: CommercialActor,
+  requestedOrganizationId?: string,
+  now = new Date()
+): Promise<SubscriptionExperienceSummary> {
+  const scope = commercialReadScope(actor, requestedOrganizationId);
+  const { access, subscription, trial } = await getOrganizationCommercialState(
+    scope.organizationId,
+    now
+  );
+
+  const activeTrial = access.source === "TRIAL" ? trial : null;
+  const trialDaysRemaining = activeTrial
+    ? Math.max(
+        0,
+        Math.ceil(
+          (new Date(activeTrial.endsAt).getTime() - now.getTime()) /
+            (24 * 60 * 60 * 1000)
+        )
+      )
+    : null;
+
+  const label =
+    access.tier === "BUSINESS"
+      ? "Business"
+      : access.tier === "PRO"
+        ? access.source === "TRIAL"
+          ? "Pro Trial"
+          : "Pro"
+        : "Free";
+
+  const paid = access.source === "SUBSCRIPTION" ? subscription : null;
+  const hasScheduledPlanChange = Boolean(
+    paid?.pendingPlan && paid.providerScheduleId && paid.pendingPlanEffectiveAt
+  );
+
+  return {
+    tier: access.tier,
+    source: access.source,
+    label,
+    trialEndsAt: activeTrial?.endsAt ?? null,
+    trialDaysRemaining,
+    currentPeriodEnd: paid?.record.currentPeriodEnd ?? null,
+    cancelAtPeriodEnd: paid?.record.cancelAtPeriodEnd ?? false,
+    pendingPlan: hasScheduledPlanChange ? paid?.pendingPlan ?? null : null,
+    pendingPlanEffectiveAt: hasScheduledPlanChange
+      ? paid?.pendingPlanEffectiveAt ?? null
+      : null,
+    hasScheduledPlanChange,
+  };
+}
+
 export async function requireSubscriptionFeatureForActor(
   actor: CommercialActor,
   feature: SubscriptionFeature,
@@ -117,10 +196,7 @@ export async function requireSubscriptionFeatureForActor(
     now
   );
 
-  if (
-    access.tier === "FREE" ||
-    !subscriptionPlanHasFeature(access.tier, feature)
-  ) {
+  if (access.tier === "FREE" || !subscriptionPlanHasFeature(access.tier, feature)) {
     throw new Error(`Subscription feature ${feature} is not entitled`);
   }
 

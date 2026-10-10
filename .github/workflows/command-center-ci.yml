@@ -115,3 +115,5 @@ jobs:
         run: node scripts/test-project-pass-webhook-mysql.cjs
       - name: Verify Project Pass full refund revokes entitlement and server access
         run: node scripts/test-project-pass-refund-webhook-mysql.cjs
+      - name: Verify subscription webhook replay, cancellation and stale-event safety
+        run: node scripts/test-subscription-webhook-mysql.cjs

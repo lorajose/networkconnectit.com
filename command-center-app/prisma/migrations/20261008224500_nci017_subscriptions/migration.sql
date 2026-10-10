@@ -16,10 +16,10 @@ CREATE TABLE `OrganizationSubscription` (
     `createdAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
     `updatedAt` DATETIME(3) NOT NULL,
 
-    UNIQUE INDEX `OrganizationSubscription_organizationId_key`(`organizationId`),
-    UNIQUE INDEX `OrganizationSubscription_provider_providerSubscriptionId_key`(`provider`, `providerSubscriptionId`),
-    INDEX `OrganizationSubscription_provider_providerCustomerId_idx`(`provider`, `providerCustomerId`),
-    INDEX `OrganizationSubscription_status_currentPeriodEnd_idx`(`status`, `currentPeriodEnd`),
+    UNIQUE INDEX `OrgSubscription_org_key`(`organizationId`),
+    UNIQUE INDEX `OrgSubscription_provider_sub_key`(`provider`, `providerSubscriptionId`),
+    INDEX `OrgSubscription_provider_customer_idx`(`provider`, `providerCustomerId`),
+    INDEX `OrgSubscription_status_period_end_idx`(`status`, `currentPeriodEnd`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
@@ -33,18 +33,18 @@ CREATE TABLE `OrganizationSubscriptionEvent` (
     `verified` BOOLEAN NOT NULL DEFAULT false,
     `receivedAt` DATETIME(3) NOT NULL DEFAULT CURRENT_TIMESTAMP(3),
 
-    UNIQUE INDEX `OrganizationSubscriptionEvent_provider_providerEventId_key`(`provider`, `providerEventId`),
-    INDEX `OrganizationSubscriptionEvent_organizationId_receivedAt_idx`(`organizationId`, `receivedAt`),
-    INDEX `OrganizationSubscriptionEvent_provider_providerSubscriptionId_idx`(`provider`, `providerSubscriptionId`),
+    UNIQUE INDEX `OrgSubEvent_provider_event_key`(`provider`, `providerEventId`),
+    INDEX `OrgSubEvent_org_received_idx`(`organizationId`, `receivedAt`),
+    INDEX `OrgSubEvent_provider_sub_idx`(`provider`, `providerSubscriptionId`),
     PRIMARY KEY (`id`)
 ) DEFAULT CHARACTER SET utf8mb4 COLLATE utf8mb4_unicode_ci;
 
 ALTER TABLE `OrganizationSubscription`
-    ADD CONSTRAINT `OrganizationSubscription_organizationId_fkey`
+    ADD CONSTRAINT `OrgSubscription_org_fkey`
     FOREIGN KEY (`organizationId`) REFERENCES `Organization`(`id`)
     ON DELETE CASCADE ON UPDATE CASCADE;
 
 ALTER TABLE `OrganizationSubscriptionEvent`
-    ADD CONSTRAINT `OrganizationSubscriptionEvent_organizationId_fkey`
+    ADD CONSTRAINT `OrgSubEvent_org_fkey`
     FOREIGN KEY (`organizationId`) REFERENCES `Organization`(`id`)
     ON DELETE CASCADE ON UPDATE CASCADE;
