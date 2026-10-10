@@ -22,9 +22,10 @@
     "bootstrap:local": "node scripts/bootstrap-local.mjs",
     "release:gate": "node scripts/production-release-gate.mjs",
     "release:gate:test": "node scripts/test-production-release-gate.mjs",
-    "startup:syntax:test": "node --check scripts/start-godaddy.mjs && node --check scripts/production-release-gate.mjs && node --check scripts/qa-runtime-gate.mjs && node --check scripts/start-qa.mjs && node --check scripts/audit-production-migration-history.mjs",
+    "startup:syntax:test": "node --check scripts/start-godaddy.mjs && node --check scripts/production-release-gate.mjs && node --check scripts/qa-runtime-gate.mjs && node --check scripts/nci017-stripe-qa-gate.mjs && node --check scripts/start-qa.mjs && node --check scripts/audit-production-migration-history.mjs",
     "qa:gate": "node scripts/qa-runtime-gate.mjs",
     "qa:gate:test": "node scripts/test-qa-runtime-gate.mjs",
+    "qa:nci017:stripe-gate": "node scripts/nci017-stripe-qa-gate.mjs",
     "start:qa": "node scripts/start-qa.mjs"
   },
   "prisma": {
