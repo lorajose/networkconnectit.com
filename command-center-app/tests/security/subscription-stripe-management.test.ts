@@ -101,7 +101,7 @@ test("scheduled downgrade release rejects an unexpected schedule identity", asyn
     }
     return new Response(JSON.stringify({ id: "sub_sched_other", status: "released", released_subscription: "sub_123" }), { status: 200 });
   });
-  await assert.rejects(() => manager.releaseScheduledChange({ providerScheduleId: "sub_sched_123", providerSubscriptionId: "sub_123" }), /unexpected schedule/);
+  await assert.rejects(() => manager.releaseScheduledChange({ providerScheduleId: "sub_sched_123", providerSubscriptionId: "sub_123" }), /unexpected subscription schedule/);
 });
 
 test("untrusted current Stripe price blocks subscription mutation", async () => {
