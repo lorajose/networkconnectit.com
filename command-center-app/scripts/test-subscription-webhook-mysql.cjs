@@ -19,10 +19,7 @@ const prisma = new PrismaClient();
 function load(relative, imports) {
   const source = fs.readFileSync(path.resolve(relative), 'utf8');
   const compiled = ts.transpileModule(source, {
-    compilerOptions: {
-      target: ts.ScriptTarget.ES2020,
-      module: ts.ModuleKind.CommonJS,
-    },
+    compilerOptions: { target: ts.ScriptTarget.ES2020, module: ts.ModuleKind.CommonJS },
   }).outputText;
   const module = { exports: {} };
   new Function('require', 'module', 'exports', compiled)(
@@ -38,19 +35,12 @@ function load(relative, imports) {
 
 function event(overrides = {}) {
   return {
-    provider: 'stripe',
-    providerEventId: 'evt-sub-active',
-    providerSubscriptionId: 'sub-ci-1',
-    providerCustomerId: 'cus-ci-1',
-    eventType: 'customer.subscription.updated',
-    organizationId: 'org-sub-ci',
-    plan: 'PRO',
-    status: 'ACTIVE',
+    provider: 'stripe', providerEventId: 'evt-sub-active', providerSubscriptionId: 'sub-ci-1',
+    providerCustomerId: 'cus-ci-1', eventType: 'customer.subscription.updated',
+    organizationId: 'org-sub-ci', plan: 'PRO', status: 'ACTIVE',
     currentPeriodStart: new Date('2030-01-01T00:00:00.000Z'),
-    currentPeriodEnd: new Date('2030-02-01T00:00:00.000Z'),
-    cancelAtPeriodEnd: false,
-    verifiedAt: new Date('2030-01-10T12:00:00.000Z'),
-    ...overrides,
+    currentPeriodEnd: new Date('2030-02-01T00:00:00.000Z'), cancelAtPeriodEnd: false,
+    verifiedAt: new Date('2030-01-10T12:00:00.000Z'), ...overrides,
   };
 }
 
@@ -60,129 +50,71 @@ async function main() {
   await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS OrganizationSubscription');
   await prisma.$executeRawUnsafe('DROP TABLE IF EXISTS Organization');
   await prisma.$executeRawUnsafe('SET FOREIGN_KEY_CHECKS=1');
+  await prisma.$executeRawUnsafe(`CREATE TABLE Organization (id VARCHAR(191) NOT NULL PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  await prisma.$executeRawUnsafe("INSERT INTO Organization (id) VALUES ('org-sub-ci')");
 
-  await prisma.$executeRawUnsafe(`CREATE TABLE Organization (
-    id VARCHAR(191) NOT NULL PRIMARY KEY
-  ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
+  const migration = fs.readFileSync('prisma/migrations/20261008224500_nci017_subscriptions/migration.sql', 'utf8');
+  for (const sql of migration.split(';').map((s) => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
 
-  await prisma.$executeRawUnsafe(
-    "INSERT INTO Organization (id) VALUES ('org-sub-ci')"
-  );
-
-  const migration = fs.readFileSync(
-    'prisma/migrations/20261008224500_nci017_subscriptions/migration.sql',
-    'utf8'
-  );
-  for (const sql of migration.split(';').map((s) => s.trim()).filter(Boolean)) {
-    await prisma.$executeRawUnsafe(sql);
-  }
-
-  const repository = load('lib/contractor-os/subscription-repository.ts', {
-    '@/lib/db': { prisma },
-  });
-
+  const repository = load('lib/contractor-os/subscription-repository.ts', { '@/lib/db': { prisma } });
   const active = event();
   const concurrent = await Promise.all([
-    repository.applyVerifiedSubscriptionEvent(active),
-    repository.applyVerifiedSubscriptionEvent(active),
+    repository.applyVerifiedSubscriptionEvent(active), repository.applyVerifiedSubscriptionEvent(active),
   ]);
-  assert.equal(
-    concurrent.filter((result) => result.applied && result.reason === 'APPLIED').length,
-    1,
-    'exactly one concurrent delivery must apply'
-  );
-  assert.equal(
-    concurrent.filter((result) => !result.applied && result.reason === 'DUPLICATE').length,
-    1,
-    'the concurrent replay must be classified as duplicate'
-  );
+  assert.equal(concurrent.filter((r) => r.applied && r.reason === 'APPLIED').length, 1);
+  assert.equal(concurrent.filter((r) => !r.applied && r.reason === 'DUPLICATE').length, 1);
 
-  let row = await prisma.$queryRawUnsafe(
-    "SELECT plan, status, providerSubscriptionId, verifiedAt FROM OrganizationSubscription WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(row.length, 1);
-  assert.equal(row[0].plan, 'PRO');
-  assert.equal(row[0].status, 'ACTIVE');
-  assert.equal(row[0].providerSubscriptionId, 'sub-ci-1');
-  assert.equal(new Date(row[0].verifiedAt).toISOString(), '2030-01-10T12:00:00.000Z');
+  let events = await prisma.$queryRawUnsafe("SELECT COUNT(*) AS count FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci'");
+  assert.equal(Number(events[0].count), 1);
+  assert.deepEqual(await repository.applyVerifiedSubscriptionEvent(active), { applied: false, reason: 'DUPLICATE' });
 
-  let events = await prisma.$queryRawUnsafe(
-    "SELECT COUNT(*) AS count FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(Number(events[0].count), 1, 'concurrent replay must create one audit event');
-
-  const replay = await repository.applyVerifiedSubscriptionEvent(active);
-  assert.deepEqual(replay, { applied: false, reason: 'DUPLICATE' });
-
-  events = await prisma.$queryRawUnsafe(
-    "SELECT COUNT(*) AS count FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(Number(events[0].count), 1, 'later replay must not duplicate the audit event');
-
-  const canceled = await repository.applyVerifiedSubscriptionEvent(
-    event({
-      providerEventId: 'evt-sub-canceled',
-      eventType: 'customer.subscription.deleted',
-      status: 'CANCELED',
-      verifiedAt: new Date('2030-01-10T13:00:00.000Z'),
-    })
-  );
+  const canceled = await repository.applyVerifiedSubscriptionEvent(event({
+    providerEventId: 'evt-sub-canceled', eventType: 'customer.subscription.deleted', status: 'CANCELED',
+    verifiedAt: new Date('2030-01-10T13:00:00.000Z'),
+  }));
   assert.deepEqual(canceled, { applied: true, reason: 'APPLIED' });
 
-  row = await prisma.$queryRawUnsafe(
-    "SELECT status, verifiedAt FROM OrganizationSubscription WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(row[0].status, 'CANCELED');
-  assert.equal(new Date(row[0].verifiedAt).toISOString(), '2030-01-10T13:00:00.000Z');
-
-  const stale = await repository.applyVerifiedSubscriptionEvent(
-    event({
-      providerEventId: 'evt-sub-stale-active',
-      status: 'ACTIVE',
-      verifiedAt: new Date('2030-01-10T12:30:00.000Z'),
-    })
-  );
+  const stale = await repository.applyVerifiedSubscriptionEvent(event({
+    providerEventId: 'evt-sub-stale-active', status: 'ACTIVE', verifiedAt: new Date('2030-01-10T12:30:00.000Z'),
+  }));
   assert.deepEqual(stale, { applied: false, reason: 'STALE' });
 
-  row = await prisma.$queryRawUnsafe(
-    "SELECT status, verifiedAt FROM OrganizationSubscription WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(row[0].status, 'CANCELED', 'older ACTIVE event must not revive canceled access');
-  assert.equal(new Date(row[0].verifiedAt).toISOString(), '2030-01-10T13:00:00.000Z');
-
-  events = await prisma.$queryRawUnsafe(
-    "SELECT COUNT(*) AS count FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(Number(events[0].count), 3, 'stale verified events remain in the audit trail');
-
   await assert.rejects(
-    () =>
-      repository.applyVerifiedSubscriptionEvent(
-        event({
-          providerEventId: 'evt-sub-wrong-identity',
-          providerSubscriptionId: 'sub-ci-other',
-          verifiedAt: new Date('2030-01-10T14:00:00.000Z'),
-        })
-      ),
+    () => repository.applyVerifiedSubscriptionEvent(event({
+      providerEventId: 'evt-sub-wrong-identity', providerSubscriptionId: 'sub-ci-other',
+      eventType: 'customer.subscription.updated', verifiedAt: new Date('2030-01-10T14:00:00.000Z'),
+    })),
     /provider identity does not match persisted state/
   );
 
-  row = await prisma.$queryRawUnsafe(
-    "SELECT status, providerSubscriptionId FROM OrganizationSubscription WHERE organizationId='org-sub-ci'"
-  );
-  assert.equal(row[0].status, 'CANCELED');
-  assert.equal(row[0].providerSubscriptionId, 'sub-ci-1');
+  const replacement = await repository.applyVerifiedSubscriptionEvent(event({
+    providerEventId: 'evt-sub-replacement-created', providerSubscriptionId: 'sub-ci-2',
+    providerCustomerId: 'cus-ci-2', eventType: 'customer.subscription.created', plan: 'BUSINESS',
+    status: 'ACTIVE', currentPeriodStart: new Date('2030-03-01T00:00:00.000Z'),
+    currentPeriodEnd: new Date('2030-04-01T00:00:00.000Z'), verifiedAt: new Date('2030-03-01T00:00:01.000Z'),
+  }));
+  assert.deepEqual(replacement, { applied: true, reason: 'REPLACED' });
 
-  console.log(
-    'PASS NCI-017 subscription MySQL: concurrent webhook replay is serialized, lifecycle events persist idempotently, cancellation wins, stale events cannot revive access, and provider identity cannot be replaced.'
+  let row = await prisma.$queryRawUnsafe("SELECT plan, status, providerSubscriptionId, providerCustomerId FROM OrganizationSubscription WHERE organizationId='org-sub-ci'");
+  assert.equal(row[0].plan, 'BUSINESS');
+  assert.equal(row[0].status, 'ACTIVE');
+  assert.equal(row[0].providerSubscriptionId, 'sub-ci-2');
+  assert.equal(row[0].providerCustomerId, 'cus-ci-2');
+
+  await assert.rejects(
+    () => repository.applyVerifiedSubscriptionEvent(event({
+      providerEventId: 'evt-sub-third-identity', providerSubscriptionId: 'sub-ci-3',
+      eventType: 'customer.subscription.created', verifiedAt: new Date('2030-03-01T00:00:02.000Z'),
+    })),
+    /provider identity does not match persisted state/
   );
+
+  events = await prisma.$queryRawUnsafe("SELECT providerSubscriptionId, eventType FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci' ORDER BY receivedAt, providerEventId");
+  assert.equal(events.length, 4, 'old and replacement subscription events must remain auditable');
+  assert.ok(events.some((e) => e.providerSubscriptionId === 'sub-ci-1'));
+  assert.ok(events.some((e) => e.providerSubscriptionId === 'sub-ci-2'));
+
+  console.log('PASS NCI-017 subscription MySQL: concurrent replay is serialized, stale events cannot revive access, identity replacement is allowed only after cancellation via verified subscription.created, and prior history remains auditable.');
 }
 
-main()
-  .catch((error) => {
-    console.error(error);
-    process.exitCode = 1;
-  })
-  .finally(async () => {
-    await prisma.$disconnect();
-  });
+main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(async () => { await prisma.$disconnect(); });
