@@ -84,6 +84,65 @@ test("subscription checkout uses only the server-owned Stripe price mapping", as
   assert.equal(params.get("subscription_data[metadata][plan]"), "PRO");
 });
 
+test("resubscribe checkout reuses only the persisted Stripe customer", async () => {
+  let requestBody = "";
+  const provider = new StripeSubscriptionProvider(
+    config,
+    async (_input, init) => {
+      requestBody = String(init?.body ?? "");
+      return new Response(
+        JSON.stringify({
+          id: "cs_test_resubscribe",
+          url: "https://checkout.stripe.com/c/pay/cs_test_resubscribe",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    () => NOW_MS
+  );
+
+  await provider.createCheckout({
+    organizationId: "org-1",
+    plan: "BUSINESS",
+    successUrl: "https://example.test/billing?success=1",
+    cancelUrl: "https://example.test/billing?cancel=1",
+    providerCustomerId: "cus_persisted_123",
+  });
+
+  const params = new URLSearchParams(requestBody);
+  assert.equal(params.get("customer"), "cus_persisted_123");
+  assert.equal(params.get("line_items[0][price]"), "price_Business456");
+  assert.equal(params.get("metadata[organizationId]"), "org-1");
+});
+
+test("new subscription checkout does not invent a Stripe customer", async () => {
+  let requestBody = "";
+  const provider = new StripeSubscriptionProvider(
+    config,
+    async (_input, init) => {
+      requestBody = String(init?.body ?? "");
+      return new Response(
+        JSON.stringify({
+          id: "cs_test_new",
+          url: "https://checkout.stripe.com/c/pay/cs_test_new",
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    },
+    () => NOW_MS
+  );
+
+  await provider.createCheckout({
+    organizationId: "org-1",
+    plan: "PRO",
+    successUrl: "https://example.test/billing?success=1",
+    cancelUrl: "https://example.test/billing?cancel=1",
+  });
+
+  const params = new URLSearchParams(requestBody);
+  assert.equal(params.has("customer"), false);
+});
+
 test("verified Stripe subscription lifecycle event derives PRO from its trusted price", () => {
   const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
   const rawBody = subscriptionEvent();
