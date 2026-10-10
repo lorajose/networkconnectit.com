@@ -1,6 +1,7 @@
 import { NextResponse } from "next/server";
 
 import { requireApiRoles } from "@/lib/api-auth";
+import { prisma } from "@/lib/db";
 import { getSubscriptionExperienceSummaryForActor } from "@/lib/contractor-os/subscription-access-repository";
 import { subscriptionApplicationRoot } from "@/lib/contractor-os/subscription-checkout-origin";
 import { isSubscriptionPlan, type SubscriptionPlan } from "@/lib/contractor-os/subscription-plan";
@@ -69,6 +70,24 @@ export async function POST(request: Request) {
       {
         ok: false,
         error: "Existing paid subscriptions must use the subscription change flow.",
+      },
+      { status: 409, headers: { "Cache-Control": "private, no-store" } }
+    );
+  }
+
+  // A canceled provider identity remains persisted for audit and replay safety.
+  // Do not create a second Stripe subscription until the explicit replacement
+  // policy can atomically preserve that history without weakening webhook identity.
+  const priorPaidSubscription = await prisma.organizationSubscription.findUnique({
+    where: { organizationId },
+    select: { status: true },
+  });
+  if (priorPaidSubscription) {
+    return NextResponse.json(
+      {
+        ok: false,
+        code: "SUBSCRIPTION_REACTIVATION_REQUIRED",
+        error: "This organization has subscription history. Reactivation must use the secure resubscribe flow.",
       },
       { status: 409, headers: { "Cache-Control": "private, no-store" } }
     );
