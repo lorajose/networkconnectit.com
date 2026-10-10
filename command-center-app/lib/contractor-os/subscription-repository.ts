@@ -4,9 +4,8 @@ import type { VerifiedSubscriptionEvent } from "./subscription-stripe-provider";
 /**
  * Applies one provider-verified subscription lifecycle event idempotently.
  *
- * Event identity is unique per provider. The subscription row is then upserted
- * by organization so a verified Stripe lifecycle update becomes the sole paid
- * entitlement authority for that tenant.
+ * Event identity is unique per provider. Older provider events are recorded for
+ * audit/idempotency but cannot overwrite a newer verified subscription state.
  */
 export async function applyVerifiedSubscriptionEvent(
   event: VerifiedSubscriptionEvent
@@ -23,7 +22,7 @@ export async function applyVerifiedSubscriptionEvent(
     });
 
     if (existingEvent) {
-      return { applied: false as const };
+      return { applied: false as const, reason: "DUPLICATE" as const };
     }
 
     const organization = await tx.organization.findUnique({
@@ -35,32 +34,53 @@ export async function applyVerifiedSubscriptionEvent(
       throw new Error("Subscription organization does not exist");
     }
 
-    await tx.organizationSubscription.upsert({
+    const current = await tx.organizationSubscription.findUnique({
       where: { organizationId: event.organizationId },
-      create: {
-        organizationId: event.organizationId,
-        provider: event.provider,
-        providerCustomerId: event.providerCustomerId,
-        providerSubscriptionId: event.providerSubscriptionId,
-        plan: event.plan,
-        status: event.status,
-        currentPeriodStart: event.currentPeriodStart,
-        currentPeriodEnd: event.currentPeriodEnd,
-        cancelAtPeriodEnd: event.cancelAtPeriodEnd,
-        verifiedAt: event.verifiedAt,
-      },
-      update: {
-        provider: event.provider,
-        providerCustomerId: event.providerCustomerId,
-        providerSubscriptionId: event.providerSubscriptionId,
-        plan: event.plan,
-        status: event.status,
-        currentPeriodStart: event.currentPeriodStart,
-        currentPeriodEnd: event.currentPeriodEnd,
-        cancelAtPeriodEnd: event.cancelAtPeriodEnd,
-        verifiedAt: event.verifiedAt,
+      select: {
+        provider: true,
+        providerSubscriptionId: true,
+        verifiedAt: true,
       },
     });
+
+    if (
+      current &&
+      (current.provider !== event.provider ||
+        current.providerSubscriptionId !== event.providerSubscriptionId)
+    ) {
+      throw new Error("Subscription provider identity does not match persisted state");
+    }
+
+    const stale = current ? event.verifiedAt < current.verifiedAt : false;
+
+    if (!stale) {
+      await tx.organizationSubscription.upsert({
+        where: { organizationId: event.organizationId },
+        create: {
+          organizationId: event.organizationId,
+          provider: event.provider,
+          providerCustomerId: event.providerCustomerId,
+          providerSubscriptionId: event.providerSubscriptionId,
+          plan: event.plan,
+          status: event.status,
+          currentPeriodStart: event.currentPeriodStart,
+          currentPeriodEnd: event.currentPeriodEnd,
+          cancelAtPeriodEnd: event.cancelAtPeriodEnd,
+          verifiedAt: event.verifiedAt,
+        },
+        update: {
+          provider: event.provider,
+          providerCustomerId: event.providerCustomerId,
+          providerSubscriptionId: event.providerSubscriptionId,
+          plan: event.plan,
+          status: event.status,
+          currentPeriodStart: event.currentPeriodStart,
+          currentPeriodEnd: event.currentPeriodEnd,
+          cancelAtPeriodEnd: event.cancelAtPeriodEnd,
+          verifiedAt: event.verifiedAt,
+        },
+      });
+    }
 
     await tx.organizationSubscriptionEvent.create({
       data: {
@@ -74,6 +94,8 @@ export async function applyVerifiedSubscriptionEvent(
       },
     });
 
-    return { applied: true as const };
+    return stale
+      ? { applied: false as const, reason: "STALE" as const }
+      : { applied: true as const, reason: "APPLIED" as const };
   });
 }
