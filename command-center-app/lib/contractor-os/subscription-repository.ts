@@ -7,6 +7,10 @@ import type { VerifiedSubscriptionEvent } from "./subscription-stripe-provider";
  * The organization row is locked first so concurrent deliveries for the same
  * tenant are serialized before duplicate detection or entitlement mutation.
  * Older verified events remain auditable but cannot overwrite newer state.
+ *
+ * A provider identity may be replaced only when the persisted subscription is
+ * already CANCELED and Stripe sends a verified subscription.created event for
+ * the same organization. All prior provider events remain in the audit table.
  */
 export async function applyVerifiedSubscriptionEvent(
   event: VerifiedSubscriptionEvent
@@ -42,19 +46,27 @@ export async function applyVerifiedSubscriptionEvent(
       select: {
         provider: true,
         providerSubscriptionId: true,
+        status: true,
         verifiedAt: true,
       },
     });
 
-    if (
-      current &&
+    const identityChanged =
+      current != null &&
       (current.provider !== event.provider ||
-        current.providerSubscriptionId !== event.providerSubscriptionId)
-    ) {
+        current.providerSubscriptionId !== event.providerSubscriptionId);
+    const verifiedReplacement =
+      identityChanged &&
+      current.provider === event.provider &&
+      current.status === "CANCELED" &&
+      event.eventType === "customer.subscription.created";
+
+    if (identityChanged && !verifiedReplacement) {
       throw new Error("Subscription provider identity does not match persisted state");
     }
 
-    const stale = current ? event.verifiedAt < current.verifiedAt : false;
+    const stale =
+      current && !verifiedReplacement ? event.verifiedAt < current.verifiedAt : false;
 
     if (!stale) {
       await tx.organizationSubscription.upsert({
@@ -96,6 +108,10 @@ export async function applyVerifiedSubscriptionEvent(
         receivedAt: new Date(),
       },
     });
+
+    if (verifiedReplacement) {
+      return { applied: true as const, reason: "REPLACED" as const };
+    }
 
     return stale
       ? { applied: false as const, reason: "STALE" as const }
