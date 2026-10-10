@@ -82,8 +82,20 @@ async function main() {
   });
 
   const active = event();
-  const applied = await repository.applyVerifiedSubscriptionEvent(active);
-  assert.deepEqual(applied, { applied: true, reason: 'APPLIED' });
+  const concurrent = await Promise.all([
+    repository.applyVerifiedSubscriptionEvent(active),
+    repository.applyVerifiedSubscriptionEvent(active),
+  ]);
+  assert.equal(
+    concurrent.filter((result) => result.applied && result.reason === 'APPLIED').length,
+    1,
+    'exactly one concurrent delivery must apply'
+  );
+  assert.equal(
+    concurrent.filter((result) => !result.applied && result.reason === 'DUPLICATE').length,
+    1,
+    'the concurrent replay must be classified as duplicate'
+  );
 
   let row = await prisma.$queryRawUnsafe(
     "SELECT plan, status, providerSubscriptionId, verifiedAt FROM OrganizationSubscription WHERE organizationId='org-sub-ci'"
@@ -94,13 +106,18 @@ async function main() {
   assert.equal(row[0].providerSubscriptionId, 'sub-ci-1');
   assert.equal(new Date(row[0].verifiedAt).toISOString(), '2030-01-10T12:00:00.000Z');
 
-  const replay = await repository.applyVerifiedSubscriptionEvent(active);
-  assert.deepEqual(replay, { applied: false, reason: 'DUPLICATE' });
-
   let events = await prisma.$queryRawUnsafe(
     "SELECT COUNT(*) AS count FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci'"
   );
-  assert.equal(Number(events[0].count), 1, 'replay must not duplicate the audit event');
+  assert.equal(Number(events[0].count), 1, 'concurrent replay must create one audit event');
+
+  const replay = await repository.applyVerifiedSubscriptionEvent(active);
+  assert.deepEqual(replay, { applied: false, reason: 'DUPLICATE' });
+
+  events = await prisma.$queryRawUnsafe(
+    "SELECT COUNT(*) AS count FROM OrganizationSubscriptionEvent WHERE organizationId='org-sub-ci'"
+  );
+  assert.equal(Number(events[0].count), 1, 'later replay must not duplicate the audit event');
 
   const canceled = await repository.applyVerifiedSubscriptionEvent(
     event({
@@ -157,7 +174,7 @@ async function main() {
   assert.equal(row[0].providerSubscriptionId, 'sub-ci-1');
 
   console.log(
-    'PASS NCI-017 subscription MySQL: verified lifecycle events persist idempotently, cancellation wins, stale events cannot revive access, and provider identity cannot be replaced.'
+    'PASS NCI-017 subscription MySQL: concurrent webhook replay is serialized, lifecycle events persist idempotently, cancellation wins, stale events cannot revive access, and provider identity cannot be replaced.'
   );
 }
 
