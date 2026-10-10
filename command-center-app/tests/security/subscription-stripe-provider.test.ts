@@ -24,25 +24,30 @@ function signature(rawBody: string, timestamp = Math.floor(NOW_MS / 1000)) {
   return `t=${timestamp},v1=${digest}`;
 }
 
+function subscriptionObject(plan = "PRO", priceId = "price_Pro123") {
+  return {
+    id: "sub_123",
+    customer: "cus_123",
+    status: "active",
+    current_period_start: 1790812800,
+    current_period_end: 1793491200,
+    cancel_at_period_end: false,
+    metadata: {
+      organizationId: "org-1",
+      plan,
+    },
+    items: {
+      data: [{ price: { id: priceId } }],
+    },
+  };
+}
+
 function subscriptionEvent(overrides: Record<string, unknown> = {}) {
   return JSON.stringify({
     id: "evt_subscription_1",
     type: "customer.subscription.updated",
     created: Math.floor(NOW_MS / 1000),
-    data: {
-      object: {
-        id: "sub_123",
-        customer: "cus_123",
-        status: "active",
-        current_period_start: 1790812800,
-        current_period_end: 1793491200,
-        cancel_at_period_end: false,
-        metadata: {
-          organizationId: "org-1",
-          plan: "PRO",
-        },
-      },
-    },
+    data: { object: subscriptionObject() },
     ...overrides,
   });
 }
@@ -79,7 +84,7 @@ test("subscription checkout uses only the server-owned Stripe price mapping", as
   assert.equal(params.get("subscription_data[metadata][plan]"), "PRO");
 });
 
-test("verified Stripe subscription lifecycle event is normalized for persistence", () => {
+test("verified Stripe subscription lifecycle event derives PRO from its trusted price", () => {
   const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
   const rawBody = subscriptionEvent();
 
@@ -92,6 +97,52 @@ test("verified Stripe subscription lifecycle event is normalized for persistence
   assert.equal(event.status, "ACTIVE");
   assert.equal(event.providerSubscriptionId, "sub_123");
   assert.equal(event.providerCustomerId, "cus_123");
+});
+
+test("trusted BUSINESS price derives BUSINESS access", () => {
+  const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
+  const rawBody = subscriptionEvent({
+    data: { object: subscriptionObject("BUSINESS", "price_Business456") },
+  });
+
+  const event = provider.verifyWebhook(rawBody, signature(rawBody));
+  assert.equal(event.plan, "BUSINESS");
+});
+
+test("untrusted Stripe subscription price is rejected", () => {
+  const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
+  const rawBody = subscriptionEvent({
+    data: { object: subscriptionObject("PRO", "price_AttackerControlled") },
+  });
+
+  assert.throws(
+    () => provider.verifyWebhook(rawBody, signature(rawBody)),
+    /untrusted price id/
+  );
+});
+
+test("metadata cannot elevate a PRO price to BUSINESS", () => {
+  const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
+  const rawBody = subscriptionEvent({
+    data: { object: subscriptionObject("BUSINESS", "price_Pro123") },
+  });
+
+  assert.throws(
+    () => provider.verifyWebhook(rawBody, signature(rawBody)),
+    /metadata does not match its trusted price/
+  );
+});
+
+test("multiple subscription items are rejected instead of guessing entitlement", () => {
+  const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
+  const object = subscriptionObject();
+  object.items.data.push({ price: { id: "price_Business456" } });
+  const rawBody = subscriptionEvent({ data: { object } });
+
+  assert.throws(
+    () => provider.verifyWebhook(rawBody, signature(rawBody)),
+    /exactly one plan item/
+  );
 });
 
 test("invalid Stripe webhook signature is rejected before lifecycle data is trusted", () => {
@@ -119,17 +170,7 @@ test("deleted Stripe subscription always normalizes to CANCELED", () => {
   const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
   const rawBody = subscriptionEvent({
     type: "customer.subscription.deleted",
-    data: {
-      object: {
-        id: "sub_123",
-        customer: "cus_123",
-        status: "active",
-        current_period_start: 1790812800,
-        current_period_end: 1793491200,
-        cancel_at_period_end: false,
-        metadata: { organizationId: "org-1", plan: "BUSINESS" },
-      },
-    },
+    data: { object: subscriptionObject("BUSINESS", "price_Business456") },
   });
 
   const event = provider.verifyWebhook(rawBody, signature(rawBody));
@@ -140,17 +181,7 @@ test("deleted Stripe subscription always normalizes to CANCELED", () => {
 test("unsupported subscription plan metadata is rejected", () => {
   const provider = new StripeSubscriptionProvider(config, fetch, () => NOW_MS);
   const rawBody = subscriptionEvent({
-    data: {
-      object: {
-        id: "sub_123",
-        customer: "cus_123",
-        status: "active",
-        current_period_start: 1790812800,
-        current_period_end: 1793491200,
-        cancel_at_period_end: false,
-        metadata: { organizationId: "org-1", plan: "ENTERPRISE" },
-      },
-    },
+    data: { object: subscriptionObject("ENTERPRISE", "price_Pro123") },
   });
 
   assert.throws(
