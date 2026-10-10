@@ -40,10 +40,19 @@ export async function cancelOrganizationScheduledPlanChange(organizationId: stri
     providerScheduleId: stored.providerScheduleId,
     providerSubscriptionId: stored.providerSubscriptionId,
   });
-  await prisma.organizationSubscription.update({
-    where: { organizationId, providerSubscriptionId: stored.providerSubscriptionId },
+  const cleared = await prisma.organizationSubscription.updateMany({
+    where: {
+      organizationId,
+      provider: stored.provider,
+      providerSubscriptionId: stored.providerSubscriptionId,
+      providerScheduleId: stored.providerScheduleId,
+      pendingPlan: stored.pendingPlan,
+    },
     data: { pendingPlan: null, providerScheduleId: null, pendingPlanEffectiveAt: null },
   });
+  if (cleared.count !== 1) {
+    throw new Error("Subscription schedule state changed while the provider schedule was being released");
+  }
 }
 
 /** Server-authoritative recurring subscription change boundary. */
