@@ -2,6 +2,7 @@ import { NextResponse } from "next/server";
 
 import { requireApiRoles } from "@/lib/api-auth";
 import { getSubscriptionExperienceSummaryForActor } from "@/lib/contractor-os/subscription-access-repository";
+import { subscriptionApplicationRoot } from "@/lib/contractor-os/subscription-checkout-origin";
 import { isSubscriptionPlan, type SubscriptionPlan } from "@/lib/contractor-os/subscription-plan";
 import { resolveSubscriptionPaymentProvider } from "@/lib/contractor-os/subscription-provider-registry";
 
@@ -85,8 +86,17 @@ export async function POST(request: Request) {
     );
   }
 
-  const requestUrl = new URL(request.url);
-  const billingUrl = `${requestUrl.origin}/billing`;
+  let applicationRoot: string;
+  try {
+    applicationRoot = subscriptionApplicationRoot();
+  } catch {
+    return NextResponse.json(
+      { ok: false, error: "Subscription checkout return URL is not configured." },
+      { status: 503, headers: { "Cache-Control": "private, no-store" } }
+    );
+  }
+
+  const billingUrl = `${applicationRoot}/billing`;
   const successUrl = `${billingUrl}?subscriptionStatus=processing&plan=${encodeURIComponent(plan)}`;
   const cancelUrl = `${billingUrl}?subscriptionStatus=cancelled&plan=${encodeURIComponent(plan)}`;
 
