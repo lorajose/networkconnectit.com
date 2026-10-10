@@ -75,19 +75,20 @@ export async function POST(request: Request) {
     );
   }
 
-  // A canceled provider identity remains persisted for audit and replay safety.
-  // Do not create a second Stripe subscription until the explicit replacement
-  // policy can atomically preserve that history without weakening webhook identity.
+  // Persisted canceled subscriptions may start a new Checkout session. The old
+  // provider identity is not replaced here: only a verified Stripe
+  // customer.subscription.created webhook may atomically replace it.
   const priorPaidSubscription = await prisma.organizationSubscription.findUnique({
     where: { organizationId },
     select: { status: true },
   });
-  if (priorPaidSubscription) {
+  if (priorPaidSubscription && priorPaidSubscription.status !== "CANCELED") {
     return NextResponse.json(
       {
         ok: false,
-        code: "SUBSCRIPTION_REACTIVATION_REQUIRED",
-        error: "This organization has subscription history. Reactivation must use the secure resubscribe flow.",
+        code: "SUBSCRIPTION_REACTIVATION_BLOCKED",
+        error:
+          "This organization has a subscription that is not fully canceled yet.",
       },
       { status: 409, headers: { "Cache-Control": "private, no-store" } }
     );
