@@ -13,24 +13,23 @@ import {
 } from "./subscription-controls";
 
 const planFeatures = {
-  FREE: [
-    "Core contractor workspace",
-    "Secure organization access",
-    "Standard project workflows",
-  ],
-  PRO: [
-    "Unlimited projects",
-    "Premium project outputs",
-    "Proposal and closeout exports",
-    "Advanced Design Studio",
-  ],
-  BUSINESS: [
-    "Everything in Pro",
-    "Team collaboration",
-    "DXF workflows",
-    "Priority support",
-  ],
+  FREE: ["Core contractor workspace", "Secure organization access", "Standard project workflows"],
+  PRO: ["Unlimited projects", "Premium project outputs", "Proposal and closeout exports", "Advanced Design Studio"],
+  BUSINESS: ["Everything in Pro", "Team collaboration", "DXF workflows", "Priority support"],
 } as const;
+
+function planName(plan: "PRO" | "BUSINESS") {
+  return plan === "PRO" ? "Pro" : "Business";
+}
+
+function formatEffectiveDate(value: string) {
+  return new Intl.DateTimeFormat("en-US", {
+    month: "short",
+    day: "numeric",
+    year: "numeric",
+    timeZone: "UTC",
+  }).format(new Date(value));
+}
 
 export default async function BillingPage() {
   const user = await requireUser();
@@ -38,9 +37,7 @@ export default async function BillingPage() {
   if (!user.organizationId) {
     return (
       <Card>
-        <CardHeader>
-          <CardTitle>Billing</CardTitle>
-        </CardHeader>
+        <CardHeader><CardTitle>Billing</CardTitle></CardHeader>
         <CardContent className="text-sm text-muted-foreground">
           Select an organization context to review subscription access.
         </CardContent>
@@ -57,8 +54,7 @@ export default async function BillingPage() {
     select: { status: true },
   });
   const canResubscribe =
-    persistedSubscription?.status === "CANCELED" &&
-    subscription.source !== "SUBSCRIPTION";
+    persistedSubscription?.status === "CANCELED" && subscription.source !== "SUBSCRIPTION";
 
   const trialCopy =
     subscription.source === "TRIAL"
@@ -68,8 +64,9 @@ export default async function BillingPage() {
         : null;
 
   const canManageBilling = user.role === "CLIENT_ADMIN";
-  const canStartTrial =
-    canManageBilling && subscription.source === "NONE";
+  const canStartTrial = canManageBilling && subscription.source === "NONE";
+  const billingMutationLocked =
+    subscription.cancelAtPeriodEnd || subscription.hasScheduledPlanChange;
 
   return (
     <div className="space-y-6">
@@ -78,13 +75,10 @@ export default async function BillingPage() {
           <Badge variant="outline">Billing</Badge>
           <Badge>{subscription.label}</Badge>
         </div>
-        <h1 className="text-3xl font-semibold tracking-tight">
-          Plans & billing
-        </h1>
+        <h1 className="text-3xl font-semibold tracking-tight">Plans & billing</h1>
         <p className="max-w-3xl text-sm leading-6 text-muted-foreground">
-          Review your current NetworkConnectIT Contractor OS access.
-          Subscription authority is verified on the server before paid
-          features are enabled.
+          Review your current NetworkConnectIT Contractor OS access. Subscription
+          authority is verified on the server before paid features are enabled.
         </p>
       </div>
 
@@ -92,39 +86,26 @@ export default async function BillingPage() {
         <CardHeader>
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <p className="text-xs uppercase tracking-[0.22em] text-primary">
-                Current access
-              </p>
+              <p className="text-xs uppercase tracking-[0.22em] text-primary">Current access</p>
               <CardTitle className="mt-2">{subscription.label}</CardTitle>
             </div>
-            <Badge
-              variant={subscription.tier === "FREE" ? "outline" : "default"}
-            >
+            <Badge variant={subscription.tier === "FREE" ? "outline" : "default"}>
               {subscription.tier}
             </Badge>
           </div>
         </CardHeader>
         <CardContent className="space-y-4">
           {canStartTrial ? (
-            <form
-              action={startProTrialAction}
-              className="rounded-2xl border border-sky-400/25 bg-sky-400/5 p-4"
-            >
+            <form action={startProTrialAction} className="rounded-2xl border border-sky-400/25 bg-sky-400/5 p-4">
               <div className="flex flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
                 <div>
-                  <p className="font-medium text-foreground">
-                    Try Pro free for 30 days
-                  </p>
+                  <p className="font-medium text-foreground">Try Pro free for 30 days</p>
                   <p className="mt-1 text-sm text-muted-foreground">
-                    Unlock premium outputs, closeout exports and Advanced
-                    Design Studio. No trial reset is available after the
-                    one-time window ends.
+                    Unlock premium outputs, closeout exports and Advanced Design Studio.
+                    No trial reset is available after the one-time window ends.
                   </p>
                 </div>
-                <button
-                  type="submit"
-                  className="shrink-0 rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-400/15"
-                >
+                <button type="submit" className="shrink-0 rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-400/15">
                   Start 30-day Pro trial
                 </button>
               </div>
@@ -136,17 +117,30 @@ export default async function BillingPage() {
               <Clock3 className="mt-0.5 h-5 w-5 text-sky-300" />
               <div>
                 <p className="font-medium">Pro trial</p>
+                <p className="mt-1 text-sm text-muted-foreground">{trialCopy}</p>
+              </div>
+            </div>
+          ) : null}
+
+          {subscription.hasScheduledPlanChange && subscription.pendingPlan && subscription.pendingPlanEffectiveAt ? (
+            <div className="flex items-start gap-3 rounded-2xl border border-amber-400/25 bg-amber-400/5 p-4">
+              <Clock3 className="mt-0.5 h-5 w-5 text-amber-300" />
+              <div>
+                <p className="font-medium">Plan change scheduled</p>
                 <p className="mt-1 text-sm text-muted-foreground">
-                  {trialCopy}
+                  {subscription.label} remains active until {formatEffectiveDate(subscription.pendingPlanEffectiveAt)}.
+                  Your plan will then change to {planName(subscription.pendingPlan)}.
+                </p>
+                <p className="mt-2 text-xs text-muted-foreground">
+                  Additional billing changes are temporarily locked while this provider schedule is active.
                 </p>
               </div>
             </div>
           ) : null}
 
-          {subscription.cancelAtPeriodEnd ? (
+          {subscription.cancelAtPeriodEnd && !subscription.hasScheduledPlanChange ? (
             <p className="text-sm text-muted-foreground">
-              Your current paid subscription is scheduled to end or change at
-              the end of the billing period.
+              Your current paid subscription is scheduled to end at the end of the billing period.
             </p>
           ) : null}
 
@@ -159,9 +153,7 @@ export default async function BillingPage() {
             ))}
           </div>
 
-          {canManageBilling &&
-          subscription.source === "SUBSCRIPTION" &&
-          !subscription.cancelAtPeriodEnd ? (
+          {canManageBilling && subscription.source === "SUBSCRIPTION" && !billingMutationLocked ? (
             <div className="border-t border-border/70 pt-4">
               <CancelSubscriptionAction />
             </div>
@@ -172,42 +164,23 @@ export default async function BillingPage() {
       <div className="grid gap-4 lg:grid-cols-3">
         {(["FREE", "PRO", "BUSINESS"] as const).map((plan) => {
           const current = subscription.tier === plan;
-          const trialCurrent =
-            current && subscription.source === "TRIAL" && plan === "PRO";
+          const trialCurrent = current && subscription.source === "TRIAL" && plan === "PRO";
           const canChoosePaidPlan =
-            canManageBilling &&
-            plan !== "FREE" &&
-            (subscription.source !== "SUBSCRIPTION" ||
-              subscription.tier !== plan);
+            canManageBilling && plan !== "FREE" &&
+            (subscription.source !== "SUBSCRIPTION" || subscription.tier !== plan);
 
           return (
-            <Card
-              key={plan}
-              className={
-                current ? "border-sky-400/30" : "border-border/80"
-              }
-            >
+            <Card key={plan} className={current ? "border-sky-400/30" : "border-border/80"}>
               <CardHeader>
                 <div className="flex items-center justify-between gap-3">
-                  <CardTitle>
-                    {plan === "FREE"
-                      ? "Free"
-                      : plan === "PRO"
-                        ? "Pro"
-                        : "Business"}
-                  </CardTitle>
-                  {current ? (
-                    <Badge>{trialCurrent ? "Trial" : "Current"}</Badge>
-                  ) : null}
+                  <CardTitle>{plan === "FREE" ? "Free" : plan === "PRO" ? "Pro" : "Business"}</CardTitle>
+                  {current ? <Badge>{trialCurrent ? "Trial" : "Current"}</Badge> : null}
                 </div>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="space-y-2">
                   {planFeatures[plan].map((feature) => (
-                    <p
-                      key={feature}
-                      className="flex gap-2 text-sm text-muted-foreground"
-                    >
+                    <p key={feature} className="flex gap-2 text-sm text-muted-foreground">
                       <CheckCircle2 className="mt-0.5 h-4 w-4 shrink-0" />
                       {feature}
                     </p>
@@ -220,16 +193,14 @@ export default async function BillingPage() {
                     source={subscription.source}
                     currentTier={subscription.tier}
                     resubscribe={canResubscribe}
-                    disabled={subscription.cancelAtPeriodEnd}
+                    disabled={billingMutationLocked}
                   />
                 ) : null}
 
-                {plan === "FREE" &&
-                subscription.source === "SUBSCRIPTION" ? (
+                {plan === "FREE" && subscription.source === "SUBSCRIPTION" ? (
                   <p className="text-xs leading-5 text-muted-foreground">
-                    To return to Free, schedule cancellation from the current
-                    access section. Paid access remains active through the end
-                    of the current billing period.
+                    To return to Free, schedule cancellation from the current access section.
+                    Paid access remains active through the end of the current billing period.
                   </p>
                 ) : null}
               </CardContent>
