@@ -22,6 +22,7 @@ type StripeSubscription = {
   current_period_end?: unknown;
   cancel_at_period_end?: unknown;
   metadata?: unknown;
+  items?: unknown;
 };
 
 type StripeEvent = {
@@ -117,11 +118,53 @@ function verifyStripeSignature(
   }
 }
 
-function subscriptionPlan(value: unknown): SubscriptionPlan {
+function metadataSubscriptionPlan(value: unknown): SubscriptionPlan {
   if (value !== "PRO" && value !== "BUSINESS") {
     throw new Error("Unsupported subscription plan in Stripe metadata");
   }
   return value;
+}
+
+function trustedSubscriptionPlan(
+  subscription: StripeSubscription,
+  config: SubscriptionStripeConfig,
+  metadataPlan: SubscriptionPlan
+): SubscriptionPlan {
+  const items =
+    subscription.items && typeof subscription.items === "object"
+      ? (subscription.items as { data?: unknown }).data
+      : null;
+
+  if (!Array.isArray(items) || items.length !== 1) {
+    throw new Error("Stripe subscription must contain exactly one plan item");
+  }
+
+  const item = items[0];
+  const price =
+    item && typeof item === "object"
+      ? (item as { price?: unknown }).price
+      : null;
+  const priceId = requiredString(
+    price && typeof price === "object" ? (price as { id?: unknown }).id : null,
+    "subscription price id"
+  );
+
+  const plan =
+    priceId === config.priceIds.PRO
+      ? "PRO"
+      : priceId === config.priceIds.BUSINESS
+        ? "BUSINESS"
+        : null;
+
+  if (!plan) {
+    throw new Error("Stripe subscription uses an untrusted price id");
+  }
+
+  if (metadataPlan !== plan) {
+    throw new Error("Stripe subscription plan metadata does not match its trusted price");
+  }
+
+  return plan;
 }
 
 function subscriptionStatus(value: unknown): SubscriptionStatus {
@@ -246,6 +289,8 @@ export class StripeSubscriptionProvider {
       subscription.metadata && typeof subscription.metadata === "object"
         ? (subscription.metadata as Record<string, unknown>)
         : {};
+    const metadataPlan = metadataSubscriptionPlan(metadata.plan);
+    const plan = trustedSubscriptionPlan(subscription, this.config, metadataPlan);
 
     return {
       provider: this.name,
@@ -254,7 +299,7 @@ export class StripeSubscriptionProvider {
       providerCustomerId: requiredString(subscription.customer, "customer id"),
       eventType,
       organizationId: requiredString(metadata.organizationId, "organization metadata"),
-      plan: subscriptionPlan(metadata.plan),
+      plan,
       status:
         eventType === "customer.subscription.deleted"
           ? "CANCELED"
