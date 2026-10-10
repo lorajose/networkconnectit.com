@@ -4,13 +4,25 @@ import type { VerifiedSubscriptionEvent } from "./subscription-stripe-provider";
 /**
  * Applies one provider-verified subscription lifecycle event idempotently.
  *
- * Event identity is unique per provider. Older provider events are recorded for
- * audit/idempotency but cannot overwrite a newer verified subscription state.
+ * The organization row is locked first so concurrent deliveries for the same
+ * tenant are serialized before duplicate detection or entitlement mutation.
+ * Older verified events remain auditable but cannot overwrite newer state.
  */
 export async function applyVerifiedSubscriptionEvent(
   event: VerifiedSubscriptionEvent
 ) {
   return prisma.$transaction(async (tx) => {
+    const organizations = await tx.$queryRaw<Array<{ id: string }>>`
+      SELECT id
+      FROM Organization
+      WHERE id = ${event.organizationId}
+      FOR UPDATE
+    `;
+
+    if (organizations.length !== 1) {
+      throw new Error("Subscription organization does not exist");
+    }
+
     const existingEvent = await tx.organizationSubscriptionEvent.findUnique({
       where: {
         provider_providerEventId: {
@@ -23,15 +35,6 @@ export async function applyVerifiedSubscriptionEvent(
 
     if (existingEvent) {
       return { applied: false as const, reason: "DUPLICATE" as const };
-    }
-
-    const organization = await tx.organization.findUnique({
-      where: { id: event.organizationId },
-      select: { id: true },
-    });
-
-    if (!organization) {
-      throw new Error("Subscription organization does not exist");
     }
 
     const current = await tx.organizationSubscription.findUnique({
