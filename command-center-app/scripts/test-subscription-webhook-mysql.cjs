@@ -6,11 +6,7 @@ const ts = require('typescript');
 const { PrismaClient } = require('@prisma/client');
 
 const url = new URL(process.env.DATABASE_URL || 'mysql://invalid');
-if (
-  process.env.CI !== 'true' ||
-  url.hostname !== '127.0.0.1' ||
-  url.pathname !== '/operations_ci_test'
-) {
+if (process.env.CI !== 'true' || url.hostname !== '127.0.0.1' || url.pathname !== '/operations_ci_test') {
   throw new Error('Requires CI=true and the disposable local operations_ci_test database.');
 }
 
@@ -33,6 +29,13 @@ function load(relative, imports) {
   return module.exports;
 }
 
+async function applyMigration(file) {
+  const migration = fs.readFileSync(file, 'utf8');
+  for (const sql of migration.split(';').map((s) => s.trim()).filter(Boolean)) {
+    await prisma.$executeRawUnsafe(sql);
+  }
+}
+
 function event(overrides = {}) {
   return {
     provider: 'stripe', providerEventId: 'evt-sub-active', providerSubscriptionId: 'sub-ci-1',
@@ -53,8 +56,8 @@ async function main() {
   await prisma.$executeRawUnsafe(`CREATE TABLE Organization (id VARCHAR(191) NOT NULL PRIMARY KEY) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_unicode_ci`);
   await prisma.$executeRawUnsafe("INSERT INTO Organization (id) VALUES ('org-sub-ci')");
 
-  const migration = fs.readFileSync('prisma/migrations/20261008224500_nci017_subscriptions/migration.sql', 'utf8');
-  for (const sql of migration.split(';').map((s) => s.trim()).filter(Boolean)) await prisma.$executeRawUnsafe(sql);
+  await applyMigration('prisma/migrations/20261008224500_nci017_subscriptions/migration.sql');
+  await applyMigration('prisma/migrations/20261010123000_nci017_scheduled_subscription_changes/migration.sql');
 
   const repository = load('lib/contractor-os/subscription-repository.ts', { '@/lib/db': { prisma } });
   const active = event();
@@ -114,7 +117,7 @@ async function main() {
   assert.ok(events.some((e) => e.providerSubscriptionId === 'sub-ci-1'));
   assert.ok(events.some((e) => e.providerSubscriptionId === 'sub-ci-2'));
 
-  console.log('PASS NCI-017 subscription MySQL: concurrent replay is serialized, stale events cannot revive access, identity replacement is allowed only after cancellation via verified subscription.created, and prior history remains auditable.');
+  console.log('PASS NCI-017 subscription MySQL: current and scheduled-change migrations apply together; concurrent replay is serialized, stale events cannot revive access, identity replacement is constrained after cancellation, and prior history remains auditable.');
 }
 
 main().catch((error) => { console.error(error); process.exitCode = 1; }).finally(async () => { await prisma.$disconnect(); });
