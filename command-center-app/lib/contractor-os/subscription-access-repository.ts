@@ -22,7 +22,17 @@ type SubscriptionRow = {
   currentPeriodStart: Date | null;
   currentPeriodEnd: Date | null;
   cancelAtPeriodEnd: boolean;
+  pendingPlan: "PRO" | "BUSINESS" | null;
+  providerScheduleId: string | null;
+  pendingPlanEffectiveAt: Date | null;
   verifiedAt: Date;
+};
+
+type StoredSubscriptionState = {
+  record: SubscriptionRecord;
+  pendingPlan: "PRO" | "BUSINESS" | null;
+  providerScheduleId: string | null;
+  pendingPlanEffectiveAt: string | null;
 };
 
 export type SubscriptionExperienceSummary = {
@@ -33,29 +43,35 @@ export type SubscriptionExperienceSummary = {
   trialDaysRemaining: number | null;
   currentPeriodEnd: string | null;
   cancelAtPeriodEnd: boolean;
+  pendingPlan: "PRO" | "BUSINESS" | null;
+  pendingPlanEffectiveAt: string | null;
+  hasScheduledPlanChange: boolean;
 };
 
-function toSubscriptionRecord(row: SubscriptionRow): SubscriptionRecord {
+function toStoredSubscriptionState(row: SubscriptionRow): StoredSubscriptionState {
   return {
-    organizationId: row.organizationId,
-    provider: row.provider,
-    providerCustomerId: row.providerCustomerId,
-    providerSubscriptionId: row.providerSubscriptionId,
-    plan: row.plan,
-    status: row.status,
-    currentPeriodStart: row.currentPeriodStart?.toISOString() ?? null,
-    currentPeriodEnd: row.currentPeriodEnd?.toISOString() ?? null,
-    cancelAtPeriodEnd: row.cancelAtPeriodEnd,
-    verifiedAt: row.verifiedAt.toISOString(),
+    record: {
+      organizationId: row.organizationId,
+      provider: row.provider,
+      providerCustomerId: row.providerCustomerId,
+      providerSubscriptionId: row.providerSubscriptionId,
+      plan: row.plan,
+      status: row.status,
+      currentPeriodStart: row.currentPeriodStart?.toISOString() ?? null,
+      currentPeriodEnd: row.currentPeriodEnd?.toISOString() ?? null,
+      cancelAtPeriodEnd: row.cancelAtPeriodEnd,
+      verifiedAt: row.verifiedAt.toISOString(),
+    },
+    pendingPlan: row.pendingPlan,
+    providerScheduleId: row.providerScheduleId,
+    pendingPlanEffectiveAt: row.pendingPlanEffectiveAt?.toISOString() ?? null,
   };
 }
 
 async function getOrganizationSubscription(
   organizationId: string
-): Promise<SubscriptionRecord | null> {
-  if (!organizationId.trim()) {
-    throw new Error("Subscription organization is required");
-  }
+): Promise<StoredSubscriptionState | null> {
+  if (!organizationId.trim()) throw new Error("Subscription organization is required");
 
   const row = await prisma.organizationSubscription.findUnique({
     where: { organizationId },
@@ -69,11 +85,14 @@ async function getOrganizationSubscription(
       currentPeriodStart: true,
       currentPeriodEnd: true,
       cancelAtPeriodEnd: true,
+      pendingPlan: true,
+      providerScheduleId: true,
+      pendingPlanEffectiveAt: true,
       verifiedAt: true,
     },
   });
 
-  return row ? toSubscriptionRecord(row) : null;
+  return row ? toStoredSubscriptionState(row) : null;
 }
 
 async function getOrganizationCommercialState(
@@ -81,7 +100,7 @@ async function getOrganizationCommercialState(
   now = new Date()
 ): Promise<{
   access: EffectiveSubscriptionAccess;
-  subscription: SubscriptionRecord | null;
+  subscription: StoredSubscriptionState | null;
   trial: TrialRecord | null;
 }> {
   const [subscription, trial] = await Promise.all([
@@ -90,7 +109,7 @@ async function getOrganizationCommercialState(
   ]);
 
   return {
-    access: resolveEffectiveSubscriptionAccess(subscription, trial, now),
+    access: resolveEffectiveSubscriptionAccess(subscription?.record ?? null, trial, now),
     subscription,
     trial,
   };
@@ -144,16 +163,24 @@ export async function getSubscriptionExperienceSummaryForActor(
           : "Pro"
         : "Free";
 
+  const paid = access.source === "SUBSCRIPTION" ? subscription : null;
+  const hasScheduledPlanChange = Boolean(
+    paid?.pendingPlan && paid.providerScheduleId && paid.pendingPlanEffectiveAt
+  );
+
   return {
     tier: access.tier,
     source: access.source,
     label,
     trialEndsAt: activeTrial?.endsAt ?? null,
     trialDaysRemaining,
-    currentPeriodEnd:
-      access.source === "SUBSCRIPTION" ? subscription?.currentPeriodEnd ?? null : null,
-    cancelAtPeriodEnd:
-      access.source === "SUBSCRIPTION" ? subscription?.cancelAtPeriodEnd ?? false : false,
+    currentPeriodEnd: paid?.record.currentPeriodEnd ?? null,
+    cancelAtPeriodEnd: paid?.record.cancelAtPeriodEnd ?? false,
+    pendingPlan: hasScheduledPlanChange ? paid?.pendingPlan ?? null : null,
+    pendingPlanEffectiveAt: hasScheduledPlanChange
+      ? paid?.pendingPlanEffectiveAt ?? null
+      : null,
+    hasScheduledPlanChange,
   };
 }
 
@@ -169,10 +196,7 @@ export async function requireSubscriptionFeatureForActor(
     now
   );
 
-  if (
-    access.tier === "FREE" ||
-    !subscriptionPlanHasFeature(access.tier, feature)
-  ) {
+  if (access.tier === "FREE" || !subscriptionPlanHasFeature(access.tier, feature)) {
     throw new Error(`Subscription feature ${feature} is not entitled`);
   }
 
