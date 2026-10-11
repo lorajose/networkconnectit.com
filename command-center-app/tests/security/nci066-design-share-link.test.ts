@@ -156,6 +156,37 @@ test("NCI-066 share profile always removes pricing", async () => {
   assert.deepEqual(created.profile.sections, ["COVER", "FLOOR_PLANS"]);
 });
 
+test("NCI-066 share section narrowing removes omitted public data", async () => {
+  const repository = repositoryFixture();
+  const created = await createDesignShare({
+    repository,
+    report: reportFixture(),
+    profile: {
+      sections: ["COVER"],
+      visibleLayerIds: ["client-layer"],
+    },
+  });
+
+  const view = await resolveDesignShare({ repository, token: created.token });
+  assert.deepEqual(view.profile.sections, ["COVER"]);
+  assert.deepEqual(view.model.floors, []);
+  assert.deepEqual(view.model.bom, []);
+  assert.deepEqual(view.model.cableSchedule, []);
+});
+
+test("NCI-066 cannot claim different layer visibility than the issued report", async () => {
+  const repository = repositoryFixture();
+  await assert.rejects(() => createDesignShare({
+    repository,
+    report: reportFixture(),
+    profile: {
+      sections: ["COVER", "FLOOR_PLANS"],
+      visibleLayerIds: ["different-layer"],
+    },
+  }));
+  assert.equal(repository.records.length, 0);
+});
+
 test("NCI-066 frozen snapshot integrity is enforced", async () => {
   const repository = repositoryFixture();
   const created = await createDesignShare({ repository, report: reportFixture() });
