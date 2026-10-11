@@ -82,7 +82,7 @@ export async function createDesignShareAction(input: {
   });
   const calibratedScales = floors
     .map((floor) => floor.realUnitsPerDesignUnit === null ? null : Number(floor.realUnitsPerDesignUnit))
-    .filter((value): value is number => Number.isFinite(value) && value > 0);
+    .filter((value): value is number => value !== null && Number.isFinite(value) && value > 0);
   const commonScale = calibratedScales.length === floors.length && new Set(calibratedScales.map(String)).size === 1
     ? calibratedScales[0]
     : undefined;
