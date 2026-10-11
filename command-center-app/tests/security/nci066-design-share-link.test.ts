@@ -55,11 +55,12 @@ function reportFixture(): IssuedDesignReport {
   };
 }
 
-test("NCI-066 creates random tokenized share without returning tenant ids", async () => {
+test("NCI-066 creates a frozen public snapshot without tenant ids", async () => {
   const repository = repositoryFixture();
+  const report = reportFixture();
   const created = await createDesignShare({
     repository,
-    report: reportFixture(),
+    report,
     expiresAt: new Date("2026-10-12T13:00:00.000Z"),
     now: new Date("2026-10-11T13:00:00.000Z"),
   });
@@ -68,10 +69,11 @@ test("NCI-066 creates random tokenized share without returning tenant ids", asyn
   assert.equal(repository.records.length, 1);
   assert.notEqual(repository.records[0].tokenHash, created.token);
 
+  report.model.floors[0].name = "Changed after sharing";
+
   const view = await resolveDesignShare({
     repository,
     token: created.token,
-    report: reportFixture(),
     now: new Date("2026-10-11T13:05:00.000Z"),
   });
 
@@ -81,6 +83,7 @@ test("NCI-066 creates random tokenized share without returning tenant ids", asyn
   assert.equal(serialized.includes("internal-floor-id"), false);
   assert.equal(serialized.includes("internal-element"), false);
   assert.equal(serialized.includes("First Floor"), true);
+  assert.equal(serialized.includes("Changed after sharing"), false);
   assert.equal(repository.audits.at(-1)?.event, "VIEW");
 });
 
@@ -97,7 +100,6 @@ test("NCI-066 optional password and expiration are enforced", async () => {
   await assert.rejects(() => resolveDesignShare({
     repository,
     token: created.token,
-    report: reportFixture(),
     password: "wrong-value",
     now: new Date("2026-10-11T13:10:00.000Z"),
   }));
@@ -105,7 +107,6 @@ test("NCI-066 optional password and expiration are enforced", async () => {
   const view = await resolveDesignShare({
     repository,
     token: created.token,
-    report: reportFixture(),
     password: "client-access-phrase",
     now: new Date("2026-10-11T13:10:00.000Z"),
   });
@@ -114,7 +115,6 @@ test("NCI-066 optional password and expiration are enforced", async () => {
   await assert.rejects(() => resolveDesignShare({
     repository,
     token: created.token,
-    report: reportFixture(),
     password: "client-access-phrase",
     now: new Date("2026-10-11T14:00:00.000Z"),
   }));
@@ -133,7 +133,6 @@ test("NCI-066 revocation is immediate and auditable", async () => {
   await assert.rejects(() => resolveDesignShare({
     repository,
     token: created.token,
-    report: reportFixture(),
   }));
 
   assert.equal(repository.audits.at(-1)?.event, "DENIED");
@@ -155,4 +154,18 @@ test("NCI-066 share profile always removes pricing", async () => {
   assert.equal(created.profile.clientSafe, true);
   assert.equal(created.profile.includePricing, false);
   assert.deepEqual(created.profile.sections, ["COVER", "FLOOR_PLANS"]);
+});
+
+test("NCI-066 frozen snapshot integrity is enforced", async () => {
+  const repository = repositoryFixture();
+  const created = await createDesignShare({ repository, report: reportFixture() });
+  repository.records[0].publicSnapshotJson = repository.records[0].publicSnapshotJson.replace("report-digest", "tampered-digest");
+
+  await assert.rejects(() => resolveDesignShare({
+    repository,
+    token: created.token,
+  }));
+
+  assert.equal(repository.audits.at(-1)?.event, "DENIED");
+  assert.equal(repository.audits.at(-1)?.detail, "snapshot_integrity");
 });
