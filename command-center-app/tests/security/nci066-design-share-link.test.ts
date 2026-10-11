@@ -139,9 +139,9 @@ test("NCI-066 revocation is immediate and auditable", async () => {
   assert.equal(repository.audits.at(-1)?.detail, "revoked");
 });
 
-test("NCI-066 share profile always removes pricing", async () => {
+test("NCI-066 share profile fails closed when pricing is requested", async () => {
   const repository = repositoryFixture();
-  const created = await createDesignShare({
+  await assert.rejects(() => createDesignShare({
     repository,
     report: reportFixture(),
     profile: {
@@ -149,11 +149,8 @@ test("NCI-066 share profile always removes pricing", async () => {
       includePricing: true,
       visibleLayerIds: ["client-layer"],
     },
-  });
-
-  assert.equal(created.profile.clientSafe, true);
-  assert.equal(created.profile.includePricing, false);
-  assert.deepEqual(created.profile.sections, ["COVER", "FLOOR_PLANS"]);
+  }));
+  assert.equal(repository.records.length, 0);
 });
 
 test("NCI-066 share section narrowing removes omitted public data", async () => {
