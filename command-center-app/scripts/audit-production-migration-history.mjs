@@ -77,7 +77,7 @@ try {
       }
 
       if (appliedRows.some((row) => row.checksum !== expectedChecksum)) {
-        fail(`${migrationName} checksum differs from the migration.sql currently in this release`);
+        fail(`${migrationName} checksum differs from migration.sql in this release`);
       }
     }
   }
