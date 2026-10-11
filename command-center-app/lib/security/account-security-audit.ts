@@ -3,7 +3,9 @@ export type AccountSecurityEvent =
   | "EMAIL_VERIFIED"
   | "SESSIONS_INVALIDATED"
   | "ACCOUNT_DISABLED"
-  | "ACCOUNT_REACTIVATED";
+  | "ACCOUNT_REACTIVATED"
+  | "USER_CREATED"
+  | "USER_ROLE_CHANGED";
 
 export function emitAccountSecurityEvent(input: {
   event: AccountSecurityEvent;
