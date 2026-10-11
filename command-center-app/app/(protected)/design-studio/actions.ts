@@ -8,8 +8,13 @@ import { persistFloorPlanAssetAndAttach } from "@/lib/contractor-os/design-asset
 import type { CanvasDocument } from "@/lib/contractor-os/design-canvas-state";
 import { designFloorPlanStorageKey, validateDesignFloorPlanUpload } from "@/lib/contractor-os/design-floor-plan";
 import { updateDesignFloorBackgroundSettings, updateDesignFloorPdfPage } from "@/lib/contractor-os/design-floor-background-repository";
+import { issueDesignReport, verifyIssuedDesignReport } from "@/lib/contractor-os/design-report-issuance";
+import { buildDesignReportModel } from "@/lib/contractor-os/design-report-model";
+import { DEFAULT_CLIENT_DESIGN_REPORT_PROFILE, resolveDesignReportProfile, type DesignReportSection } from "@/lib/contractor-os/design-report-profile";
 import { updateDesignFloorScale } from "@/lib/contractor-os/design-scale-repository";
-import { createDesignFloor, createDesignProject, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
+import { createDesignShare, revokeDesignShare } from "@/lib/contractor-os/design-share-link";
+import { mysqlDesignShareRepository } from "@/lib/contractor-os/design-share-repository";
+import { createDesignFloor, createDesignProject, getDesignProject, listDesignFloors, loadDesignFloorCanvas, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { createDesignVersionCheckpoint, getDesignVersionSnapshot, restoreDesignVersion } from "@/lib/contractor-os/design-version-repository";
 import { deletePrivateDesignAsset, storePrivateDesignAsset } from "@/lib/contractor-os/private-design-storage";
 import { requireSubscriptionFeatureForActor } from "@/lib/contractor-os/subscription-access-repository";
@@ -29,6 +34,92 @@ async function requireAdvancedDesignStudio(
     "ADVANCED_DESIGN_STUDIO",
     organizationId
   );
+}
+
+function actorFor(user: { id: string; role: string; organizationId?: string | null }) {
+  return { role: user.role as "SUPER_ADMIN" | "INTERNAL_ADMIN" | "CLIENT_ADMIN" | "VIEWER", organizationId: user.organizationId, id: user.id };
+}
+
+function organizationFor(user: { role: string; organizationId?: string | null }, requestedOrganizationId: string) {
+  const organizationId = user.role === "CLIENT_ADMIN" ? user.organizationId ?? "" : requestedOrganizationId.trim();
+  if (!organizationId) throw new Error("Organization context is required");
+  return organizationId;
+}
+
+const SHAREABLE_SECTIONS = new Set<DesignReportSection>(DEFAULT_CLIENT_DESIGN_REPORT_PROFILE.sections);
+function shareSections(input?: readonly DesignReportSection[]) {
+  const sections = input?.length ? input : DEFAULT_CLIENT_DESIGN_REPORT_PROFILE.sections;
+  if (sections.some((section) => !SHAREABLE_SECTIONS.has(section))) throw new Error("Design shares cannot include pricing or internal-only sections");
+  return [...new Set(sections)];
+}
+
+export async function createDesignShareAction(input: {
+  organizationId: string;
+  projectId: string;
+  sections?: readonly DesignReportSection[];
+  visibleLayerIds?: readonly string[];
+  password?: string;
+  expiresAt?: string | null;
+}) {
+  const user = await requireRoles(routeAccess.designStudio);
+  const organizationId = organizationFor(user, input.organizationId);
+  await requireAdvancedDesignStudio(user, organizationId);
+  const actor = actorFor(user);
+  const project = await getDesignProject(actor, input.projectId, organizationId);
+  if (!project) throw new Error("Design project not found");
+
+  const floors = await listDesignFloors(actor, project.id, organizationId);
+  const sources = await Promise.all(floors.map(async (floor) => ({
+    id: floor.id,
+    name: floor.name,
+    document: await loadDesignFloorCanvas(actor, project.id, floor.id, organizationId),
+  })));
+  const profile = resolveDesignReportProfile({
+    clientSafe: true,
+    includePricing: false,
+    sections: shareSections(input.sections),
+    visibleLayerIds: input.visibleLayerIds?.map((id) => id.trim()).filter(Boolean),
+  });
+  const calibratedScales = floors
+    .map((floor) => floor.realUnitsPerDesignUnit === null ? null : Number(floor.realUnitsPerDesignUnit))
+    .filter((value): value is number => Number.isFinite(value) && value > 0);
+  const commonScale = calibratedScales.length === floors.length && new Set(calibratedScales.map(String)).size === 1
+    ? calibratedScales[0]
+    : undefined;
+  const model = buildDesignReportModel(sources, profile, commonScale);
+  const report = issueDesignReport({
+    issuedByUserId: user.id,
+    projectId: project.id,
+    organizationId,
+    profile,
+    model,
+    commercialLink: {},
+  });
+  if (!verifyIssuedDesignReport(report)) throw new Error("Generated client-safe report failed integrity verification");
+
+  const expiresAt = input.expiresAt?.trim() ? new Date(input.expiresAt) : null;
+  if (expiresAt && Number.isNaN(expiresAt.getTime())) throw new Error("Share expiration is invalid");
+  const created = await createDesignShare({
+    repository: mysqlDesignShareRepository,
+    report,
+    profile,
+    password: input.password,
+    expiresAt,
+  });
+  revalidatePath(`/design-studio/${project.id}`);
+  return { ...created, url: `/share/design/${created.token}` };
+}
+
+export async function revokeDesignShareAction(input: { organizationId: string; projectId: string; shareId: string }) {
+  const user = await requireRoles(routeAccess.designStudio);
+  const organizationId = organizationFor(user, input.organizationId);
+  await requireAdvancedDesignStudio(user, organizationId);
+  const project = await getDesignProject(actorFor(user), input.projectId, organizationId);
+  if (!project) throw new Error("Design project not found");
+  const revoked = await revokeDesignShare({ repository: mysqlDesignShareRepository, shareId: input.shareId.trim(), organizationId });
+  if (!revoked) throw new Error("Design share was not found or was already revoked");
+  revalidatePath(`/design-studio/${project.id}`);
+  return { revoked: true };
 }
 
 export async function createDesignProjectAction(formData: FormData) {
