@@ -27,7 +27,6 @@ test("NCI-026 schema persists account lifecycle security state", () => {
   assert.match(schema, /@@index\(\[isActive\]\)/);
 });
 
-
 test("NCI-026 lifecycle mutations revoke existing sessions", () => {
   const source = read("lib/security/account-lifecycle.ts");
   const increments = source.match(/authVersion:\s*\{ increment: 1 \}/g) ?? [];
@@ -35,4 +34,24 @@ test("NCI-026 lifecycle mutations revoke existing sessions", () => {
   assert.match(source, /setUserActiveState/);
   assert.match(source, /replaceUserPasswordHash/);
   assert.match(source, /invalidateUserSessions/);
+});
+
+test("NCI-026 reset and verification never trust browser-owned account identity", () => {
+  const source = read("lib/security/account-recovery.ts");
+  assert.match(source, /issuePasswordResetTokenForDelivery/);
+  assert.match(source, /return null/);
+  assert.match(source, /user\.authVersion !== payload\.authVersion/);
+  assert.match(source, /user\.email\.toLowerCase\(\) !== payload\.email/);
+  assert.match(source, /replaceUserPasswordHash/);
+});
+
+test("NCI-026 credentials login applies bounded backoff without retaining plaintext email keys", () => {
+  const auth = read("lib/auth-options.ts");
+  const abuse = read("lib/security/login-abuse-control.ts");
+  assert.match(auth, /isLoginTemporarilyBlocked\(email\)/);
+  assert.match(auth, /recordLoginFailure\(email\)/);
+  assert.match(auth, /clearLoginFailures\(email\)/);
+  assert.match(abuse, /createHash\("sha256"\)/);
+  assert.match(abuse, /MAX_TRACKED_KEYS = 10_000/);
+  assert.match(abuse, /MAX_BACKOFF_MS = 60_000/);
 });
