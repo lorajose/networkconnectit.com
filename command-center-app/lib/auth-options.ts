@@ -51,7 +51,7 @@ export const authOptions: NextAuthOptions = {
           }
         });
 
-        if (!user) {
+        if (!user || !user.isActive) {
           return null;
         }
 
@@ -69,7 +69,8 @@ export const authOptions: NextAuthOptions = {
         name: user.name ?? user.email,
         email: user.email,
           role: user.role as AppRole,
-          organizationId: user.organizationId ?? null
+          organizationId: user.organizationId ?? null,
+          authVersion: user.authVersion
         };
       }
     })
@@ -81,6 +82,38 @@ export const authOptions: NextAuthOptions = {
         token.role = user.role;
         token.organizationId = user.organizationId;
         token.email = user.email;
+        token.authVersion = user.authVersion;
+        return token;
+      }
+
+      if (token.id && typeof token.authVersion === "number") {
+        const currentUser = await prisma.user.findUnique({
+          where: { id: token.id as string },
+          select: {
+            email: true,
+            role: true,
+            organizationId: true,
+            isActive: true,
+            authVersion: true
+          }
+        });
+
+        if (
+          !currentUser ||
+          !currentUser.isActive ||
+          currentUser.authVersion !== token.authVersion
+        ) {
+          delete token.id;
+          delete token.role;
+          delete token.organizationId;
+          delete token.authVersion;
+          token.email = undefined;
+          return token;
+        }
+
+        token.role = currentUser.role as AppRole;
+        token.organizationId = currentUser.organizationId ?? null;
+        token.email = currentUser.email;
       }
 
       return token;
