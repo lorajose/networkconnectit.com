@@ -45,8 +45,27 @@ function tokenHash(token: string) {
   return createHash("sha256").update(token).digest("hex");
 }
 
-function publicProfile(profile?: Partial<DesignReportProfile>) {
-  const resolved = resolveDesignReportProfile({ ...profile, clientSafe: true });
+function sameStringSet(left?: readonly string[], right?: readonly string[]) {
+  return JSON.stringify([...(left ?? [])].sort()) === JSON.stringify([...(right ?? [])].sort());
+}
+
+function publicProfile(report: IssuedDesignReport, profile?: Partial<DesignReportProfile>) {
+  const issuedSections = report.profile.sections.filter((section) => section !== "PRICING_SUMMARY");
+  const requestedSections = profile?.sections ?? issuedSections;
+  if (requestedSections.some((section) => section === "PRICING_SUMMARY" || !issuedSections.includes(section))) {
+    throw new Error("Share profile cannot expose sections outside the issued client-safe report");
+  }
+
+  if (profile?.visibleLayerIds && !sameStringSet(profile.visibleLayerIds, report.profile.visibleLayerIds)) {
+    throw new Error("Layer visibility must be fixed when the client-safe report is issued");
+  }
+
+  const resolved = resolveDesignReportProfile({
+    ...profile,
+    sections: requestedSections,
+    visibleLayerIds: report.profile.visibleLayerIds,
+    clientSafe: true,
+  });
   return {
     ...resolved,
     clientSafe: true,
@@ -69,21 +88,27 @@ function publicReport(report: IssuedDesignReport, profile: DesignReportProfile):
       ...report.model,
       sections: profile.sections,
       pricingVisible: false,
-      floors: report.model.floors.map((floor) => ({
-        id: "",
-        name: floor.name,
-        elementCount: floor.elementCount,
-        deviceCount: floor.deviceCount,
-        cablePathCount: floor.cablePathCount,
-      })),
-      bom: report.model.bom.map((item) => ({
-        ...item,
-        sourceElementIds: [],
-      })),
-      cableSchedule: report.model.cableSchedule.map((row) => ({
-        ...row,
-        sourceElementIds: [],
-      })),
+      floors: (profile.sections.includes("FLOOR_PLANS") || profile.sections.includes("CAMERA_COVERAGE"))
+        ? report.model.floors.map((floor) => ({
+            id: "",
+            name: floor.name,
+            elementCount: floor.elementCount,
+            deviceCount: floor.deviceCount,
+            cablePathCount: floor.cablePathCount,
+          }))
+        : [],
+      bom: profile.sections.includes("BOM")
+        ? report.model.bom.map((item) => ({
+            ...item,
+            sourceElementIds: [],
+          }))
+        : [],
+      cableSchedule: profile.sections.includes("CABLE_SCHEDULE")
+        ? report.model.cableSchedule.map((row) => ({
+            ...row,
+            sourceElementIds: [],
+          }))
+        : [],
       warnings: report.model.warnings,
     },
     digest: report.digest,
@@ -121,7 +146,7 @@ export async function createDesignShare(input: {
   now?: Date;
 }) {
   const now = input.now ?? new Date();
-  const profile = publicProfile(input.profile);
+  const profile = publicProfile(input.report, input.profile);
 
   if (!input.report.profile.clientSafe) {
     throw new Error("Share links require a client-safe issued design report");
