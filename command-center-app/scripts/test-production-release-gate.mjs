@@ -14,7 +14,11 @@ const base = {
   FIRST_ADMIN_BOOTSTRAP_TOKEN: "",
   DATABASE_ADMIN_URL: "",
   NCI_ALLOW_DEMO_SEED: "false",
-  NCI_DATABASE_TLS_MODE: "verify-identity"
+  NCI_DATABASE_TLS_MODE: "verify-identity",
+  STRIPE_SECRET_KEY: "sk_live_ci_nci074",
+  STRIPE_SUBSCRIPTION_WEBHOOK_SECRET: "whsec_ci_nci074",
+  STRIPE_PRO_PRICE_ID: "price_ci_pro",
+  STRIPE_BUSINESS_PRICE_ID: "price_ci_business"
 };
 
 function gate(overrides = {}) {
@@ -47,6 +51,19 @@ assert.match(demoSeed.stderr, /DEMO_SEED must be disabled/);
 const nci074Recovery = gate({ NCI_RECOVER_NCI074: "1" });
 assert.notEqual(nci074Recovery.status, 0);
 assert.match(nci074Recovery.stderr, /NCI_RECOVER_NCI074 recovery flag must be disabled/);
+
+
+const stripeTestKey = gate({ STRIPE_SECRET_KEY: "sk_test_ci_nci074" });
+assert.notEqual(stripeTestKey.status, 0);
+assert.match(stripeTestKey.stderr, /live-mode Stripe key/);
+
+const missingSubscriptionWebhook = gate({ STRIPE_SUBSCRIPTION_WEBHOOK_SECRET: "" });
+assert.notEqual(missingSubscriptionWebhook.status, 0);
+assert.match(missingSubscriptionWebhook.stderr, /SUBSCRIPTION_WEBHOOK_SECRET must be configured/);
+
+const duplicateSubscriptionPrices = gate({ STRIPE_BUSINESS_PRICE_ID: "price_ci_pro" });
+assert.notEqual(duplicateSubscriptionPrices.status, 0);
+assert.match(duplicateSubscriptionPrices.stderr, /must be different/);
 
 const missingTls = gate({ NCI_DATABASE_TLS_MODE: "" });
 assert.notEqual(missingTls.status, 0);
@@ -87,4 +104,4 @@ const incompleteObjectStorage = gate({ DESIGN_STORAGE_DRIVER: "supabase", DESIGN
 assert.notEqual(incompleteObjectStorage.status, 0);
 assert.match(incompleteObjectStorage.stderr, /requires URL, service-role key and bucket/);
 
-console.log("PASS release gate: auth, database TLS and private storage configuration.");
+console.log("PASS release gate: auth, live Stripe, database TLS and private storage configuration.");
