@@ -3,7 +3,7 @@ import type { Metadata } from "next";
 export const dynamic = "force-dynamic";
 export const metadata: Metadata = {
   title: "Shared Design | NetworkConnectIT",
-  robots: { index: false, follow: false, archive: false },
+  robots: { index: false, follow: false, noarchive: true },
   referrer: "no-referrer",
 };
 
