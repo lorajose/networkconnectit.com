@@ -1,7 +1,5 @@
 import { createHmac, randomBytes, timingSafeEqual } from "node:crypto";
 
-import { getAuthSecret } from "@/lib/runtime-config";
-
 export type AccountTokenPurpose = "PASSWORD_RESET" | "EMAIL_VERIFY";
 
 type AccountTokenPayload = {
@@ -16,6 +14,9 @@ type AccountTokenPayload = {
 
 const MAX_RESET_SECONDS = 15 * 60;
 const MAX_VERIFY_SECONDS = 24 * 60 * 60;
+const DEVELOPMENT_AUTH_FALLBACK_SECRET = "development-only-command-center-secret";
+const BUILD_ONLY_AUTH_FALLBACK_SECRET = "build-only-command-center-secret-never-use-at-runtime";
+const NEXT_PHASE_PRODUCTION_BUILD = "phase-production-build";
 
 function encode(value: string) {
   return Buffer.from(value, "utf8").toString("base64url");
@@ -25,8 +26,22 @@ function decode(value: string) {
   return Buffer.from(value, "base64url").toString("utf8");
 }
 
+function accountTokenAuthSecret() {
+  const secret = process.env.NEXTAUTH_SECRET?.trim();
+  if (secret) return secret;
+
+  if (process.env.NODE_ENV === "production") {
+    if (process.env.NEXT_PHASE === NEXT_PHASE_PRODUCTION_BUILD) {
+      return BUILD_ONLY_AUTH_FALLBACK_SECRET;
+    }
+    throw new Error("NEXTAUTH_SECRET is required in production and staging environments.");
+  }
+
+  return DEVELOPMENT_AUTH_FALLBACK_SECRET;
+}
+
 function signingKey() {
-  return createHmac("sha256", getAuthSecret())
+  return createHmac("sha256", accountTokenAuthSecret())
     .update("networkconnectit:account-lifecycle:v1")
     .digest();
 }
