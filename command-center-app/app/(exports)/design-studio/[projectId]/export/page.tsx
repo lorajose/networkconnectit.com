@@ -28,7 +28,7 @@ export default async function DesignStudioExportPage({ params, searchParams }: D
 
   const floors = await listDesignFloors(actor, params.projectId, exportPolicy.organizationId);
   const floorDocuments = await Promise.all(floors.map(async (floor) => ({ floor, document: await loadDesignFloorCanvas(actor, params.projectId, floor.id, exportPolicy.organizationId) })));
-  const requestedInternal = searchParams?.profile === "internal";
+  const requestedInternal = (user.role === "SUPER_ADMIN" || user.role === "INTERNAL_ADMIN") && searchParams?.profile === "internal";
   const visibleLayerIds = searchParams?.layers?.split(",").map((id) => id.trim()).filter(Boolean);
   const profile = resolveDesignReportProfile({ clientSafe: !requestedInternal, includePricing: requestedInternal, visibleLayerIds });
   const calibratedScales = floorDocuments.map(({ floor }) => {
