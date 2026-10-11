@@ -12,6 +12,7 @@ import { issueDesignReport, verifyIssuedDesignReport } from "@/lib/contractor-os
 import { buildDesignReportModel } from "@/lib/contractor-os/design-report-model";
 import { DEFAULT_CLIENT_DESIGN_REPORT_PROFILE, resolveDesignReportProfile, type DesignReportSection } from "@/lib/contractor-os/design-report-profile";
 import { updateDesignFloorScale } from "@/lib/contractor-os/design-scale-repository";
+import { assertDesignLengthUnit, metersPerDesignUnit } from "@/lib/contractor-os/design-scale";
 import { createDesignShare, revokeDesignShare } from "@/lib/contractor-os/design-share-link";
 import { mysqlDesignShareRepository } from "@/lib/contractor-os/design-share-repository";
 import { createDesignFloor, createDesignProject, getDesignProject, listDesignFloors, loadDesignFloorCanvas, saveDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
@@ -81,7 +82,11 @@ export async function createDesignShareAction(input: {
     visibleLayerIds: input.visibleLayerIds?.map((id) => id.trim()).filter(Boolean),
   });
   const calibratedScales = floors
-    .map((floor) => floor.realUnitsPerDesignUnit === null ? null : Number(floor.realUnitsPerDesignUnit))
+    .map((floor) => {
+      if (floor.realUnitsPerDesignUnit === null) return null;
+      assertDesignLengthUnit(floor.scaleUnit);
+      return metersPerDesignUnit(Number(floor.realUnitsPerDesignUnit), floor.scaleUnit);
+    })
     .filter((value): value is number => value !== null && Number.isFinite(value) && value > 0);
   const commonScale = calibratedScales.length === floors.length && new Set(calibratedScales.map(String)).size === 1
     ? calibratedScales[0]
