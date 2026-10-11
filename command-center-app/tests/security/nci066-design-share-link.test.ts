@@ -154,5 +154,5 @@ test("NCI-066 share profile always removes pricing", async () => {
 
   assert.equal(created.profile.clientSafe, true);
   assert.equal(created.profile.includePricing, false);
-  assert.equal(created.profile.sections.includes("PRICING_SUMMARY"), false);
+  assert.equal(created.profile.sections.some((section) => section === "PRICING_SUMMARY"), false);
 });
