@@ -37,7 +37,9 @@ export const mysqlDesignShareRepository: DesignShareRepository = {
   async findByTokenHash(tokenHash) {
     const rows = await prisma.$queryRaw<ShareRow[]>(Prisma.sql`
       SELECT id, organizationId, projectId, reportDigest, tokenHash, passwordHash,
-             profileJson, publicSnapshotJson, expiresAt, revokedAt, createdAt
+             CAST(profileJson AS CHAR) AS profileJson,
+             CAST(publicSnapshotJson AS CHAR) AS publicSnapshotJson,
+             expiresAt, revokedAt, createdAt
       FROM DesignShareLink
       WHERE tokenHash = ${tokenHash}
       LIMIT 1
