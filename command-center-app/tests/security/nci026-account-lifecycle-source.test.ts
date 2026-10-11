@@ -26,3 +26,13 @@ test("NCI-026 schema persists account lifecycle security state", () => {
   assert.match(schema, /passwordChangedAt\s+DateTime\?/);
   assert.match(schema, /@@index\(\[isActive\]\)/);
 });
+
+
+test("NCI-026 lifecycle mutations revoke existing sessions", () => {
+  const source = read("lib/security/account-lifecycle.ts");
+  const increments = source.match(/authVersion:\s*\{ increment: 1 \}/g) ?? [];
+  assert.ok(increments.length >= 3);
+  assert.match(source, /setUserActiveState/);
+  assert.match(source, /replaceUserPasswordHash/);
+  assert.match(source, /invalidateUserSessions/);
+});
