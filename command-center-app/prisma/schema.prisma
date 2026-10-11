@@ -153,6 +153,10 @@ model User {
   email          String         @unique @db.VarChar(191)
   passwordHash   String         @db.VarChar(255)
   role           Role           @default(VIEWER)
+  isActive       Boolean        @default(true)
+  authVersion    Int            @default(1)
+  emailVerifiedAt DateTime?
+  passwordChangedAt DateTime?
   organizationId String?        @db.VarChar(191)
   organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   createdAlerts  Alert[]        @relation("AlertCreatedBy")
@@ -162,6 +166,7 @@ model User {
 
   @@index([organizationId])
   @@index([role])
+  @@index([isActive])
 }
 
 model Organization {
