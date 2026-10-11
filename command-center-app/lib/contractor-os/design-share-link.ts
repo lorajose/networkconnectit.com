@@ -6,6 +6,15 @@ import { resolveDesignReportProfile, type DesignReportProfile } from "./design-r
 
 export type DesignShareAuditEvent = "VIEW" | "DOWNLOAD" | "DENIED";
 
+export type PublicDesignShare = {
+  shareId: string;
+  reportVersion: number;
+  issuedAt: string;
+  profile: DesignReportProfile;
+  model: IssuedDesignReport["model"];
+  digest: string;
+};
+
 export type DesignShareRecord = {
   id: string;
   organizationId: string;
@@ -14,18 +23,10 @@ export type DesignShareRecord = {
   tokenHash: string;
   passwordHash: string | null;
   profile: DesignReportProfile;
+  publicSnapshotJson: string;
   expiresAt: Date | null;
   revokedAt: Date | null;
   createdAt: Date;
-};
-
-export type PublicDesignShare = {
-  shareId: string;
-  reportVersion: number;
-  issuedAt: string;
-  profile: DesignReportProfile;
-  model: IssuedDesignReport["model"];
-  digest: string;
 };
 
 export type DesignShareRepository = {
@@ -59,10 +60,6 @@ function publicReport(report: IssuedDesignReport, profile: DesignReportProfile):
     throw new Error("Only client-safe issued design reports can be shared");
   }
 
-  const visibleLayers = profile.visibleLayerIds?.length
-    ? new Set(profile.visibleLayerIds)
-    : null;
-
   return {
     shareId: "",
     reportVersion: report.version,
@@ -93,6 +90,28 @@ function publicReport(report: IssuedDesignReport, profile: DesignReportProfile):
   };
 }
 
+function parsePublicSnapshot(record: DesignShareRecord): PublicDesignShare {
+  let parsed: unknown;
+  try {
+    parsed = JSON.parse(record.publicSnapshotJson);
+  } catch {
+    throw new Error("Shared design snapshot is invalid");
+  }
+  if (!parsed || typeof parsed !== "object" || Array.isArray(parsed)) {
+    throw new Error("Shared design snapshot is invalid");
+  }
+
+  const view = parsed as PublicDesignShare;
+  if (view.digest !== record.reportDigest || view.profile?.clientSafe !== true || view.profile?.includePricing !== false) {
+    throw new Error("Shared design snapshot integrity check failed");
+  }
+  if (view.model?.pricingVisible !== false) {
+    throw new Error("Shared design snapshot exposes pricing");
+  }
+
+  return { ...view, shareId: record.id };
+}
+
 export async function createDesignShare(input: {
   repository: DesignShareRepository;
   report: IssuedDesignReport;
@@ -116,6 +135,7 @@ export async function createDesignShare(input: {
   const passwordHash = input.password?.trim()
     ? await bcrypt.hash(input.password, 12)
     : null;
+  const snapshot = publicReport(input.report, profile);
 
   await input.repository.create({
     id: shareId,
@@ -125,6 +145,7 @@ export async function createDesignShare(input: {
     tokenHash: tokenHash(rawToken),
     passwordHash,
     profile,
+    publicSnapshotJson: JSON.stringify(snapshot),
     expiresAt: input.expiresAt ?? null,
     revokedAt: null,
     createdAt: now,
@@ -141,7 +162,6 @@ export async function createDesignShare(input: {
 export async function resolveDesignShare(input: {
   repository: DesignShareRepository;
   token: string;
-  report: IssuedDesignReport;
   password?: string;
   event?: "VIEW" | "DOWNLOAD";
   now?: Date;
@@ -169,13 +189,14 @@ export async function resolveDesignShare(input: {
       throw new Error("Share password is invalid");
     }
   }
-  if (input.report.digest !== record.reportDigest) {
-    await input.repository.audit({ shareId: record.id, event: "DENIED", at: now, detail: "snapshot_mismatch" });
-    throw new Error("Shared design snapshot does not match");
-  }
 
-  const view = publicReport(input.report, record.profile);
-  view.shareId = record.id;
+  let view: PublicDesignShare;
+  try {
+    view = parsePublicSnapshot(record);
+  } catch {
+    await input.repository.audit({ shareId: record.id, event: "DENIED", at: now, detail: "snapshot_integrity" });
+    throw new Error("Share link is invalid");
+  }
 
   await input.repository.audit({
     shareId: record.id,
