@@ -13,6 +13,6 @@ test("NCI-033 production migration audit inspects every local migration", () => 
   assert.match(text, /database contains migration .* absent from this release/);
   assert.match(text, /has an incomplete active migration record/);
   assert.match(text, /has more than one active applied record/);
-  assert.match(text, /checksum differs from migration\.sql in this release/);
+  assert.match(text, /checksum differs from the migration\.sql currently in this release/);
   assert.doesNotMatch(text, /watchedMigrations/);
 });
