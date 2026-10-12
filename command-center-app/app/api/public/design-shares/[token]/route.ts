@@ -1,3 +1,4 @@
+import { createHash } from "node:crypto";
 import { NextRequest, NextResponse } from "next/server";
 
 import { resolveDesignShare } from "@/lib/contractor-os/design-share-link";
@@ -18,7 +19,8 @@ function json(body: unknown, status = 200) {
 }
 
 function abuseKey(token: string) {
-  return `design-share:${token}`;
+  const fingerprint = createHash("sha256").update(token).digest("hex");
+  return `design-share:${fingerprint}`;
 }
 
 async function resolveToken(token: string, password?: string, event: "VIEW" | "DOWNLOAD" = "VIEW") {
@@ -36,7 +38,23 @@ async function resolveToken(token: string, password?: string, event: "VIEW" | "D
 }
 
 export async function GET(_request: NextRequest, { params }: { params: { token: string } }) {
-  return resolveToken(params.token);
+  const key = abuseKey(params.token);
+  if (isLoginTemporarilyBlocked(key)) {
+    return json({ ok: false, error: "Share link is unavailable" }, 429);
+  }
+
+  try {
+    const share = await resolveDesignShare({
+      repository: mysqlDesignShareRepository,
+      token: params.token,
+      event: "VIEW",
+    });
+    clearLoginFailures(key);
+    return json({ ok: true, share });
+  } catch {
+    recordLoginFailure(key);
+    return json({ ok: false, error: "Share link is unavailable" }, 404);
+  }
 }
 
 export async function POST(request: NextRequest, { params }: { params: { token: string } }) {
