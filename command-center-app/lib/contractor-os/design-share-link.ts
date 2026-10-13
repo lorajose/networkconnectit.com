@@ -32,6 +32,7 @@ export type DesignShareRecord = {
 export type DesignShareRepository = {
   create(record: DesignShareRecord): Promise<void>;
   findByTokenHash(tokenHash: string): Promise<DesignShareRecord | null>;
+  listForProject(organizationId: string, projectId: string): Promise<DesignShareRecord[]>;
   revoke(shareId: string, organizationId: string, revokedAt: Date): Promise<boolean>;
   audit(input: {
     shareId: string | null;
