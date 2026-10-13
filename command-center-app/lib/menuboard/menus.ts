@@ -13,6 +13,13 @@ export type CreateMenuInput = {
   templateKey?: string;
 };
 
+export type MenuPresentationInput = {
+  displayName?: string | null;
+  logoUrl?: string | null;
+  promotionTitle?: string | null;
+  promotionText?: string | null;
+};
+
 export async function listMenus(user: TenantUser) {
   return prisma.menu.findMany({
     where: getScopedRecordWhere(user),
@@ -68,6 +75,17 @@ export async function getMenuById(user: TenantUser, menuId: string) {
             orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }]
           }
         }
+      },
+      assignments: {
+        include: {
+          screen: {
+            select: {
+              id: true,
+              name: true,
+              status: true
+            }
+          }
+        }
       }
     }
   });
@@ -105,6 +123,148 @@ export async function createMenu(user: TenantUser, input: CreateMenuInput) {
       name: input.name.trim(),
       currency: (input.currency ?? "USD").trim().toUpperCase(),
       templateKey: input.templateKey ?? "DELI_LANDSCAPE_V1"
+    }
+  });
+}
+
+export async function updateMenuPresentation(
+  user: TenantUser,
+  menuId: string,
+  input: MenuPresentationInput
+) {
+  const menu = await prisma.menu.findFirst({
+    where: {
+      id: menuId,
+      ...getScopedRecordWhere(user)
+    },
+    select: {
+      id: true
+    }
+  });
+
+  if (!menu) {
+    throw new Error("Menu not found.");
+  }
+
+  return prisma.menu.update({
+    where: {
+      id: menu.id
+    },
+    data: {
+      displayName: input.displayName?.trim() || null,
+      logoUrl: input.logoUrl?.trim() || null,
+      promotionTitle: input.promotionTitle?.trim() || null,
+      promotionText: input.promotionText?.trim() || null
+    }
+  });
+}
+
+export async function getAssignableScreens(
+  user: TenantUser,
+  menuId: string
+) {
+  const menu = await prisma.menu.findFirst({
+    where: {
+      id: menuId,
+      ...getScopedRecordWhere(user)
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      siteId: true
+    }
+  });
+
+  if (!menu) {
+    throw new Error("Menu not found.");
+  }
+
+  return prisma.menuBoardScreen.findMany({
+    where: {
+      organizationId: menu.organizationId,
+      siteId: menu.siteId,
+      ...getScopedRecordWhere(user)
+    },
+    orderBy: {
+      name: "asc"
+    },
+    select: {
+      id: true,
+      name: true,
+      status: true,
+      assignment: {
+        select: {
+          menuId: true
+        }
+      }
+    }
+  });
+}
+
+export async function assignMenuToScreens(
+  user: TenantUser,
+  menuId: string,
+  screenIds: string[]
+) {
+  const menu = await prisma.menu.findFirst({
+    where: {
+      id: menuId,
+      ...getScopedRecordWhere(user)
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      siteId: true
+    }
+  });
+
+  if (!menu) {
+    throw new Error("Menu not found.");
+  }
+
+  const uniqueScreenIds = [...new Set(screenIds)];
+  const screens = uniqueScreenIds.length
+    ? await prisma.menuBoardScreen.findMany({
+        where: {
+          id: {
+            in: uniqueScreenIds
+          },
+          organizationId: menu.organizationId,
+          siteId: menu.siteId,
+          ...getScopedRecordWhere(user)
+        },
+        select: {
+          id: true
+        }
+      })
+    : [];
+
+  if (screens.length !== uniqueScreenIds.length) {
+    throw new Error("One or more selected screens are outside this store.");
+  }
+
+  await prisma.$transaction(async (tx) => {
+    await tx.menuScreenAssignment.deleteMany({
+      where: {
+        menuId: menu.id
+      }
+    });
+
+    for (const screen of screens) {
+      await tx.menuScreenAssignment.upsert({
+        where: {
+          screenId: screen.id
+        },
+        update: {
+          organizationId: menu.organizationId,
+          menuId: menu.id
+        },
+        create: {
+          organizationId: menu.organizationId,
+          screenId: screen.id,
+          menuId: menu.id
+        }
+      });
     }
   });
 }
