@@ -11,6 +11,7 @@ import { requireRoles } from "@/lib/auth";
 import { getDesignFloorBackground } from "@/lib/contractor-os/design-floor-background-repository";
 import { BUILT_IN_DESIGN_LAYERS } from "@/lib/contractor-os/design-layers";
 import { assertDesignLengthUnit, designUnitsPerMeter } from "@/lib/contractor-os/design-scale";
+import { mysqlDesignShareRepository } from "@/lib/contractor-os/design-share-repository";
 import { getDesignProject, listDesignFloors, loadDesignFloorCanvas } from "@/lib/contractor-os/design-studio-repository";
 import { listDesignVersions } from "@/lib/contractor-os/design-version-repository";
 import { routeAccess } from "@/lib/rbac";
@@ -27,7 +28,8 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
   const actor = { role: user.role, organizationId: user.organizationId };
   const project = await getDesignProject(actor, params.projectId, requestedOrganizationId);
   if (!project) notFound();
-  const [floors, versions] = await Promise.all([listDesignFloors(actor, params.projectId, requestedOrganizationId), listDesignVersions(actor, params.projectId, requestedOrganizationId)]);
+  const [floors, versions, shareRecords] = await Promise.all([listDesignFloors(actor, params.projectId, requestedOrganizationId), listDesignVersions(actor, params.projectId, requestedOrganizationId), mysqlDesignShareRepository.listForProject(requestedOrganizationId, params.projectId)]);
+  const initialShares = shareRecords.map((share) => ({ id: share.id, createdAt: share.createdAt.toISOString(), expiresAt: share.expiresAt?.toISOString() ?? null, revokedAt: share.revokedAt?.toISOString() ?? null, passwordProtected: Boolean(share.passwordHash) }));
   const selectedFloor = floors.find((floor) => floor.id === searchParams?.floorId) ?? floors[0] ?? null;
   const [initialDocument, background] = selectedFloor ? await Promise.all([loadDesignFloorCanvas(actor, params.projectId, selectedFloor.id, requestedOrganizationId), getDesignFloorBackground(actor, params.projectId, selectedFloor.id, requestedOrganizationId)]) : [null, null];
   const backgroundUrl = selectedFloor && background ? `${appBasePath()}/api/design-studio/background?organizationId=${encodeURIComponent(requestedOrganizationId)}&projectId=${encodeURIComponent(project.id)}&floorId=${encodeURIComponent(selectedFloor.id)}` : null;
@@ -52,7 +54,7 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
 
     {selectedFloor && initialDocument ? <div className="space-y-3"><div className="flex flex-wrap items-center justify-between gap-2 text-sm"><div><span className="font-medium">{selectedFloor.name}</span><span className="ml-2 text-muted-foreground">{selectedFloor.canvasWidth.toString()} × {selectedFloor.canvasHeight.toString()} design units</span></div><span className="text-muted-foreground">Scale: {selectedFloor.realUnitsPerDesignUnit ? `${selectedFloor.realUnitsPerDesignUnit.toString()} ${selectedFloor.scaleUnit}/unit` : "not calibrated"}</span></div><DesignCanvas initialDocument={initialDocument} organizationId={requestedOrganizationId} projectId={project.id} floorId={selectedFloor.id} initialRevision={project.workingRevision} designUnitsPerMeter={calibratedDesignUnitsPerMeter} background={background && backgroundUrl ? { url: backgroundUrl, mimeType: background.mimeType, opacity: Number(background.backgroundOpacity), visible: background.backgroundVisible, locked: background.backgroundLocked, width: Number(selectedFloor.canvasWidth), height: Number(selectedFloor.canvasHeight), pdfPage: background.backgroundPdfPage } : null} /></div> : null}
 
-    <DesignReportPanel organizationId={requestedOrganizationId} projectId={project.id} layerOptions={BUILT_IN_DESIGN_LAYERS.map((layer) => ({ id: layer.id, name: layer.name }))} />
+    <DesignReportPanel organizationId={requestedOrganizationId} projectId={project.id} initialShares={initialShares} layerOptions={BUILT_IN_DESIGN_LAYERS.map((layer) => ({ id: layer.id, name: layer.name }))} />
     <Card><CardHeader><CardTitle className="text-lg">Version history</CardTitle><CardDescription>Create immutable design checkpoints and restore earlier project geometry without overwriting history.</CardDescription></CardHeader><CardContent><DesignVersionHistory organizationId={requestedOrganizationId} projectId={project.id} workingRevision={project.workingRevision} versions={versions} /></CardContent></Card>
   </div>;
 }
