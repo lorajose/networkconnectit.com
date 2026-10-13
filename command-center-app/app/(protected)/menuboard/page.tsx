@@ -96,9 +96,10 @@ export default async function MenuBoardPage() {
                   generateMenuBoardPairingCodeAction.bind(null, screen.id);
                 const revokeAction =
                   revokeMenuBoardPlayerAction.bind(null, screen.id);
-                const canRevoke =
+                const isPaired =
                   Boolean(screen.playerTokenIssuedAt) &&
                   !screen.playerTokenRevokedAt;
+                const canRevoke = isPaired;
 
                 return (
                   <div
@@ -112,9 +113,16 @@ export default async function MenuBoardPage() {
                           {screen.organization.name} — {screen.site.name}
                         </p>
                       </div>
-                      <span className="rounded-full border border-border px-3 py-1 text-xs font-medium">
-                        {formatEnumLabel(displayStatus)}
-                      </span>
+                      <div className="flex flex-wrap items-center justify-end gap-2">
+                        {isPaired ? (
+                          <span className="rounded-full bg-sky-500/10 px-2 py-1 text-[11px] font-medium text-sky-300">
+                            Paired
+                          </span>
+                        ) : null}
+                        <span className="rounded-full border border-border px-3 py-1 text-xs font-medium">
+                          {formatEnumLabel(displayStatus)}
+                        </span>
+                      </div>
                     </div>
 
                     <div className="mt-4 grid grid-cols-2 gap-3 text-sm">
