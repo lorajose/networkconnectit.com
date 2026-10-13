@@ -34,7 +34,18 @@ export default function SharedDesignPage({ params }: { params: { token: string }
   const status = document.getElementById('share-status');
   const content = document.getElementById('share-content');
   const esc = (v) => String(v ?? '').replace(/[&<>\"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','\"':'&quot;',"'":'&#39;'}[c]));
+  let currentPassword = '';
+  async function downloadShare() {
+    const response = await fetch('/api/public/design-shares/' + token, {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password:currentPassword || undefined,event:'DOWNLOAD'})});
+    const body = await response.json().catch(() => ({}));
+    if (!response.ok || !body.ok) { status.textContent = 'Unable to download this share.'; return; }
+    const blob = new Blob([JSON.stringify(body.share, null, 2)], {type:'application/json'});
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement('a'); link.href = url; link.download = 'networkconnectit-shared-design.json'; link.click(); URL.revokeObjectURL(url);
+    status.textContent = 'Shared design downloaded.';
+  }
   async function load(password) {
+    currentPassword = password || '';
     status.textContent = 'Loading shared design…';
     content.classList.add('hidden');
     const response = await fetch('/api/public/design-shares/' + token, password ? {method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({password,event:'VIEW'})} : {cache:'no-store'});
@@ -48,8 +59,10 @@ export default function SharedDesignPage({ params }: { params: { token: string }
     content.innerHTML = '<div><h2 class="text-lg font-semibold">Design package</h2><p class="mt-1 text-xs text-slate-400">Report version ' + esc(share.reportVersion) + '</p></div>' +
       (floors ? '<section><h3 class="font-medium">Floor plans / coverage</h3><ul class="mt-2 space-y-1 text-sm text-slate-300">' + floors + '</ul></section>' : '') +
       (bom ? '<section><h3 class="font-medium">Bill of materials</h3><ul class="mt-2 space-y-1 text-sm text-slate-300">' + bom + '</ul></section>' : '') +
-      (cables ? '<section><h3 class="font-medium">Cable schedule</h3><ul class="mt-2 space-y-1 text-sm text-slate-300">' + cables + '</ul></section>' : '');
+      (cables ? '<section><h3 class="font-medium">Cable schedule</h3><ul class="mt-2 space-y-1 text-sm text-slate-300">' + cables + '</ul></section>' : '') +
+      '<button id="share-download" type="button" class="rounded-lg border border-slate-700 px-4 py-2 text-sm font-semibold">Download shared package</button>';
     content.classList.remove('hidden');
+    document.getElementById('share-download')?.addEventListener('click', downloadShare);
   }
   form.addEventListener('submit', e => { e.preventDefault(); load(input.value); });
   load('');
