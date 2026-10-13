@@ -1,8 +1,10 @@
+import Link from "next/link";
 import { Monitor, WifiOff } from "lucide-react";
 
 import { MenuBoardScreenForm } from "@/components/menuboard/screen-form";
 import { ScreenPairingControl } from "@/components/menuboard/screen-pairing-control";
 import { PageHeader } from "@/components/page-header";
+import { Button } from "@/components/ui/button";
 import {
   Card,
   CardContent,
@@ -50,6 +52,11 @@ export default async function MenuBoardPage() {
           { label: "Command Center", href: "/dashboard" },
           { label: "MenuBoard" }
         ]}
+        actions={
+          <Button asChild>
+            <Link href="/menuboard/menus">Manage menus & prices</Link>
+          </Button>
+        }
       />
 
       {canWrite ? (
