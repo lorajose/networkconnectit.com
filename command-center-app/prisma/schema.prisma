@@ -603,6 +603,7 @@ model MenuPublish {
   organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menu              Menu         @relation(fields: [menuId], references: [id], onDelete: Cascade)
   publishedBy       User         @relation("MenuPublishPublishedBy", fields: [publishedByUserId], references: [id], onDelete: Restrict)
+  activeAssignments MenuScreenAssignment[] @relation("MenuScreenActivePublish")
   version           Int
   payload           Json
   payloadHash       String       @db.VarChar(64)
@@ -614,17 +615,20 @@ model MenuPublish {
 }
 
 model MenuScreenAssignment {
-  id             String          @id @default(cuid()) @db.VarChar(191)
-  organizationId String          @db.VarChar(191)
-  screenId       String          @unique @db.VarChar(191)
-  menuId         String          @db.VarChar(191)
-  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
-  screen         MenuBoardScreen @relation(fields: [screenId], references: [id], onDelete: Cascade)
-  menu           Menu            @relation(fields: [menuId], references: [id], onDelete: Cascade)
-  createdAt      DateTime        @default(now())
-  updatedAt      DateTime        @updatedAt
+  id              String          @id @default(cuid()) @db.VarChar(191)
+  organizationId  String          @db.VarChar(191)
+  screenId        String          @unique @db.VarChar(191)
+  menuId          String          @db.VarChar(191)
+  activePublishId String?         @db.VarChar(191)
+  organization    Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screen          MenuBoardScreen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  menu            Menu            @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  activePublish   MenuPublish?    @relation("MenuScreenActivePublish", fields: [activePublishId], references: [id], onDelete: SetNull)
+  createdAt       DateTime        @default(now())
+  updatedAt       DateTime        @updatedAt
 
   @@index([organizationId, menuId])
+  @@index([activePublishId])
 }
 
 model MenuPlayerHeartbeat {
