@@ -101,3 +101,17 @@ Reasons:
 - DXF/GIS import expansion under this ticket.
 - Long-term storage or resale of third-party basemap imagery.
 - Treating provider imagery as authoritative measurement geometry.
+
+
+## Implementation checkpoint — 2026-10-13
+NCI-069A has started on the existing stacked branch `nci-069-aerial-site-background`.
+
+Implemented:
+- provider-neutral `AerialSiteProvider` contract;
+- ArcGIS forward-geocode adapter using the current `findAddressCandidates` endpoint;
+- server-owned bearer-token handling with no token in request URLs;
+- fail-closed address and coordinate validation;
+- explicit `arcgis/imagery` basemap descriptor with mandatory attribution metadata;
+- regression coverage for token handling, provider-error redaction, coordinate validation and attribution.
+
+No real ArcGIS credential is committed or required by tests. No DB migration, production configuration, merge or deployment has been performed. Next implementation slice after exact-head CI is green: tenant-scoped site-location persistence and confirmation flow.
