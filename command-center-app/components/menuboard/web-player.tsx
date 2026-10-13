@@ -3,9 +3,10 @@
 import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "react";
 
 import { DeliMenuTemplate } from "@/components/menuboard/deli-menu-template";
-import type {
-  MenuBoardPlayerContent,
-  MenuBoardPublishPayload
+import {
+  isMenuBoardPlayerContent,
+  type MenuBoardPlayerContent,
+  type MenuBoardPublishPayload
 } from "@/lib/menuboard/player-types";
 
 const TOKEN_KEY = "networkconnectit.menuboard.playerToken";
@@ -24,7 +25,12 @@ function apiPath(path: string) {
 function readCachedContent(): MenuBoardPlayerContent | null {
   try {
     const raw = window.localStorage.getItem(CACHE_KEY);
-    return raw ? (JSON.parse(raw) as MenuBoardPlayerContent) : null;
+    if (!raw) {
+      return null;
+    }
+
+    const parsed: unknown = JSON.parse(raw);
+    return isMenuBoardPlayerContent(parsed) ? parsed : null;
   } catch {
     return null;
   }
@@ -138,7 +144,12 @@ export function MenuBoardWebPlayer() {
         throw new Error("Player content request failed.");
       }
 
-      const next = (await response.json()) as MenuBoardPlayerContent;
+      const responseBody: unknown = await response.json();
+      if (!isMenuBoardPlayerContent(responseBody)) {
+        throw new Error("Player content payload is invalid.");
+      }
+
+      const next = responseBody;
       setContent(next);
 
       if (next.activePublish) {
