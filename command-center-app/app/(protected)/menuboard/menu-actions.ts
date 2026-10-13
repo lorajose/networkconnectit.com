@@ -13,7 +13,9 @@ import {
   duplicateMenuItem,
   moveMenuItem,
   setMenuItemAvailability,
-  updateMenuItemPrice
+  updateMenuItemPrice,
+  updateMenuPresentation,
+  assignMenuToScreens
 } from "@/lib/menuboard/menus";
 import { parsePriceToCents } from "@/lib/menuboard/money";
 
@@ -34,6 +36,13 @@ const itemSchema = z.object({
   description: z.string().trim().max(2000).optional(),
   imageUrl: z.string().trim().url().or(z.literal("")).optional(),
   price: z.string().trim().min(1, "Price is required.")
+});
+
+const presentationSchema = z.object({
+  displayName: z.string().trim().max(191).optional(),
+  logoUrl: z.string().trim().url().or(z.literal("")).optional(),
+  promotionTitle: z.string().trim().max(191).optional(),
+  promotionText: z.string().trim().max(512).optional()
 });
 
 function errorState(
@@ -77,6 +86,70 @@ export async function createMenuAction(
   } catch (error) {
     return errorState(
       error instanceof Error ? error.message : "Could not create the menu."
+    );
+  }
+}
+
+export async function updateMenuPresentationAction(
+  menuId: string,
+  _prevState: ManagementFormState,
+  formData: FormData
+): Promise<ManagementFormState> {
+  const user = requireInventoryWriteAccess(await requireUser());
+  const parsed = presentationSchema.safeParse({
+    displayName: formData.get("displayName") || "",
+    logoUrl: formData.get("logoUrl") || "",
+    promotionTitle: formData.get("promotionTitle") || "",
+    promotionText: formData.get("promotionText") || ""
+  });
+
+  if (!parsed.success) {
+    return errorState(
+      "Review the presentation fields and try again.",
+      parsed.error.flatten().fieldErrors
+    );
+  }
+
+  try {
+    await updateMenuPresentation(user, menuId, parsed.data);
+    revalidatePath(`/menuboard/menus/${menuId}`);
+    return {
+      status: "idle",
+      message: "Menu presentation updated."
+    };
+  } catch (error) {
+    return errorState(
+      error instanceof Error
+        ? error.message
+        : "Could not update the menu presentation."
+    );
+  }
+}
+
+export async function assignMenuToScreensAction(
+  menuId: string,
+  _prevState: ManagementFormState,
+  formData: FormData
+): Promise<ManagementFormState> {
+  const user = requireInventoryWriteAccess(await requireUser());
+  const screenIds = formData
+    .getAll("screenIds")
+    .map((value) => String(value))
+    .filter(Boolean);
+
+  try {
+    await assignMenuToScreens(user, menuId, screenIds);
+    revalidatePath("/menuboard");
+    revalidatePath(`/menuboard/menus/${menuId}`);
+    return {
+      status: "idle",
+      message: "Screen assignments updated."
+    };
+  } catch (error) {
+    return errorState(
+      error instanceof Error
+        ? error.message
+        : "Could not update screen assignments."
     );
   }
 }
