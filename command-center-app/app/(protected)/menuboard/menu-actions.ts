@@ -18,6 +18,10 @@ import {
   assignMenuToScreens
 } from "@/lib/menuboard/menus";
 import { parsePriceToCents } from "@/lib/menuboard/money";
+import {
+  publishMenuBoardMenu,
+  rollbackMenuBoardMenu
+} from "@/lib/menuboard/publish";
 
 const menuSchema = z.object({
   organizationId: z.string().trim().min(1, "Select an organization."),
@@ -150,6 +154,51 @@ export async function assignMenuToScreensAction(
       error instanceof Error
         ? error.message
         : "Could not update screen assignments."
+    );
+  }
+}
+
+export async function publishMenuBoardMenuAction(
+  menuId: string,
+  _prevState: ManagementFormState,
+  _formData: FormData
+): Promise<ManagementFormState> {
+  const user = requireInventoryWriteAccess(await requireUser());
+
+  try {
+    const publish = await publishMenuBoardMenu(user, menuId);
+    revalidatePath("/menuboard");
+    revalidatePath(`/menuboard/menus/${menuId}`);
+    return {
+      status: "idle",
+      message: `Published version ${publish.version}.`
+    };
+  } catch (error) {
+    return errorState(
+      error instanceof Error ? error.message : "Could not publish the menu."
+    );
+  }
+}
+
+export async function rollbackMenuBoardMenuAction(
+  menuId: string,
+  version: number,
+  _prevState: ManagementFormState,
+  _formData: FormData
+): Promise<ManagementFormState> {
+  const user = requireInventoryWriteAccess(await requireUser());
+
+  try {
+    const publish = await rollbackMenuBoardMenu(user, menuId, version);
+    revalidatePath("/menuboard");
+    revalidatePath(`/menuboard/menus/${menuId}`);
+    return {
+      status: "idle",
+      message: `Rolled back to version ${publish.version}.`
+    };
+  } catch (error) {
+    return errorState(
+      error instanceof Error ? error.message : "Could not roll back the menu."
     );
   }
 }
