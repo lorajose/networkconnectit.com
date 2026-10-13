@@ -18,6 +18,7 @@ function repositoryFixture(): DesignShareRepository & { records: DesignShareReco
     audits,
     async create(record) { records.push(record); },
     async findByTokenHash(hash) { return records.find((record) => record.tokenHash === hash) ?? null; },
+    async listForProject(organizationId, projectId) { return records.filter((record) => record.organizationId === organizationId && record.projectId === projectId); },
     async revoke(shareId, organizationId, revokedAt) {
       const record = records.find((item) => item.id === shareId && item.organizationId === organizationId);
       if (!record) return false;
@@ -196,4 +197,14 @@ test("NCI-066 frozen snapshot integrity is enforced", async () => {
 
   assert.equal(repository.audits.at(-1)?.event, "DENIED");
   assert.equal(repository.audits.at(-1)?.detail, "snapshot_integrity");
+});
+
+
+test("NCI-066 project share listing stays tenant scoped", async () => {
+  const repository = repositoryFixture();
+  const created = await createDesignShare({ repository, report: reportFixture() });
+  const tenantShares = await repository.listForProject("tenant-organization-id", "tenant-project-id");
+  const wrongTenantShares = await repository.listForProject("other-organization", "tenant-project-id");
+  assert.equal(tenantShares.some((share) => share.id === created.shareId), true);
+  assert.equal(wrongTenantShares.length, 0);
 });
