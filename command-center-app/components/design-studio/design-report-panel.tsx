@@ -16,14 +16,17 @@ const SECTION_LABELS: Record<DesignReportSection, string> = {
 };
 
 type ActiveShare = { id: string; url: string };
+type ManagedShare = { id: string; createdAt: string; expiresAt: string | null; revokedAt: string | null; passwordProtected: boolean };
 
 export function DesignReportPanel({
   organizationId,
   projectId,
+  initialShares = [],
   layerOptions = [],
 }: {
   organizationId: string;
   projectId: string;
+  initialShares?: ManagedShare[];
   layerOptions?: Array<{ id: string; name: string }>;
 }) {
   const [clientSafe, setClientSafe] = useState(true);
@@ -33,6 +36,7 @@ export function DesignReportPanel({
   const [sharePassword, setSharePassword] = useState("");
   const [shareExpiresAt, setShareExpiresAt] = useState("");
   const [activeShare, setActiveShare] = useState<ActiveShare | null>(null);
+  const [managedShares, setManagedShares] = useState<ManagedShare[]>(initialShares);
   const [shareMessage, setShareMessage] = useState("");
   const [isSharing, startSharing] = useTransition();
   const profile = useMemo<DesignReportProfile>(() => ({ ...base, sections: clientSafe ? sections.filter((section) => section !== "PRICING_SUMMARY") : sections, visibleLayerIds, includePricing: !clientSafe && sections.includes("PRICING_SUMMARY"), clientSafe }), [base, clientSafe, sections, visibleLayerIds]);
@@ -69,6 +73,7 @@ export function DesignReportPanel({
           expiresAt: shareExpiresAt ? new Date(shareExpiresAt).toISOString() : null,
         });
         setActiveShare({ id: result.shareId, url: result.url });
+        setManagedShares((current) => [{ id: result.shareId, createdAt: new Date().toISOString(), expiresAt: result.expiresAt ? new Date(result.expiresAt).toISOString() : null, revokedAt: null, passwordProtected: Boolean(sharePassword) }, ...current]);
         setShareMessage("Client share created. Copy this link now; the raw token is not stored for later recovery.");
       } catch (error) {
         setShareMessage(error instanceof Error ? error.message : "Unable to create client share.");
@@ -76,12 +81,13 @@ export function DesignReportPanel({
     });
   }
 
-  function revokeShare() {
-    if (!activeShare) return;
+  function revokeShare(shareId = activeShare?.id) {
+    if (!shareId) return;
     startSharing(async () => {
       try {
-        await revokeDesignShareAction({ organizationId, projectId, shareId: activeShare.id });
-        setActiveShare(null);
+        await revokeDesignShareAction({ organizationId, projectId, shareId });
+        if (activeShare?.id === shareId) setActiveShare(null);
+        setManagedShares((current) => current.map((share) => share.id === shareId ? { ...share, revokedAt: new Date().toISOString() } : share));
         setShareMessage("Client share revoked immediately.");
       } catch (error) {
         setShareMessage(error instanceof Error ? error.message : "Unable to revoke client share.");
@@ -113,6 +119,7 @@ export function DesignReportPanel({
           </div>
           {activeShare ? <div className="space-y-2 rounded-lg border bg-muted/20 p-3"><p className="break-all text-xs">{activeShare.url}</p><div className="flex flex-wrap gap-2"><button type="button" className="rounded-lg border px-3 py-2 text-sm font-medium" onClick={copyShareLink} disabled={isSharing}>Copy link</button><button type="button" className="rounded-lg border px-3 py-2 text-sm font-medium" onClick={revokeShare} disabled={isSharing}>{isSharing ? "Revoking…" : "Revoke immediately"}</button></div></div> : <button type="button" className="rounded-lg bg-primary px-4 py-2 text-sm font-medium text-primary-foreground disabled:opacity-50" onClick={createShare} disabled={isSharing || !clientSafe}>{isSharing ? "Creating secure share…" : "Create client share"}</button>}
           {shareMessage ? <p className="text-xs text-muted-foreground" role="status">{shareMessage}</p> : null}
+          {managedShares.length ? <div className="space-y-2 border-t pt-3"><p className="text-sm font-medium">Existing shares</p>{managedShares.map((share) => { const expired = Boolean(share.expiresAt && new Date(share.expiresAt).getTime() <= Date.now()); const inactive = Boolean(share.revokedAt) || expired; return <div key={share.id} className="flex flex-wrap items-center justify-between gap-2 rounded-lg border bg-muted/20 p-3 text-xs"><div><p className="font-medium text-foreground">{share.id}</p><p className="mt-1 text-muted-foreground">Created {new Date(share.createdAt).toLocaleString()} · {share.passwordProtected ? "Password protected" : "No password"}{share.expiresAt ? ` · Expires ${new Date(share.expiresAt).toLocaleString()}` : ""} · {share.revokedAt ? "Revoked" : expired ? "Expired" : "Active"}</p></div>{inactive ? null : <button type="button" className="rounded-lg border px-3 py-2 text-sm font-medium" onClick={() => revokeShare(share.id)} disabled={isSharing}>Revoke</button>}</div>; })}</div> : null}
         </div>
       </CardContent>
     </Card>
