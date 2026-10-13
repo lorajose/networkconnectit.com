@@ -539,6 +539,10 @@ model Menu {
   organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   site           Site                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
   name           String                 @db.VarChar(191)
+  displayName    String?                @db.VarChar(191)
+  logoUrl        String?                @db.VarChar(512)
+  promotionTitle String?                @db.VarChar(191)
+  promotionText  String?                @db.VarChar(512)
   currency       String                 @default("USD") @db.VarChar(3)
   templateKey    String                 @default("DELI_LANDSCAPE_V1") @db.VarChar(64)
   sections       MenuSection[]
