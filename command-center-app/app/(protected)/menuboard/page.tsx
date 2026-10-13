@@ -85,6 +85,13 @@ export default async function MenuBoardPage() {
           ) : (
             <div className="grid gap-4 xl:grid-cols-2">
               {screens.map((screen) => {
+                const staleHeartbeat =
+                  screen.status === "ONLINE" &&
+                  (!screen.lastSeenAt ||
+                    Date.now() - screen.lastSeenAt.getTime() > 120_000);
+                const displayStatus = staleHeartbeat
+                  ? "OFFLINE"
+                  : screen.status;
                 const generateAction =
                   generateMenuBoardPairingCodeAction.bind(null, screen.id);
                 const revokeAction =
@@ -106,7 +113,7 @@ export default async function MenuBoardPage() {
                         </p>
                       </div>
                       <span className="rounded-full border border-border px-3 py-1 text-xs font-medium">
-                        {formatEnumLabel(screen.status)}
+                        {formatEnumLabel(displayStatus)}
                       </span>
                     </div>
 
