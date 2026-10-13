@@ -12,6 +12,7 @@ import {
   MenuPresentationForm,
   MenuScreenAssignmentForm
 } from "@/components/menuboard/menu-presentation-controls";
+import { MenuPublishControls } from "@/components/menuboard/publish-controls";
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -27,6 +28,7 @@ import {
   getMenuById
 } from "@/lib/menuboard/menus";
 import { formatPriceFromCents } from "@/lib/menuboard/money";
+import { listMenuBoardPublishes } from "@/lib/menuboard/publish";
 import { canWriteTenantInventory, routeAccess } from "@/lib/rbac";
 
 import {
@@ -37,7 +39,9 @@ import {
   setMenuItemAvailabilityAction,
   updateMenuItemPriceAction,
   updateMenuPresentationAction,
-  assignMenuToScreensAction
+  assignMenuToScreensAction,
+  publishMenuBoardMenuAction,
+  rollbackMenuBoardMenuAction
 } from "../../menu-actions";
 
 type MenuEditorPageProps = {
@@ -57,11 +61,23 @@ export default async function MenuEditorPage({
   }
 
   const canWrite = canWriteTenantInventory(user.role);
-  const screens = await getAssignableScreens(user, menu.id);
+  const [screens, publishes] = await Promise.all([
+    getAssignableScreens(user, menu.id),
+    listMenuBoardPublishes(user, menu.id)
+  ]);
   const sectionAction = createMenuSectionAction.bind(null, menu.id);
   const itemAction = createMenuItemAction.bind(null, menu.id);
   const presentationAction = updateMenuPresentationAction.bind(null, menu.id);
   const assignmentAction = assignMenuToScreensAction.bind(null, menu.id);
+  const publishAction = publishMenuBoardMenuAction.bind(null, menu.id);
+  const rollbackActions = publishes.map((publish) => ({
+    version: publish.version,
+    action: rollbackMenuBoardMenuAction.bind(
+      null,
+      menu.id,
+      publish.version
+    )
+  }));
 
   return (
     <div className="space-y-6">
@@ -116,6 +132,14 @@ export default async function MenuEditorPage({
             )}
           />
         </div>
+      ) : null}
+
+      {canWrite ? (
+        <MenuPublishControls
+          publishAction={publishAction}
+          publishes={publishes}
+          rollbackActions={rollbackActions}
+        />
       ) : null}
 
       {canWrite ? (
