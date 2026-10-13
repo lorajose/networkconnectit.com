@@ -28,10 +28,6 @@ export type PairingActionState = {
   expiresAt?: string;
 };
 
-export const initialPairingActionState: PairingActionState = {
-  status: "idle"
-};
-
 export async function createMenuBoardScreenAction(
   _prevState: ManagementFormState,
   formData: FormData
