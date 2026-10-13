@@ -2,6 +2,7 @@ import type { MenuBoardScreenOrientation } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import {
+  getScopedOrganizationWhere,
   getScopedRecordWhere,
   resolveWritableOrganizationId,
   type TenantUser
@@ -26,7 +27,7 @@ export type CreateMenuBoardScreenInput = {
 
 export async function getMenuBoardScreenOptions(user: TenantUser) {
   const organizations = await prisma.organization.findMany({
-    where: getScopedRecordWhere(user),
+    where: getScopedOrganizationWhere(user),
     select: {
       id: true,
       name: true,
