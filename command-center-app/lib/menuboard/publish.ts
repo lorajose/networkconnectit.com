@@ -7,29 +7,7 @@ import {
   type TenantUser
 } from "@/lib/management/tenant-policy";
 import { authenticateMenuBoardPlayer } from "@/lib/menuboard/screens";
-
-export type MenuBoardPublishPayload = {
-  schemaVersion: 1;
-  templateKey: string;
-  menuId: string;
-  menuName: string;
-  storeDisplayName: string | null;
-  logoUrl: string | null;
-  promotionTitle: string | null;
-  promotionText: string | null;
-  currency: string;
-  sections: Array<{
-    id: string;
-    name: string;
-    items: Array<{
-      id: string;
-      name: string;
-      description: string | null;
-      priceCents: number;
-      imageUrl: string | null;
-    }>;
-  }>;
-};
+import type { MenuBoardPublishPayload } from "@/lib/menuboard/player-types";
 
 function hashPayload(payload: MenuBoardPublishPayload) {
   return createHash("sha256")
