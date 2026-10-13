@@ -69,7 +69,26 @@ export async function listMenuBoardScreens(user: TenantUser) {
               id: true,
               name: true
             }
+          },
+          activePublish: {
+            select: {
+              id: true,
+              version: true,
+              payloadHash: true,
+              publishedAt: true
+            }
           }
+        }
+      },
+      heartbeats: {
+        orderBy: {
+          receivedAt: "desc"
+        },
+        take: 1,
+        select: {
+          playerVersion: true,
+          publishVersion: true,
+          receivedAt: true
         }
       }
     },
