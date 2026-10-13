@@ -41,8 +41,9 @@ function writeCachedContent(content: MenuBoardPlayerContent) {
 function clearPlayerIdentity() {
   try {
     window.localStorage.removeItem(TOKEN_KEY);
+    window.localStorage.removeItem(CACHE_KEY);
   } catch {
-    // Ignore storage failures; caller also clears in-memory token state.
+    // Ignore storage failures; caller also clears in-memory identity/content state.
   }
 }
 
@@ -126,6 +127,8 @@ export function MenuBoardWebPlayer() {
       if (response.status === 401) {
         clearPlayerIdentity();
         setToken("");
+        setContent(null);
+        latestVersionRef.current = null;
         setStatus("invalid");
         setMessage("Player credential is invalid or revoked. Pair this screen again.");
         return;
@@ -238,6 +241,9 @@ export function MenuBoardWebPlayer() {
         return;
       }
 
+      window.localStorage.removeItem(CACHE_KEY);
+      setContent(null);
+      latestVersionRef.current = null;
       window.localStorage.setItem(TOKEN_KEY, body.playerToken);
       setToken(body.playerToken);
       setPairingCode("");
