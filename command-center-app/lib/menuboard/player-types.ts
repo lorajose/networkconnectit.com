@@ -89,8 +89,9 @@ export function isMenuBoardPublishPayload(
         typeof item.id === "string" &&
         typeof item.name === "string" &&
         isNullableString(item.description) &&
+        typeof item.priceCents === "number" &&
         Number.isSafeInteger(item.priceCents) &&
-        (item.priceCents as number) >= 0 &&
+        item.priceCents >= 0 &&
         isNullableString(item.imageUrl)
     );
   });
@@ -109,7 +110,9 @@ export function isMenuBoardPlayerContent(
     typeof screen.name !== "string" ||
     (screen.orientation !== "LANDSCAPE" &&
       screen.orientation !== "PORTRAIT") ||
+    typeof screen.widthPx !== "number" ||
     !Number.isInteger(screen.widthPx) ||
+    typeof screen.heightPx !== "number" ||
     !Number.isInteger(screen.heightPx) ||
     typeof screen.status !== "string" ||
     !isNullableString(value.menuId)
@@ -127,8 +130,9 @@ export function isMenuBoardPlayerContent(
 
   return (
     typeof value.activePublish.id === "string" &&
+    typeof value.activePublish.version === "number" &&
     Number.isInteger(value.activePublish.version) &&
-    (value.activePublish.version as number) >= 1 &&
+    value.activePublish.version >= 1 &&
     typeof value.activePublish.payloadHash === "string" &&
     /^[a-f0-9]{64}$/.test(value.activePublish.payloadHash) &&
     typeof value.activePublish.publishedAt === "string" &&
