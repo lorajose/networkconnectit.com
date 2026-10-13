@@ -17,7 +17,7 @@ test("NCI-069 tenant-scoped location confirmation refuses cross-tenant sites", a
   prisma.site.update = (async () => {
     updateCalled = true;
     throw new Error("must not update");
-  }) as typeof prisma.site.update;
+  }) as unknown as typeof prisma.site.update;
 
   try {
     const result = await confirmAerialSiteLocation({
@@ -47,7 +47,7 @@ test("NCI-069 confirmed location persists WGS84 coordinates for the scoped site"
   prisma.site.update = (async (args: unknown) => {
     capturedData = (args as { data?: unknown }).data;
     return { id: "site-1", organizationId: "tenant-1", latitude: 40.819, longitude: -73.917 };
-  }) as typeof prisma.site.update;
+  }) as unknown as typeof prisma.site.update;
 
   try {
     const result = await confirmAerialSiteLocation({
