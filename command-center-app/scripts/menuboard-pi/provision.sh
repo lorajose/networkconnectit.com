@@ -46,6 +46,7 @@ fi
 
 install -d -m 0755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${TARGET_HOME}/bin"
 install -d -m 0755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${TARGET_HOME}/.config/labwc"
+install -d -m 0755 -o "${TARGET_USER}" -g "${TARGET_USER}" "${TARGET_HOME}/Desktop"
 
 cat > "${TARGET_HOME}/bin/networkconnectit-menuboard-kiosk.sh" <<EOF
 #!/usr/bin/env bash
