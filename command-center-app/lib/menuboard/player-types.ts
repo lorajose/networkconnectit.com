@@ -24,8 +24,6 @@ export type MenuBoardPublishPayload = {
 export type MenuBoardPlayerContent = {
   screen: {
     id: string;
-    organizationId: string;
-    siteId: string;
     name: string;
     orientation: "LANDSCAPE" | "PORTRAIT";
     widthPx: number;
@@ -41,3 +39,99 @@ export type MenuBoardPlayerContent = {
     publishedAt: string;
   } | null;
 };
+
+function isRecord(value: unknown): value is Record<string, unknown> {
+  return typeof value === "object" && value !== null && !Array.isArray(value);
+}
+
+function isNullableString(value: unknown) {
+  return value === null || typeof value === "string";
+}
+
+export function isMenuBoardPublishPayload(
+  value: unknown
+): value is MenuBoardPublishPayload {
+  if (!isRecord(value)) {
+    return false;
+  }
+
+  if (
+    value.schemaVersion !== 1 ||
+    typeof value.templateKey !== "string" ||
+    typeof value.menuId !== "string" ||
+    typeof value.menuName !== "string" ||
+    !isNullableString(value.storeDisplayName) ||
+    !isNullableString(value.logoUrl) ||
+    !isNullableString(value.promotionTitle) ||
+    !isNullableString(value.promotionText) ||
+    typeof value.currency !== "string" ||
+    value.currency.length !== 3 ||
+    !Array.isArray(value.sections) ||
+    value.sections.length > 12
+  ) {
+    return false;
+  }
+
+  return value.sections.every((section) => {
+    if (
+      !isRecord(section) ||
+      typeof section.id !== "string" ||
+      typeof section.name !== "string" ||
+      !Array.isArray(section.items) ||
+      section.items.length > 100
+    ) {
+      return false;
+    }
+
+    return section.items.every(
+      (item) =>
+        isRecord(item) &&
+        typeof item.id === "string" &&
+        typeof item.name === "string" &&
+        isNullableString(item.description) &&
+        Number.isSafeInteger(item.priceCents) &&
+        (item.priceCents as number) >= 0 &&
+        isNullableString(item.imageUrl)
+    );
+  });
+}
+
+export function isMenuBoardPlayerContent(
+  value: unknown
+): value is MenuBoardPlayerContent {
+  if (!isRecord(value) || !isRecord(value.screen)) {
+    return false;
+  }
+
+  const { screen } = value;
+  if (
+    typeof screen.id !== "string" ||
+    typeof screen.name !== "string" ||
+    (screen.orientation !== "LANDSCAPE" &&
+      screen.orientation !== "PORTRAIT") ||
+    !Number.isInteger(screen.widthPx) ||
+    !Number.isInteger(screen.heightPx) ||
+    typeof screen.status !== "string" ||
+    !isNullableString(value.menuId)
+  ) {
+    return false;
+  }
+
+  if (value.activePublish === null) {
+    return true;
+  }
+
+  if (!isRecord(value.activePublish)) {
+    return false;
+  }
+
+  return (
+    typeof value.activePublish.id === "string" &&
+    Number.isInteger(value.activePublish.version) &&
+    (value.activePublish.version as number) >= 1 &&
+    typeof value.activePublish.payloadHash === "string" &&
+    /^[a-f0-9]{64}$/.test(value.activePublish.payloadHash) &&
+    typeof value.activePublish.publishedAt === "string" &&
+    isMenuBoardPublishPayload(value.activePublish.payload)
+  );
+}
