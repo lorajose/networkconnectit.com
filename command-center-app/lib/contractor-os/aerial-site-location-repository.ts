@@ -1,5 +1,5 @@
-import { prisma } from "@/lib/db";
-import type { AppRole } from "@/lib/rbac";
+import { prisma } from "../db";
+import type { AppRole } from "../rbac";
 
 type Actor = {
   role: AppRole;
