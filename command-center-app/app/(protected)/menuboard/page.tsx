@@ -18,6 +18,10 @@ import {
   getMenuBoardScreenOptions,
   listMenuBoardScreens
 } from "@/lib/menuboard/screens";
+import {
+  getMenuBoardConnectivityState,
+  isDisplayedPublishCurrent
+} from "@/lib/menuboard/health";
 import { formatDate, formatEnumLabel } from "@/lib/utils";
 
 import {
@@ -85,20 +89,29 @@ export default async function MenuBoardPage() {
           ) : (
             <div className="grid gap-4 xl:grid-cols-2">
               {screens.map((screen) => {
-                const staleHeartbeat =
-                  screen.status === "ONLINE" &&
-                  (!screen.lastSeenAt ||
-                    Date.now() - screen.lastSeenAt.getTime() > 120_000);
-                const displayStatus = staleHeartbeat
-                  ? "OFFLINE"
-                  : screen.status;
+                const isPaired =
+                  Boolean(screen.playerTokenIssuedAt) &&
+                  !screen.playerTokenRevokedAt;
+                const connectivityState = getMenuBoardConnectivityState({
+                  paired: isPaired,
+                  revoked: Boolean(screen.playerTokenRevokedAt),
+                  lastSeenAt: screen.lastSeenAt
+                });
+                const latestHeartbeat = screen.heartbeats[0] ?? null;
+                const expectedPublishVersion =
+                  screen.assignment?.activePublish?.version ?? null;
+                const displayedPublishVersion =
+                  latestHeartbeat?.publishVersion ??
+                  screen.displayedPublishVersion ??
+                  null;
+                const isCurrent = isDisplayedPublishCurrent(
+                  displayedPublishVersion,
+                  expectedPublishVersion
+                );
                 const generateAction =
                   generateMenuBoardPairingCodeAction.bind(null, screen.id);
                 const revokeAction =
                   revokeMenuBoardPlayerAction.bind(null, screen.id);
-                const isPaired =
-                  Boolean(screen.playerTokenIssuedAt) &&
-                  !screen.playerTokenRevokedAt;
                 const canRevoke = isPaired;
 
                 return (
@@ -120,7 +133,7 @@ export default async function MenuBoardPage() {
                           </span>
                         ) : null}
                         <span className="rounded-full border border-border px-3 py-1 text-xs font-medium">
-                          {formatEnumLabel(displayStatus)}
+                          {formatEnumLabel(connectivityState)}
                         </span>
                       </div>
                     </div>
@@ -147,15 +160,63 @@ export default async function MenuBoardPage() {
                       </div>
                     </div>
 
-                    <div className="mt-4 rounded-xl bg-muted/30 p-3 text-sm text-muted-foreground">
+                    <div className="mt-4 space-y-3 rounded-xl bg-muted/30 p-3 text-sm text-muted-foreground">
                       {screen.assignment?.menu ? (
-                        <>Assigned menu: {screen.assignment.menu.name}</>
+                        <div className="flex flex-wrap items-center justify-between gap-2">
+                          <span>Assigned menu: {screen.assignment.menu.name}</span>
+                          {expectedPublishVersion !== null ? (
+                            <span
+                              className={
+                                isCurrent
+                                  ? "rounded-full bg-emerald-500/10 px-2 py-1 text-xs text-emerald-300"
+                                  : "rounded-full bg-amber-500/10 px-2 py-1 text-xs text-amber-300"
+                              }
+                            >
+                              {isCurrent ? "Content current" : "Update pending"}
+                            </span>
+                          ) : (
+                            <span className="rounded-full bg-zinc-500/10 px-2 py-1 text-xs text-zinc-300">
+                              Not published
+                            </span>
+                          )}
+                        </div>
                       ) : (
                         <span className="flex items-center gap-2">
                           <WifiOff className="h-4 w-4" />
                           No menu assigned yet
                         </span>
                       )}
+
+                      <div className="grid gap-2 text-xs sm:grid-cols-3">
+                        <div>
+                          <p className="uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Expected
+                          </p>
+                          <p className="mt-1 text-foreground">
+                            {expectedPublishVersion !== null
+                              ? `v${expectedPublishVersion}`
+                              : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Displaying
+                          </p>
+                          <p className="mt-1 text-foreground">
+                            {displayedPublishVersion !== null
+                              ? `v${displayedPublishVersion}`
+                              : "—"}
+                          </p>
+                        </div>
+                        <div>
+                          <p className="uppercase tracking-[0.12em] text-muted-foreground/70">
+                            Player
+                          </p>
+                          <p className="mt-1 truncate text-foreground">
+                            {latestHeartbeat?.playerVersion ?? "—"}
+                          </p>
+                        </div>
+                      </div>
                     </div>
 
                     {canWrite ? (
