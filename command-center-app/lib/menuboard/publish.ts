@@ -7,7 +7,10 @@ import {
   type TenantUser
 } from "@/lib/management/tenant-policy";
 import { authenticateMenuBoardPlayer } from "@/lib/menuboard/screens";
-import type { MenuBoardPublishPayload } from "@/lib/menuboard/player-types";
+import {
+  isMenuBoardPublishPayload,
+  type MenuBoardPublishPayload
+} from "@/lib/menuboard/player-types";
 
 function hashPayload(payload: MenuBoardPublishPayload) {
   return createHash("sha256")
@@ -268,9 +271,47 @@ export async function getMenuBoardPlayerContent(rawToken: string) {
     }
   });
 
+  const activePublish = assignment?.activePublish ?? null;
+
+  if (
+    activePublish &&
+    !isMenuBoardPublishPayload(activePublish.payload)
+  ) {
+    return {
+      screen: {
+        id: screen.id,
+        name: screen.name,
+        orientation: screen.orientation,
+        widthPx: screen.widthPx,
+        heightPx: screen.heightPx,
+        status: screen.status
+      },
+      assignment: null,
+      malformedPublish: true
+    };
+  }
+
   return {
-    screen,
-    assignment
+    screen: {
+      id: screen.id,
+      name: screen.name,
+      orientation: screen.orientation,
+      widthPx: screen.widthPx,
+      heightPx: screen.heightPx,
+      status: screen.status
+    },
+    assignment: assignment
+      ? {
+          menuId: assignment.menuId,
+          activePublish: activePublish
+            ? {
+                ...activePublish,
+                payload: activePublish.payload
+              }
+            : null
+        }
+      : null,
+    malformedPublish: false
   };
 }
 
