@@ -1,10 +1,31 @@
 import { NextRequest, NextResponse } from "next/server";
 
 import { consumeMenuBoardPairingCode } from "@/lib/menuboard/screens";
+import { checkMenuBoardPairingRateLimit } from "@/lib/menuboard/pairing-rate-limit";
 
 export const dynamic = "force-dynamic";
 
 export async function POST(request: NextRequest) {
+  const forwardedFor = request.headers.get("x-forwarded-for");
+  const clientKey =
+    forwardedFor?.split(",")[0]?.trim() ||
+    request.headers.get("x-real-ip")?.trim() ||
+    "unknown";
+  const rateLimit = checkMenuBoardPairingRateLimit(clientKey);
+
+  if (!rateLimit.allowed) {
+    return NextResponse.json(
+      { error: "Too many pairing attempts. Try again shortly." },
+      {
+        status: 429,
+        headers: {
+          "Cache-Control": "no-store",
+          "Retry-After": String(rateLimit.retryAfterSeconds)
+        }
+      }
+    );
+  }
+
   let code = "";
 
   try {
