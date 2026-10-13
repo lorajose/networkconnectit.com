@@ -18,6 +18,7 @@
     "lib/rbac.ts",
     "lib/management/tenant-policy.ts",
     "lib/contractor-os/design-floor-plan.ts",
+    "lib/menuboard/security.ts",
     "tests/security/**/*.ts",
     "tests/design-floor-plan.test.ts"
   ]
