@@ -49,6 +49,20 @@ export const mysqlDesignShareRepository: DesignShareRepository = {
     return { ...row, profile: parseProfile(row.profileJson) } satisfies DesignShareRecord;
   },
 
+
+  async listForProject(organizationId, projectId) {
+    const rows = await prisma.$queryRaw<ShareRow[]>(Prisma.sql`
+      SELECT id, organizationId, projectId, reportDigest, tokenHash, passwordHash,
+             CAST(profileJson AS CHAR) AS profileJson,
+             CAST(publicSnapshotJson AS CHAR) AS publicSnapshotJson,
+             expiresAt, revokedAt, createdAt
+      FROM DesignShareLink
+      WHERE organizationId = ${organizationId} AND projectId = ${projectId}
+      ORDER BY createdAt DESC
+    `);
+    return rows.map((row) => ({ ...row, profile: parseProfile(row.profileJson) } satisfies DesignShareRecord));
+  },
+
   async revoke(shareId, organizationId, revokedAt) {
     const changed = await prisma.$executeRaw(Prisma.sql`
       UPDATE DesignShareLink
