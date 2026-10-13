@@ -7,6 +7,11 @@ import {
   MenuSectionForm,
   QuickPriceForm
 } from "@/components/menuboard/menu-editor-forms";
+import { DeliMenuTemplate } from "@/components/menuboard/deli-menu-template";
+import {
+  MenuPresentationForm,
+  MenuScreenAssignmentForm
+} from "@/components/menuboard/menu-presentation-controls";
 import { PageHeader } from "@/components/page-header";
 import {
   Card,
@@ -17,7 +22,10 @@ import {
 } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { requireRoles } from "@/lib/auth";
-import { getMenuById } from "@/lib/menuboard/menus";
+import {
+  getAssignableScreens,
+  getMenuById
+} from "@/lib/menuboard/menus";
 import { formatPriceFromCents } from "@/lib/menuboard/money";
 import { canWriteTenantInventory, routeAccess } from "@/lib/rbac";
 
@@ -27,7 +35,9 @@ import {
   duplicateMenuItemAction,
   moveMenuItemAction,
   setMenuItemAvailabilityAction,
-  updateMenuItemPriceAction
+  updateMenuItemPriceAction,
+  updateMenuPresentationAction,
+  assignMenuToScreensAction
 } from "../../menu-actions";
 
 type MenuEditorPageProps = {
@@ -47,8 +57,11 @@ export default async function MenuEditorPage({
   }
 
   const canWrite = canWriteTenantInventory(user.role);
+  const screens = await getAssignableScreens(user, menu.id);
   const sectionAction = createMenuSectionAction.bind(null, menu.id);
   const itemAction = createMenuItemAction.bind(null, menu.id);
+  const presentationAction = updateMenuPresentationAction.bind(null, menu.id);
+  const assignmentAction = assignMenuToScreensAction.bind(null, menu.id);
 
   return (
     <div className="space-y-6">
@@ -68,6 +81,42 @@ export default async function MenuEditorPage({
           </Button>
         }
       />
+
+      <Card>
+        <CardHeader>
+          <CardTitle>16:9 Deli TV preview</CardTitle>
+          <CardDescription>
+            This component is shared with the player rendering path so the operator preview stays aligned with what the TV receives.
+          </CardDescription>
+        </CardHeader>
+        <CardContent>
+          <DeliMenuTemplate
+            menu={menu}
+            storeFallbackName={menu.site.name}
+          />
+        </CardContent>
+      </Card>
+
+      {canWrite ? (
+        <div className="grid gap-4 xl:grid-cols-2">
+          <MenuPresentationForm
+            action={presentationAction}
+            initialValues={{
+              displayName: menu.displayName,
+              logoUrl: menu.logoUrl,
+              promotionTitle: menu.promotionTitle,
+              promotionText: menu.promotionText
+            }}
+          />
+          <MenuScreenAssignmentForm
+            action={assignmentAction}
+            screens={screens}
+            assignedScreenIds={menu.assignments.map(
+              (assignment) => assignment.screenId
+            )}
+          />
+        </div>
+      ) : null}
 
       {canWrite ? (
         <div className="grid gap-4 lg:grid-cols-2">
