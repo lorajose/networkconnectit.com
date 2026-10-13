@@ -29,6 +29,13 @@ export async function GET(request: NextRequest) {
     );
   }
 
+  if (content.malformedPublish) {
+    return NextResponse.json(
+      { error: "Published menu payload is unavailable." },
+      { status: 503, headers: { "Cache-Control": "no-store" } }
+    );
+  }
+
   return NextResponse.json(
     {
       screen: content.screen,
