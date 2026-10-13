@@ -134,6 +134,19 @@ enum AlertStatus {
   RESOLVED
 }
 
+enum MenuBoardScreenOrientation {
+  LANDSCAPE
+  PORTRAIT
+}
+
+enum MenuBoardScreenStatus {
+  UNPAIRED
+  ONLINE
+  STALE
+  OFFLINE
+  REVOKED
+}
+
 model User {
   id             String         @id @default(cuid()) @db.VarChar(191)
   name           String?        @db.VarChar(191)
@@ -144,6 +157,7 @@ model User {
   organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   createdAlerts  Alert[]        @relation("AlertCreatedBy")
   resolvedAlerts Alert[]        @relation("AlertResolvedBy")
+  menuPublishes  MenuPublish[]  @relation("MenuPublishPublishedBy")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -183,6 +197,13 @@ model Organization {
   networkSegments      NetworkSegment[]
   nvrChannelAssignments NvrChannelAssignment[]
   deviceLinks          DeviceLink[]
+  menuBoardScreens     MenuBoardScreen[]
+  menus                Menu[]
+  menuSections         MenuSection[]
+  menuItems            MenuItem[]
+  menuPublishes        MenuPublish[]
+  menuAssignments      MenuScreenAssignment[]
+  menuHeartbeats       MenuPlayerHeartbeat[]
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 
@@ -215,6 +236,8 @@ model Site {
   networkSegments     NetworkSegment[]
   nvrChannelAssignments NvrChannelAssignment[]
   deviceLinks         DeviceLink[]
+  menuBoardScreens    MenuBoardScreen[]
+  menus               Menu[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -479,3 +502,136 @@ model Alert {
   @@index([severity, status])
   @@index([detectedAt])
 }
+
+model MenuBoardScreen {
+  id                       String                     @id @default(cuid()) @db.VarChar(191)
+  organizationId           String                     @db.VarChar(191)
+  siteId                   String                     @db.VarChar(191)
+  organization             Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site                     Site                       @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name                     String                     @db.VarChar(191)
+  orientation              MenuBoardScreenOrientation @default(LANDSCAPE)
+  widthPx                  Int                        @default(1920)
+  heightPx                 Int                        @default(1080)
+  status                   MenuBoardScreenStatus      @default(UNPAIRED)
+  playerTokenHash          String?                    @unique @db.VarChar(64)
+  playerTokenIssuedAt      DateTime?
+  playerTokenRevokedAt     DateTime?
+  lastSeenAt               DateTime?
+  displayedPublishVersion  Int?
+  assignment               MenuScreenAssignment?
+  heartbeats               MenuPlayerHeartbeat[]
+  createdAt                DateTime                   @default(now())
+  updatedAt                DateTime                   @updatedAt
+
+  @@unique([siteId, name])
+  @@index([organizationId, siteId])
+  @@index([organizationId, status])
+  @@index([lastSeenAt])
+}
+
+model Menu {
+  id             String                 @id @default(cuid()) @db.VarChar(191)
+  organizationId String                 @db.VarChar(191)
+  siteId         String                 @db.VarChar(191)
+  organization   Organization           @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site                   @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String                 @db.VarChar(191)
+  currency       String                 @default("USD") @db.VarChar(3)
+  templateKey    String                 @default("DELI_LANDSCAPE_V1") @db.VarChar(64)
+  sections       MenuSection[]
+  items          MenuItem[]
+  publishes      MenuPublish[]
+  assignments    MenuScreenAssignment[]
+  createdAt      DateTime               @default(now())
+  updatedAt      DateTime               @updatedAt
+
+  @@unique([siteId, name])
+  @@index([organizationId, siteId])
+}
+
+model MenuSection {
+  id             String       @id @default(cuid()) @db.VarChar(191)
+  organizationId String       @db.VarChar(191)
+  menuId         String       @db.VarChar(191)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  menu           Menu         @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  name           String       @db.VarChar(191)
+  sortOrder      Int          @default(0)
+  items          MenuItem[]
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@unique([menuId, name])
+  @@index([organizationId, menuId])
+  @@index([menuId, sortOrder])
+}
+
+model MenuItem {
+  id             String       @id @default(cuid()) @db.VarChar(191)
+  organizationId String       @db.VarChar(191)
+  menuId         String       @db.VarChar(191)
+  sectionId      String       @db.VarChar(191)
+  organization   Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  menu           Menu         @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  section        MenuSection  @relation(fields: [sectionId], references: [id], onDelete: Cascade)
+  name           String       @db.VarChar(191)
+  description    String?      @db.Text
+  priceCents     Int
+  imageUrl       String?      @db.VarChar(512)
+  isAvailable    Boolean      @default(true)
+  sortOrder      Int          @default(0)
+  createdAt      DateTime     @default(now())
+  updatedAt      DateTime     @updatedAt
+
+  @@index([organizationId, menuId])
+  @@index([sectionId, sortOrder])
+  @@index([menuId, isAvailable])
+}
+
+model MenuPublish {
+  id                String       @id @default(cuid()) @db.VarChar(191)
+  organizationId    String       @db.VarChar(191)
+  menuId            String       @db.VarChar(191)
+  publishedByUserId String       @db.VarChar(191)
+  organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  menu              Menu         @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  publishedBy       User         @relation("MenuPublishPublishedBy", fields: [publishedByUserId], references: [id], onDelete: Restrict)
+  version           Int
+  payload           Json
+  payloadHash       String       @db.VarChar(64)
+  publishedAt       DateTime     @default(now())
+
+  @@unique([menuId, version])
+  @@index([organizationId, menuId])
+  @@index([publishedAt])
+}
+
+model MenuScreenAssignment {
+  id             String          @id @default(cuid()) @db.VarChar(191)
+  organizationId String          @db.VarChar(191)
+  screenId       String          @unique @db.VarChar(191)
+  menuId         String          @db.VarChar(191)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screen         MenuBoardScreen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  menu           Menu            @relation(fields: [menuId], references: [id], onDelete: Cascade)
+  createdAt      DateTime        @default(now())
+  updatedAt      DateTime        @updatedAt
+
+  @@index([organizationId, menuId])
+}
+
+model MenuPlayerHeartbeat {
+  id             String          @id @default(cuid()) @db.VarChar(191)
+  organizationId String          @db.VarChar(191)
+  screenId       String          @db.VarChar(191)
+  organization   Organization    @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  screen         MenuBoardScreen @relation(fields: [screenId], references: [id], onDelete: Cascade)
+  playerVersion  String?         @db.VarChar(64)
+  publishVersion Int?
+  receivedAt     DateTime        @default(now())
+
+  @@index([organizationId, screenId])
+  @@index([screenId, receivedAt])
+}
+
