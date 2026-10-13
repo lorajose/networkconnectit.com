@@ -208,3 +208,11 @@ test("NCI-066 project share listing stays tenant scoped", async () => {
   assert.equal(tenantShares.some((share) => share.id === created.shareId), true);
   assert.equal(wrongTenantShares.length, 0);
 });
+
+
+test("NCI-066 download access is audited distinctly", async () => {
+  const repository = repositoryFixture();
+  const created = await createDesignShare({ repository, report: reportFixture() });
+  await resolveDesignShare({ repository, token: created.token, event: "DOWNLOAD" });
+  assert.equal(repository.audits.at(-1)?.event, "DOWNLOAD");
+});
