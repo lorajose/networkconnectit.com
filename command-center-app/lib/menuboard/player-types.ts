@@ -139,3 +139,29 @@ export function isMenuBoardPlayerContent(
     isMenuBoardPublishPayload(value.activePublish.payload)
   );
 }
+
+export function serializeMenuBoardPublishPayload(
+  payload: MenuBoardPublishPayload
+) {
+  return JSON.stringify(payload);
+}
+
+export async function verifyMenuBoardPublishPayloadHash(
+  payload: MenuBoardPublishPayload,
+  expectedHash: string
+) {
+  if (!/^[a-f0-9]{64}$/.test(expectedHash)) {
+    return false;
+  }
+
+  const bytes = new TextEncoder().encode(
+    serializeMenuBoardPublishPayload(payload)
+  );
+  const digest = await globalThis.crypto.subtle.digest("SHA-256", bytes);
+  const actualHash = Array.from(new Uint8Array(digest))
+    .map((byte) => byte.toString(16).padStart(2, "0"))
+    .join("");
+
+  return actualHash === expectedHash;
+}
+
