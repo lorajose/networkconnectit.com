@@ -107,3 +107,6 @@ jobs:
       - run: npm ci
       - name: Verify real MySQL operations lifecycle, concurrency and profitability
         run: node scripts/test-operations-mysql.cjs
+
+      - name: Verify real MySQL MenuBoard lifecycle and publish switching
+        run: node scripts/test-menuboard-mysql.cjs
