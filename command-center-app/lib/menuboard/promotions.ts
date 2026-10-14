@@ -31,7 +31,7 @@ export async function listMenuBoardPromotionCampaigns(user: TenantUser) {
       organization: { select: { id: true, name: true } },
       site: { select: { id: true, name: true } },
       slides: { orderBy: [{ sortOrder: "asc" }, { createdAt: "asc" }], select: { id: true, headline: true, durationSeconds: true } },
-      publishes: { orderBy: { version: "desc" }, take: 1, select: { id: true, version: true, createdAt: true } },
+      publishes: { orderBy: { version: "desc" }, take: 1, select: { id: true, version: true, publishedAt: true } },
     },
   });
 }
