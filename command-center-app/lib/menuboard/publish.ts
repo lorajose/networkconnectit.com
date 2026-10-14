@@ -137,6 +137,17 @@ export async function publishMenuBoardMenu(
           }
         });
 
+        await tx.menuBoardDisplayZone.updateMany({
+          where: {
+            organizationId: draft.organizationId,
+            menuId: draft.id,
+            contentType: "MENU"
+          },
+          data: {
+            activeMenuPublishId: publish.id
+          }
+        });
+
         return publish;
       });
     } catch (error) {
@@ -234,15 +245,27 @@ export async function rollbackMenuBoardMenu(
     throw new Error("Published version not found.");
   }
 
-  await prisma.menuScreenAssignment.updateMany({
-    where: {
-      organizationId: menu.organizationId,
-      menuId: menu.id
-    },
-    data: {
-      activePublishId: publish.id
-    }
-  });
+  await prisma.$transaction([
+    prisma.menuScreenAssignment.updateMany({
+      where: {
+        organizationId: menu.organizationId,
+        menuId: menu.id
+      },
+      data: {
+        activePublishId: publish.id
+      }
+    }),
+    prisma.menuBoardDisplayZone.updateMany({
+      where: {
+        organizationId: menu.organizationId,
+        menuId: menu.id,
+        contentType: "MENU"
+      },
+      data: {
+        activeMenuPublishId: publish.id
+      }
+    })
+  ]);
 
   return publish;
 }
