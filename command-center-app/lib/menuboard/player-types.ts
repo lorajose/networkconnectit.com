@@ -140,10 +140,27 @@ export function isMenuBoardPlayerContent(
   );
 }
 
+function canonicalizeJsonValue(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map((entry) => canonicalizeJsonValue(entry));
+  }
+
+  if (isRecord(value)) {
+    return Object.keys(value)
+      .sort()
+      .reduce<Record<string, unknown>>((result, key) => {
+        result[key] = canonicalizeJsonValue(value[key]);
+        return result;
+      }, {});
+  }
+
+  return value;
+}
+
 export function serializeMenuBoardPublishPayload(
   payload: MenuBoardPublishPayload
 ) {
-  return JSON.stringify(payload);
+  return JSON.stringify(canonicalizeJsonValue(payload));
 }
 
 export async function verifyMenuBoardPublishPayloadHash(
