@@ -34,3 +34,28 @@ test("NCI-094 rejects malformed displayed-zone heartbeat payloads atomically", (
   assert.equal(malformed.valid, false);
   assert.deepEqual(malformed.zones, []);
 });
+
+
+test("NCI-094 rejects duplicate and non-canonical wall zone mappings", () => {
+  const duplicatePosition = parseMenuBoardDisplayedWallZones([
+    displayed(),
+    { position: 1, role: "MENU_PRIMARY", version: 5, payloadHash: otherHash },
+  ]);
+  assert.equal(duplicatePosition.valid, false);
+
+  const duplicateRole = parseMenuBoardDisplayedWallZones([
+    displayed(),
+    { position: 2, role: "MENU_PRIMARY", version: 5, payloadHash: otherHash },
+  ]);
+  assert.equal(duplicateRole.valid, false);
+
+  const mismatchedRole = parseMenuBoardDisplayedWallZones([
+    { position: 3, role: "MENU_SECONDARY", version: 5, payloadHash: expectedHash },
+  ]);
+  assert.equal(mismatchedRole.valid, false);
+
+  const outOfRange = parseMenuBoardDisplayedWallZones([
+    { position: 4, role: "PROMOTION", version: 5, payloadHash: expectedHash },
+  ]);
+  assert.equal(outOfRange.valid, false);
+});
