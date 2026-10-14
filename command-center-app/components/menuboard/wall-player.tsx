@@ -189,7 +189,7 @@ export function MenuBoardWallPlayer() {
         headers: { Authorization: `Bearer ${token}`, "Content-Type": "application/json" },
         body: JSON.stringify({
           playerVersion: "wall-web-player-v1",
-          manifestHash: null,
+          manifestHash: current?.manifestHash ?? null,
           displayedZones: current?.zones.map((zone) => ({
             position: zone.position,
             role: zone.role,
