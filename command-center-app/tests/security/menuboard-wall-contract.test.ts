@@ -6,7 +6,7 @@ import {
   isMenuBoardPromotionPublishPayload,
   isMenuBoardWallManifest,
   MENU_BOARD_WALL_ZONE_COUNT,
-  serializeMenuBoardPromotionPublishPayload,
+  serializeMenuBoardPromotionPublishPayload,\n  serializeMenuBoardWallManifestForHash,
 } from "../../lib/menuboard/wall-types";
 
 const hash = "a".repeat(64);
@@ -63,4 +63,23 @@ test("NCI-094 canonical promotion serialization is key-order stable", () => {
   const left = { schemaVersion: 1 as const, campaignId: "campaign-1", campaignName: "Deli Offers", slides: [{ id: "slide-1", headline: "Lunch Special", body: "Fresh every day", offerText: "$9.99", mediaUrl: "/promo.jpg", durationSeconds: 10 }] };
   const right = { campaignName: "Deli Offers", campaignId: "campaign-1", schemaVersion: 1 as const, slides: [{ durationSeconds: 10, mediaUrl: "/promo.jpg", offerText: "$9.99", body: "Fresh every day", headline: "Lunch Special", id: "slide-1" }] };
   assert.equal(serializeMenuBoardPromotionPublishPayload(left), serializeMenuBoardPromotionPublishPayload(right));
+});
+
+
+test("NCI-094 canonical wall manifest serialization is key-order stable", () => {
+  const left = {
+    schemaVersion: 1 as const,
+    displayGroup: { id: "group-1", name: "Deli Wall" },
+    zones: validManifest().zones,
+  };
+  const right = {
+    zones: validManifest().zones,
+    displayGroup: { name: "Deli Wall", id: "group-1" },
+    schemaVersion: 1 as const,
+  };
+
+  assert.equal(
+    serializeMenuBoardWallManifestForHash(left),
+    serializeMenuBoardWallManifestForHash(right),
+  );
 });
