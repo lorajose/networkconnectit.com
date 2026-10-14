@@ -8,11 +8,12 @@ import {
   MENU_BOARD_WALL_ZONE_COUNT,
   serializeMenuBoardPromotionPublishPayload,
   serializeMenuBoardWallManifestForHash,
+  type MenuBoardWallManifest,
 } from "../../lib/menuboard/wall-types";
 
 const hash = "a".repeat(64);
 
-function validManifest() {
+function validManifest(): MenuBoardWallManifest {
   return {
     schemaVersion: 1,
     manifestHash: hash,
