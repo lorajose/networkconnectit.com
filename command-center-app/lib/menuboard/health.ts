@@ -21,15 +21,40 @@ export function isDisplayedPublishCurrent(displayedPublishVersion: number | null
 export type MenuBoardWallZoneStatus = "CURRENT" | "UPDATE_PENDING" | "NOT_PUBLISHED" | "NO_HEARTBEAT" | "INVALID_HEARTBEAT";
 export type MenuBoardDisplayedWallZone = { position: number; role: string; version: number; payloadHash: string };
 
+const WALL_ZONE_ROLE_BY_POSITION = {
+  1: "MENU_PRIMARY",
+  2: "MENU_SECONDARY",
+  3: "PROMOTION",
+} as const;
+
 export function parseMenuBoardDisplayedWallZones(value: unknown): { valid: boolean; zones: MenuBoardDisplayedWallZone[] } {
-  if (!Array.isArray(value)) return { valid: false, zones: [] };
+  if (!Array.isArray(value) || value.length > 3) return { valid: false, zones: [] };
   const zones: MenuBoardDisplayedWallZone[] = [];
+  const seenPositions = new Set<number>();
+  const seenRoles = new Set<string>();
   for (const entry of value) {
     if (!entry || typeof entry !== "object") return { valid: false, zones: [] };
     const zone = entry as Partial<MenuBoardDisplayedWallZone>;
+    const position = zone.position;
+    const role = zone.role;
     const version = zone.version;
-    if (typeof zone.position !== "number" || typeof zone.role !== "string" || typeof version !== "number" || !Number.isSafeInteger(version) || version < 1 || typeof zone.payloadHash !== "string" || !/^[a-f0-9]{64}$/i.test(zone.payloadHash)) return { valid: false, zones: [] };
-    zones.push({ position: zone.position, role: zone.role, version, payloadHash: zone.payloadHash });
+    if (
+      typeof position !== "number" ||
+      !Number.isSafeInteger(position) ||
+      !(position in WALL_ZONE_ROLE_BY_POSITION) ||
+      typeof role !== "string" ||
+      WALL_ZONE_ROLE_BY_POSITION[position as keyof typeof WALL_ZONE_ROLE_BY_POSITION] !== role ||
+      seenPositions.has(position) ||
+      seenRoles.has(role) ||
+      typeof version !== "number" ||
+      !Number.isSafeInteger(version) ||
+      version < 1 ||
+      typeof zone.payloadHash !== "string" ||
+      !/^[a-f0-9]{64}$/i.test(zone.payloadHash)
+    ) return { valid: false, zones: [] };
+    seenPositions.add(position);
+    seenRoles.add(role);
+    zones.push({ position, role, version, payloadHash: zone.payloadHash });
   }
   return { valid: true, zones };
 }
