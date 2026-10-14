@@ -9,12 +9,13 @@ import {
 import { authenticateMenuBoardPlayer } from "@/lib/menuboard/screens";
 import {
   isMenuBoardPublishPayload,
+  serializeMenuBoardPublishPayload,
   type MenuBoardPublishPayload
 } from "@/lib/menuboard/player-types";
 
 function hashPayload(payload: MenuBoardPublishPayload) {
   return createHash("sha256")
-    .update(JSON.stringify(payload), "utf8")
+    .update(serializeMenuBoardPublishPayload(payload), "utf8")
     .digest("hex");
 }
 
