@@ -31,6 +31,17 @@ import {
   revokeMenuBoardWallPlayerAction,
 } from "./actions";
 
+type DisplayedWallZone = { position: number; role: string; version: number; payloadHash: string };
+
+function parseDisplayedWallZones(value: unknown): DisplayedWallZone[] {
+  if (!Array.isArray(value)) return [];
+  return value.filter((entry): entry is DisplayedWallZone => {
+    if (!entry || typeof entry !== "object") return false;
+    const zone = entry as Partial<DisplayedWallZone>;
+    return typeof zone.position === "number" && typeof zone.role === "string" && Number.isSafeInteger(zone.version) && typeof zone.payloadHash === "string";
+  });
+}
+
 export default async function MenuBoardPage() {
   const user = await requireRoles(routeAccess.menuBoard);
   const [organizations, screens, walls, menus, campaigns] = await Promise.all([
@@ -49,10 +60,12 @@ export default async function MenuBoardPage() {
         const storeMenus = menus.filter((menu) => menu.organization.id === wall.organization.id && menu.site.id === wall.site.id).map((menu) => ({ id: menu.id, name: menu.name }));
         const storeCampaigns = campaigns.filter((campaign) => campaign.organizationId === wall.organization.id && campaign.siteId === wall.site.id);
         const primary = wall.zones.find((zone) => zone.role === "MENU_PRIMARY"); const secondary = wall.zones.find((zone) => zone.role === "MENU_SECONDARY"); const promotion = wall.zones.find((zone) => zone.role === "PROMOTION");
+        const latestHeartbeat = wall.heartbeats[0] ?? null;
+        const displayedZones = parseDisplayedWallZones(latestHeartbeat?.displayedZones);
         return <div key={wall.id} className="rounded-2xl border border-border/70 bg-background/40 p-5"><div className="flex items-start justify-between gap-4"><div><p className="font-semibold">{wall.name}</p><p className="mt-1 text-sm text-muted-foreground">{wall.organization.name} — {wall.site.name}</p></div><span className={`rounded-full px-2 py-1 text-[11px] font-medium ${isPaired ? "bg-sky-500/10 text-sky-300" : "bg-zinc-500/10 text-zinc-300"}`}>{isPaired ? "Paired" : "Unpaired"}</span></div>
-          <div className="mt-4 grid grid-cols-3 gap-2">{wall.zones.map((zone) => { const label = zone.role === "MENU_PRIMARY" ? "TV1 · Menu" : zone.role === "MENU_SECONDARY" ? "TV2 · Menu" : "TV3 · Promotions"; const contentName = zone.menu?.name ?? zone.promotionCampaign?.name ?? "Not assigned"; const version = zone.activeMenuPublish?.version ?? zone.activePromotionPublish?.version ?? null; return <div key={zone.id} className="rounded-xl border border-border/60 bg-muted/20 p-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p><p className="mt-2 truncate text-sm font-medium">{contentName}</p><p className="mt-1 text-xs text-muted-foreground">{version ? `Published v${version}` : "Not published"}</p></div>; })}</div>
+          <div className="mt-4 grid grid-cols-3 gap-2">{wall.zones.map((zone) => { const label = zone.role === "MENU_PRIMARY" ? "TV1 · Menu" : zone.role === "MENU_SECONDARY" ? "TV2 · Menu" : "TV3 · Promotions"; const contentName = zone.menu?.name ?? zone.promotionCampaign?.name ?? "Not assigned"; const activePublish = zone.activeMenuPublish ?? zone.activePromotionPublish; const expectedVersion = activePublish?.version ?? null; const displayed = displayedZones.find((candidate) => candidate.position === zone.position && candidate.role === zone.role) ?? null; const isCurrent = expectedVersion !== null && displayed?.version === expectedVersion; return <div key={zone.id} className="rounded-xl border border-border/60 bg-muted/20 p-3"><p className="text-xs font-semibold uppercase tracking-[0.12em] text-muted-foreground">{label}</p><p className="mt-2 truncate text-sm font-medium">{contentName}</p><div className="mt-2 grid grid-cols-2 gap-2 text-xs"><div><p className="uppercase tracking-[0.1em] text-muted-foreground/70">Expected</p><p className="mt-1 text-foreground">{expectedVersion !== null ? `v${expectedVersion}` : "—"}</p></div><div><p className="uppercase tracking-[0.1em] text-muted-foreground/70">Displaying</p><p className="mt-1 text-foreground">{displayed ? `v${displayed.version}` : "—"}</p></div></div>{expectedVersion !== null ? <span className={`mt-2 inline-flex rounded-full px-2 py-1 text-[11px] font-medium ${isCurrent ? "bg-emerald-500/10 text-emerald-300" : "bg-amber-500/10 text-amber-300"}`}>{isCurrent ? "Current" : "Update pending"}</span> : <span className="mt-2 inline-flex rounded-full bg-zinc-500/10 px-2 py-1 text-[11px] font-medium text-zinc-300">Not published</span>}</div>; })}</div>
           {canWrite ? <MenuBoardWallContentControls displayGroupId={wall.id} organizationId={wall.organization.id} siteId={wall.site.id} menus={storeMenus} campaigns={storeCampaigns} primaryMenuId={primary?.menu?.id} secondaryMenuId={secondary?.menu?.id} promotionCampaignId={promotion?.promotionCampaign?.id} assignMenuAction={assignMenuBoardWallMenuAction} createPromotionAction={createAndAssignMenuBoardPromotionAction} assignPromotionAction={assignMenuBoardPromotionAction} addSlideAction={addMenuBoardPromotionSlideAction} publishPromotionAction={publishMenuBoardPromotionAction}/> : null}
-          <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Last seen: {wall.lastSeenAt ? formatDate(wall.lastSeenAt) : "Never"}</span><span>{wall.heartbeats[0]?.playerVersion ?? "No heartbeat"}</span></div>{canWrite ? <div className="mt-4"><ScreenPairingControl generateAction={generateAction} revokeAction={revokeAction} canRevoke={isPaired}/></div> : null}</div>;
+          <div className="mt-4 flex items-center justify-between gap-3 text-xs text-muted-foreground"><span>Last seen: {wall.lastSeenAt ? formatDate(wall.lastSeenAt) : "Never"}</span><span>{latestHeartbeat?.playerVersion ?? "No heartbeat"}</span></div>{canWrite ? <div className="mt-4"><ScreenPairingControl generateAction={generateAction} revokeAction={revokeAction} canRevoke={isPaired}/></div> : null}</div>;
       })}</div>}
     </CardContent></Card>
     {canWrite ? <MenuBoardScreenForm action={createMenuBoardScreenAction} sites={sites}/> : null}
