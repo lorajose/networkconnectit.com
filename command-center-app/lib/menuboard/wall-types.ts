@@ -28,6 +28,13 @@ export type MenuBoardPromotionSlide = {
   durationSeconds: number;
 };
 
+export type MenuBoardPromotionPublishPayload = {
+  schemaVersion: 1;
+  campaignId: string;
+  campaignName: string;
+  slides: MenuBoardPromotionSlide[];
+};
+
 export type MenuBoardWallPromotionContent = {
   contentType: "PROMOTION";
   publishId: string;
@@ -35,6 +42,42 @@ export type MenuBoardWallPromotionContent = {
   payloadHash: string;
   slides: MenuBoardPromotionSlide[];
 };
+
+export function isMenuBoardPromotionPublishPayload(
+  value: unknown,
+): value is MenuBoardPromotionPublishPayload {
+  if (!value || typeof value !== "object") return false;
+
+  const payload = value as Partial<MenuBoardPromotionPublishPayload>;
+  if (payload.schemaVersion !== 1) return false;
+  if (typeof payload.campaignId !== "string" || payload.campaignId.length === 0) {
+    return false;
+  }
+  if (
+    typeof payload.campaignName !== "string" ||
+    payload.campaignName.length === 0
+  ) {
+    return false;
+  }
+  if (!Array.isArray(payload.slides) || payload.slides.length === 0) {
+    return false;
+  }
+
+  return payload.slides.every(
+    (slide) =>
+      Boolean(slide) &&
+      typeof slide.id === "string" &&
+      slide.id.length > 0 &&
+      typeof slide.headline === "string" &&
+      slide.headline.length > 0 &&
+      (slide.body == null || typeof slide.body === "string") &&
+      (slide.offerText == null || typeof slide.offerText === "string") &&
+      (slide.mediaUrl == null || typeof slide.mediaUrl === "string") &&
+      Number.isSafeInteger(slide.durationSeconds) &&
+      slide.durationSeconds >= 3 &&
+      slide.durationSeconds <= 120,
+  );
+}
 
 export type MenuBoardWallZoneManifest = {
   position: 1 | 2 | 3;
