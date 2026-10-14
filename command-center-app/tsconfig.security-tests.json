@@ -23,6 +23,7 @@
     "lib/menuboard/health.ts",
     "lib/menuboard/player-types.ts",
     "lib/menuboard/pairing-rate-limit.ts",
+    "lib/menuboard/wall-types.ts",
     "tests/security/**/*.ts",
     "tests/design-floor-plan.test.ts"
   ]
