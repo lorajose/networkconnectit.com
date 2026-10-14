@@ -135,3 +135,24 @@ test("player verifies the SHA-256 hash of published content before trusting it",
     false
   );
 });
+
+test("canonical publish serialization is stable across object key order", () => {
+  const reordered = {
+    sections: validPayload.sections,
+    currency: validPayload.currency,
+    promotionText: validPayload.promotionText,
+    promotionTitle: validPayload.promotionTitle,
+    logoUrl: validPayload.logoUrl,
+    storeDisplayName: validPayload.storeDisplayName,
+    menuName: validPayload.menuName,
+    menuId: validPayload.menuId,
+    templateKey: validPayload.templateKey,
+    schemaVersion: validPayload.schemaVersion
+  } as MenuBoardPublishPayload;
+
+  assert.equal(
+    serializeMenuBoardPublishPayload(reordered),
+    serializeMenuBoardPublishPayload(validPayload)
+  );
+});
+
