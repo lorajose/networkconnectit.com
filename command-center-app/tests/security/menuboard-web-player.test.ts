@@ -12,10 +12,11 @@ const worker = readFileSync(
   "utf8"
 );
 
-test("web player keeps a last-known-good published payload for outages", () => {
+test("web player keeps only a verified last-known-good published payload for outages", () => {
   assert.match(player, /CACHE_KEY/);
   assert.match(player, /localStorage\.setItem\(CACHE_KEY/);
-  assert.match(player, /Showing cached menu while reconnecting/);
+  assert.match(player, /verifyContentIntegrity\(parsed\)/);
+  assert.match(player, /Showing verified cached menu while reconnecting/);
   assert.match(player, /Offline · showing last known-good menu/);
 });
 
