@@ -1,10 +1,18 @@
+import { createHash } from "node:crypto";
 import { Prisma } from "@prisma/client";
 
 import { prisma } from "@/lib/db";
 import { getScopedRecordWhere, resolveWritableOrganizationId, type TenantUser } from "@/lib/management/tenant-policy";
 import { generatePairingCode, generatePlayerToken, getPairingCodeExpiry, hashMenuBoardSecret, isPairingCodeExpired, normalizePairingCode } from "@/lib/menuboard/security";
 import { isMenuBoardPublishPayload } from "@/lib/menuboard/player-types";
-import { expectedContentTypeForRole, isMenuBoardPromotionPublishPayload, isMenuBoardWallManifest, type MenuBoardWallManifest, type MenuBoardWallZoneManifest } from "@/lib/menuboard/wall-types";
+import {
+  expectedContentTypeForRole,
+  isMenuBoardPromotionPublishPayload,
+  isMenuBoardWallManifest,
+  serializeMenuBoardWallManifestForHash,
+  type MenuBoardWallManifest,
+  type MenuBoardWallZoneManifest,
+} from "@/lib/menuboard/wall-types";
 
 export type CreateMenuBoardDisplayGroupInput = { organizationId?: string | null; siteId: string; name: string };
 const WALL_ZONE_BLUEPRINT = [
@@ -73,7 +81,16 @@ export async function getMenuBoardWallPlayerManifest(rawToken: string) {
     if (zone.contentType === "MENU") { const publish = zone.activeMenuPublish; if (!zone.menuId || !publish) return { displayGroup: identity, manifest: null, malformed: false, incomplete: true }; if (publish.organizationId !== group.organizationId || publish.menuId !== zone.menuId || !isMenuBoardPublishPayload(publish.payload)) return { displayGroup: identity, manifest: null, malformed: true, incomplete: false }; manifestZones.push({ position: zone.position as 1 | 2 | 3, role: zone.role, content: { contentType: "MENU", publishId: publish.id, version: publish.version, payloadHash: publish.payloadHash, payload: publish.payload } }); continue; }
     const publish = zone.activePromotionPublish; if (!zone.promotionCampaignId || !publish) return { displayGroup: identity, manifest: null, malformed: false, incomplete: true }; if (publish.organizationId !== group.organizationId || publish.campaignId !== zone.promotionCampaignId || !isMenuBoardPromotionPublishPayload(publish.payload)) return { displayGroup: identity, manifest: null, malformed: true, incomplete: false }; manifestZones.push({ position: zone.position as 1 | 2 | 3, role: zone.role, content: { contentType: "PROMOTION", publishId: publish.id, version: publish.version, payloadHash: publish.payloadHash, slides: publish.payload.slides } });
   }
-  const manifest: MenuBoardWallManifest = { schemaVersion: 1, manifestHash: "0".repeat(64), displayGroup: identity, zones: manifestZones as MenuBoardWallManifest["zones"] };
+
+  const manifestBody: Omit<MenuBoardWallManifest, "manifestHash"> = {
+    schemaVersion: 1,
+    displayGroup: identity,
+    zones: manifestZones as MenuBoardWallManifest["zones"],
+  };
+  const manifestHash = createHash("sha256")
+    .update(serializeMenuBoardWallManifestForHash(manifestBody), "utf8")
+    .digest("hex");
+  const manifest: MenuBoardWallManifest = { ...manifestBody, manifestHash };
   if (!isMenuBoardWallManifest(manifest)) return { displayGroup: identity, manifest: null, malformed: true, incomplete: false };
   return { displayGroup: identity, manifest, malformed: false, incomplete: false };
 }
