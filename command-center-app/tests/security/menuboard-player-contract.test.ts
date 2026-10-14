@@ -1,9 +1,12 @@
 import assert from "node:assert/strict";
+import { createHash } from "node:crypto";
 import test from "node:test";
 
 import {
   isMenuBoardPlayerContent,
   isMenuBoardPublishPayload,
+  serializeMenuBoardPublishPayload,
+  verifyMenuBoardPublishPayloadHash,
   type MenuBoardPublishPayload
 } from "../../lib/menuboard/player-types";
 
@@ -110,6 +113,25 @@ test("public player response excludes tenant identifiers and validates active pu
         payloadHash: "not-a-sha256"
       }
     }),
+    false
+  );
+});
+
+
+test("player verifies the SHA-256 hash of published content before trusting it", async () => {
+  const expected = createHash("sha256")
+    .update(serializeMenuBoardPublishPayload(validPayload), "utf8")
+    .digest("hex");
+
+  assert.equal(
+    await verifyMenuBoardPublishPayloadHash(validPayload, expected),
+    true
+  );
+  assert.equal(
+    await verifyMenuBoardPublishPayloadHash(
+      { ...validPayload, menuName: "Tampered Menu" },
+      expected
+    ),
     false
   );
 });
