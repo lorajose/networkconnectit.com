@@ -5,6 +5,7 @@ import { FormEvent, useCallback, useEffect, useMemo, useRef, useState } from "re
 import { DeliMenuTemplate } from "@/components/menuboard/deli-menu-template";
 import {
   isMenuBoardPlayerContent,
+  verifyMenuBoardPublishPayloadHash,
   type MenuBoardPlayerContent,
   type MenuBoardPublishPayload
 } from "@/lib/menuboard/player-types";
@@ -22,7 +23,20 @@ function apiPath(path: string) {
   return `${appBasePath()}${path}`;
 }
 
-function readCachedContent(): MenuBoardPlayerContent | null {
+async function verifyContentIntegrity(
+  content: MenuBoardPlayerContent
+) {
+  if (!content.activePublish) {
+    return true;
+  }
+
+  return verifyMenuBoardPublishPayloadHash(
+    content.activePublish.payload,
+    content.activePublish.payloadHash
+  );
+}
+
+async function readCachedContent(): Promise<MenuBoardPlayerContent | null> {
   try {
     const raw = window.localStorage.getItem(CACHE_KEY);
     if (!raw) {
@@ -30,7 +44,11 @@ function readCachedContent(): MenuBoardPlayerContent | null {
     }
 
     const parsed: unknown = JSON.parse(raw);
-    return isMenuBoardPlayerContent(parsed) ? parsed : null;
+    if (!isMenuBoardPlayerContent(parsed)) {
+      return null;
+    }
+
+    return (await verifyContentIntegrity(parsed)) ? parsed : null;
   } catch {
     return null;
   }
@@ -84,36 +102,48 @@ export function MenuBoardWebPlayer() {
   const latestVersionRef = useRef<number | null>(null);
 
   useEffect(() => {
-    const cached = readCachedContent();
-    if (cached?.activePublish) {
-      setContent(cached);
-      latestVersionRef.current = cached.activePublish.version;
-      setStatus("offline");
-      setMessage("Showing cached menu while reconnecting.");
-    }
+    let cancelled = false;
 
-    try {
-      const savedToken = window.localStorage.getItem(TOKEN_KEY) ?? "";
-      if (savedToken) {
-        setToken(savedToken);
-      } else if (!cached?.activePublish) {
-        setStatus("pairing");
-        setMessage("Pair this screen to continue.");
+    void (async () => {
+      const cached = await readCachedContent();
+      if (cancelled) {
+        return;
       }
-    } catch {
-      if (!cached?.activePublish) {
-        setStatus("pairing");
-        setMessage("Pair this screen to continue.");
-      }
-    }
 
-    if ("serviceWorker" in navigator) {
-      navigator.serviceWorker
-        .register(apiPath("/menuboard-player-sw.js"), {
-          scope: apiPath("/menuboard/")
-        })
-        .catch(() => undefined);
-    }
+      if (cached?.activePublish) {
+        setContent(cached);
+        latestVersionRef.current = cached.activePublish.version;
+        setStatus("offline");
+        setMessage("Showing verified cached menu while reconnecting.");
+      }
+
+      try {
+        const savedToken = window.localStorage.getItem(TOKEN_KEY) ?? "";
+        if (savedToken) {
+          setToken(savedToken);
+        } else if (!cached?.activePublish) {
+          setStatus("pairing");
+          setMessage("Pair this screen to continue.");
+        }
+      } catch {
+        if (!cached?.activePublish) {
+          setStatus("pairing");
+          setMessage("Pair this screen to continue.");
+        }
+      }
+
+      if ("serviceWorker" in navigator) {
+        navigator.serviceWorker
+          .register(apiPath("/menuboard-player-sw.js"), {
+            scope: apiPath("/menuboard/")
+          })
+          .catch(() => undefined);
+      }
+    })();
+
+    return () => {
+      cancelled = true;
+    };
   }, []);
 
   const refreshContent = useCallback(async () => {
@@ -150,6 +180,10 @@ export function MenuBoardWebPlayer() {
       }
 
       const next = responseBody;
+      if (!(await verifyContentIntegrity(next))) {
+        throw new Error("Player content checksum mismatch.");
+      }
+
       setContent(next);
 
       if (next.activePublish) {
@@ -162,7 +196,7 @@ export function MenuBoardWebPlayer() {
         setMessage("Screen is paired. Publish and assign a menu to display it.");
       }
     } catch {
-      const cached = readCachedContent();
+      const cached = await readCachedContent();
       if (cached?.activePublish) {
         setContent(cached);
         latestVersionRef.current = cached.activePublish.version;
