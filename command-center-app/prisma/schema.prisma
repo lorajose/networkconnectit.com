@@ -147,6 +147,17 @@ enum MenuBoardScreenStatus {
   REVOKED
 }
 
+enum MenuBoardWallZoneRole {
+  MENU_PRIMARY
+  MENU_SECONDARY
+  PROMOTION
+}
+
+enum MenuBoardWallContentType {
+  MENU
+  PROMOTION
+}
+
 model User {
   id             String         @id @default(cuid()) @db.VarChar(191)
   name           String?        @db.VarChar(191)
@@ -157,7 +168,8 @@ model User {
   organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   createdAlerts  Alert[]        @relation("AlertCreatedBy")
   resolvedAlerts Alert[]        @relation("AlertResolvedBy")
-  menuPublishes  MenuPublish[]  @relation("MenuPublishPublishedBy")
+  menuPublishes      MenuPublish[]               @relation("MenuPublishPublishedBy")
+  promotionPublishes MenuBoardPromotionPublish[] @relation("PromotionPublishPublishedBy")
   createdAt      DateTime       @default(now())
   updatedAt      DateTime       @updatedAt
 
@@ -204,7 +216,14 @@ model Organization {
   menuPublishes        MenuPublish[]
   menuAssignments      MenuScreenAssignment[]
   menuHeartbeats       MenuPlayerHeartbeat[]
-  menuPairingCodes     MenuPairingCode[]
+  menuPairingCodes       MenuPairingCode[]
+  menuDisplayGroups      MenuBoardDisplayGroup[]
+  menuDisplayZones       MenuBoardDisplayZone[]
+  promotionCampaigns     MenuBoardPromotionCampaign[]
+  promotionSlides        MenuBoardPromotionSlide[]
+  promotionPublishes     MenuBoardPromotionPublish[]
+  menuWallHeartbeats     MenuBoardWallHeartbeat[]
+  menuWallPairingCodes   MenuBoardWallPairingCode[]
   createdAt            DateTime              @default(now())
   updatedAt            DateTime              @updatedAt
 
@@ -237,8 +256,10 @@ model Site {
   networkSegments     NetworkSegment[]
   nvrChannelAssignments NvrChannelAssignment[]
   deviceLinks         DeviceLink[]
-  menuBoardScreens    MenuBoardScreen[]
-  menus               Menu[]
+  menuBoardScreens       MenuBoardScreen[]
+  menuDisplayGroups      MenuBoardDisplayGroup[]
+  promotionCampaigns    MenuBoardPromotionCampaign[]
+  menus                  Menu[]
   createdAt           DateTime              @default(now())
   updatedAt           DateTime              @updatedAt
 
@@ -549,6 +570,7 @@ model Menu {
   items          MenuItem[]
   publishes      MenuPublish[]
   assignments    MenuScreenAssignment[]
+  wallZones       MenuBoardDisplayZone[] @relation("MenuWallZoneMenu")
   createdAt      DateTime               @default(now())
   updatedAt      DateTime               @updatedAt
 
@@ -603,7 +625,8 @@ model MenuPublish {
   organization      Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
   menu              Menu         @relation(fields: [menuId], references: [id], onDelete: Cascade)
   publishedBy       User         @relation("MenuPublishPublishedBy", fields: [publishedByUserId], references: [id], onDelete: Restrict)
-  activeAssignments MenuScreenAssignment[] @relation("MenuScreenActivePublish")
+  activeAssignments MenuScreenAssignment[]  @relation("MenuScreenActivePublish")
+  activeWallZones    MenuBoardDisplayZone[]   @relation("MenuWallActivePublish")
   version           Int
   payload           Json
   payloadHash       String       @db.VarChar(64)
@@ -661,3 +684,141 @@ model MenuPairingCode {
   @@index([expiresAt, consumedAt])
 }
 
+
+
+model MenuBoardDisplayGroup {
+  id                   String                    @id @default(cuid()) @db.VarChar(191)
+  organizationId       String                    @db.VarChar(191)
+  siteId               String                    @db.VarChar(191)
+  organization         Organization              @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site                 Site                      @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name                 String                    @db.VarChar(191)
+  playerTokenHash      String?                   @unique @db.VarChar(64)
+  playerTokenIssuedAt  DateTime?
+  playerTokenRevokedAt DateTime?
+  lastSeenAt           DateTime?
+  zones                MenuBoardDisplayZone[]
+  heartbeats           MenuBoardWallHeartbeat[]
+  pairingCodes         MenuBoardWallPairingCode[]
+  createdAt            DateTime                  @default(now())
+  updatedAt            DateTime                  @updatedAt
+
+  @@unique([siteId, name])
+  @@index([organizationId, siteId])
+  @@index([lastSeenAt])
+}
+
+model MenuBoardDisplayZone {
+  id                       String                     @id @default(cuid()) @db.VarChar(191)
+  organizationId           String                     @db.VarChar(191)
+  displayGroupId           String                     @db.VarChar(191)
+  position                 Int
+  role                     MenuBoardWallZoneRole
+  contentType              MenuBoardWallContentType
+  menuId                   String?                    @db.VarChar(191)
+  activeMenuPublishId      String?                    @db.VarChar(191)
+  promotionCampaignId      String?                    @db.VarChar(191)
+  activePromotionPublishId String?                    @db.VarChar(191)
+  organization             Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  displayGroup             MenuBoardDisplayGroup      @relation(fields: [displayGroupId], references: [id], onDelete: Cascade)
+  menu                     Menu?                      @relation("MenuWallZoneMenu", fields: [menuId], references: [id], onDelete: SetNull)
+  activeMenuPublish        MenuPublish?               @relation("MenuWallActivePublish", fields: [activeMenuPublishId], references: [id], onDelete: SetNull)
+  promotionCampaign        MenuBoardPromotionCampaign? @relation("PromotionWallZoneCampaign", fields: [promotionCampaignId], references: [id], onDelete: SetNull)
+  activePromotionPublish   MenuBoardPromotionPublish?  @relation("PromotionWallActivePublish", fields: [activePromotionPublishId], references: [id], onDelete: SetNull)
+  createdAt                DateTime                    @default(now())
+  updatedAt                DateTime                    @updatedAt
+
+  @@unique([displayGroupId, position])
+  @@unique([displayGroupId, role])
+  @@index([organizationId, displayGroupId])
+  @@index([menuId])
+  @@index([activeMenuPublishId])
+  @@index([promotionCampaignId])
+  @@index([activePromotionPublishId])
+}
+
+model MenuBoardPromotionCampaign {
+  id             String                      @id @default(cuid()) @db.VarChar(191)
+  organizationId String                      @db.VarChar(191)
+  siteId         String                      @db.VarChar(191)
+  organization   Organization                @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  site           Site                        @relation(fields: [siteId], references: [id], onDelete: Cascade)
+  name           String                      @db.VarChar(191)
+  slides         MenuBoardPromotionSlide[]
+  publishes      MenuBoardPromotionPublish[]
+  wallZones      MenuBoardDisplayZone[]      @relation("PromotionWallZoneCampaign")
+  createdAt      DateTime                    @default(now())
+  updatedAt      DateTime                    @updatedAt
+
+  @@unique([siteId, name])
+  @@index([organizationId, siteId])
+}
+
+model MenuBoardPromotionSlide {
+  id             String                     @id @default(cuid()) @db.VarChar(191)
+  organizationId String                     @db.VarChar(191)
+  campaignId     String                     @db.VarChar(191)
+  organization   Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign       MenuBoardPromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  headline       String                     @db.VarChar(191)
+  body           String?                    @db.Text
+  offerText      String?                    @db.VarChar(191)
+  mediaUrl       String?                    @db.VarChar(512)
+  durationSeconds Int                       @default(10)
+  sortOrder      Int                        @default(0)
+  createdAt      DateTime                   @default(now())
+  updatedAt      DateTime                   @updatedAt
+
+  @@index([organizationId, campaignId])
+  @@index([campaignId, sortOrder])
+}
+
+model MenuBoardPromotionPublish {
+  id                String                     @id @default(cuid()) @db.VarChar(191)
+  organizationId    String                     @db.VarChar(191)
+  campaignId        String                     @db.VarChar(191)
+  publishedByUserId String                     @db.VarChar(191)
+  organization      Organization               @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  campaign          MenuBoardPromotionCampaign @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  publishedBy       User                       @relation("PromotionPublishPublishedBy", fields: [publishedByUserId], references: [id], onDelete: Restrict)
+  activeWallZones   MenuBoardDisplayZone[]     @relation("PromotionWallActivePublish")
+  version           Int
+  payload           Json
+  payloadHash       String                     @db.VarChar(64)
+  publishedAt       DateTime                   @default(now())
+
+  @@unique([campaignId, version])
+  @@index([organizationId, campaignId])
+  @@index([publishedAt])
+}
+
+model MenuBoardWallHeartbeat {
+  id             String                @id @default(cuid()) @db.VarChar(191)
+  organizationId String                @db.VarChar(191)
+  displayGroupId String                @db.VarChar(191)
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  displayGroup   MenuBoardDisplayGroup @relation(fields: [displayGroupId], references: [id], onDelete: Cascade)
+  playerVersion  String?               @db.VarChar(64)
+  manifestHash   String?               @db.VarChar(64)
+  displayedZones Json?
+  receivedAt     DateTime              @default(now())
+
+  @@index([organizationId, displayGroupId])
+  @@index([displayGroupId, receivedAt])
+}
+
+model MenuBoardWallPairingCode {
+  id             String                @id @default(cuid()) @db.VarChar(191)
+  organizationId String                @db.VarChar(191)
+  displayGroupId String                @db.VarChar(191)
+  codeHash       String                @unique @db.VarChar(64)
+  expiresAt      DateTime
+  consumedAt     DateTime?
+  createdAt      DateTime              @default(now())
+  organization   Organization          @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  displayGroup   MenuBoardDisplayGroup @relation(fields: [displayGroupId], references: [id], onDelete: Cascade)
+
+  @@index([organizationId, displayGroupId])
+  @@index([displayGroupId, expiresAt])
+  @@index([expiresAt, consumedAt])
+}
