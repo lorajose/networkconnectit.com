@@ -180,3 +180,26 @@ export function isMenuBoardWallManifest(
     roles.has("PROMOTION")
   );
 }
+
+
+function canonicalizeWallJson(value: unknown): unknown {
+  if (Array.isArray(value)) {
+    return value.map(canonicalizeWallJson);
+  }
+
+  if (value && typeof value === "object") {
+    return Object.fromEntries(
+      Object.entries(value as Record<string, unknown>)
+        .sort(([left], [right]) => left.localeCompare(right))
+        .map(([key, nested]) => [key, canonicalizeWallJson(nested)]),
+    );
+  }
+
+  return value;
+}
+
+export function serializeMenuBoardPromotionPublishPayload(
+  payload: MenuBoardPromotionPublishPayload,
+) {
+  return JSON.stringify(canonicalizeWallJson(payload));
+}
