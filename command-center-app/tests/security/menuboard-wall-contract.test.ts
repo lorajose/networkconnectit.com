@@ -89,6 +89,17 @@ test("NCI-094 rejects a third menu in place of the promotion zone", () => {
 
 test("NCI-094 rejects unsafe promotion rotation durations", () => {
   const manifest = validManifest();
-  manifest.zones[2].content.slides[0].durationSeconds = 1;
+  const promotionContent = manifest.zones[2]?.content;
+  assert.equal(promotionContent?.contentType, "PROMOTION");
+
+  if (
+    !promotionContent ||
+    promotionContent.contentType !== "PROMOTION" ||
+    !promotionContent.slides[0]
+  ) {
+    assert.fail("Expected a promotion slide in the valid wall manifest fixture.");
+  }
+
+  promotionContent.slides[0].durationSeconds = 1;
   assert.equal(isMenuBoardWallManifest(manifest), false);
 });
