@@ -55,6 +55,17 @@ test("MenuBoard service mutations retain tenant and store scope guards", () => {
   );
 });
 
+test("reassigning a screen clears any live publish from the previous menu", () => {
+  assert.match(
+    menusSource,
+    /update:\s*\{[\s\S]*menuId:\s*menu\.id,[\s\S]*activePublishId:\s*null/
+  );
+  assert.match(
+    menusSource,
+    /create:\s*\{[\s\S]*screenId:\s*screen\.id,[\s\S]*menuId:\s*menu\.id,[\s\S]*activePublishId:\s*null/
+  );
+});
+
 test("public player content is token-derived and accepts no tenant or screen selector", () => {
   assert.match(playerRoute, /getMenuBoardPlayerContent\(token\)/);
   assert.doesNotMatch(playerRoute, /searchParams/);
