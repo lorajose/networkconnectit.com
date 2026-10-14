@@ -94,18 +94,18 @@ test("NCI-094 rejects unsafe promotion rotation durations", () => {
   const promotionContent = manifest.zones[2]?.content;
   assert.equal(promotionContent?.contentType, "PROMOTION");
 
-  if (
-    !promotionContent ||
-    promotionContent.contentType !== "PROMOTION" ||
-    !promotionContent.slides[0]
-  ) {
+  if (!promotionContent || promotionContent.contentType !== "PROMOTION") {
+    assert.fail("Expected promotion content in the valid wall manifest fixture.");
+  }
+
+  const firstSlide = promotionContent.slides?.[0];
+  if (!firstSlide) {
     assert.fail("Expected a promotion slide in the valid wall manifest fixture.");
   }
 
-  promotionContent.slides[0].durationSeconds = 1;
+  firstSlide.durationSeconds = 1;
   assert.equal(isMenuBoardWallManifest(manifest), false);
 });
-
 
 test("NCI-094 validates promotion publish payloads", () => {
   const payload = {
