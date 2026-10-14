@@ -257,12 +257,14 @@ export async function assignMenuToScreens(
         },
         update: {
           organizationId: menu.organizationId,
-          menuId: menu.id
+          menuId: menu.id,
+          activePublishId: null
         },
         create: {
           organizationId: menu.organizationId,
           screenId: screen.id,
-          menuId: menu.id
+          menuId: menu.id,
+          activePublishId: null
         }
       });
     }
