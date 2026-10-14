@@ -27,8 +27,9 @@ export function parseMenuBoardDisplayedWallZones(value: unknown): { valid: boole
   for (const entry of value) {
     if (!entry || typeof entry !== "object") return { valid: false, zones: [] };
     const zone = entry as Partial<MenuBoardDisplayedWallZone>;
-    if (typeof zone.position !== "number" || typeof zone.role !== "string" || !Number.isSafeInteger(zone.version) || (zone.version ?? 0) < 1 || typeof zone.payloadHash !== "string" || !/^[a-f0-9]{64}$/i.test(zone.payloadHash)) return { valid: false, zones: [] };
-    zones.push({ position: zone.position, role: zone.role, version: zone.version, payloadHash: zone.payloadHash });
+    const version = zone.version;
+    if (typeof zone.position !== "number" || typeof zone.role !== "string" || typeof version !== "number" || !Number.isSafeInteger(version) || version < 1 || typeof zone.payloadHash !== "string" || !/^[a-f0-9]{64}$/i.test(zone.payloadHash)) return { valid: false, zones: [] };
+    zones.push({ position: zone.position, role: zone.role, version, payloadHash: zone.payloadHash });
   }
   return { valid: true, zones };
 }
