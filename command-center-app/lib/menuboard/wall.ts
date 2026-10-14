@@ -560,3 +560,123 @@ export async function recordMenuBoardWallHeartbeat(
     receivedAt: now,
   };
 }
+
+
+export async function assignMenuToWallZone(
+  user: TenantUser,
+  input: {
+    displayGroupId: string;
+    role: "MENU_PRIMARY" | "MENU_SECONDARY";
+    menuId: string;
+  },
+) {
+  const group = await prisma.menuBoardDisplayGroup.findFirst({
+    where: {
+      id: input.displayGroupId,
+      ...getScopedRecordWhere(user),
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      siteId: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Display group not found.");
+  }
+
+  const menu = await prisma.menu.findFirst({
+    where: {
+      id: input.menuId,
+      organizationId: group.organizationId,
+      siteId: group.siteId,
+      ...getScopedRecordWhere(user),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!menu) {
+    throw new Error("The selected menu is outside this store.");
+  }
+
+  const updated = await prisma.menuBoardDisplayZone.updateMany({
+    where: {
+      displayGroupId: group.id,
+      organizationId: group.organizationId,
+      role: input.role,
+      contentType: "MENU",
+    },
+    data: {
+      menuId: menu.id,
+      activeMenuPublishId: null,
+      promotionCampaignId: null,
+      activePromotionPublishId: null,
+    },
+  });
+
+  if (updated.count !== 1) {
+    throw new Error("The requested menu wall zone is unavailable.");
+  }
+}
+
+export async function assignPromotionCampaignToWallZone(
+  user: TenantUser,
+  input: {
+    displayGroupId: string;
+    campaignId: string;
+  },
+) {
+  const group = await prisma.menuBoardDisplayGroup.findFirst({
+    where: {
+      id: input.displayGroupId,
+      ...getScopedRecordWhere(user),
+    },
+    select: {
+      id: true,
+      organizationId: true,
+      siteId: true,
+    },
+  });
+
+  if (!group) {
+    throw new Error("Display group not found.");
+  }
+
+  const campaign = await prisma.menuBoardPromotionCampaign.findFirst({
+    where: {
+      id: input.campaignId,
+      organizationId: group.organizationId,
+      siteId: group.siteId,
+      ...getScopedRecordWhere(user),
+    },
+    select: {
+      id: true,
+    },
+  });
+
+  if (!campaign) {
+    throw new Error("The selected promotion campaign is outside this store.");
+  }
+
+  const updated = await prisma.menuBoardDisplayZone.updateMany({
+    where: {
+      displayGroupId: group.id,
+      organizationId: group.organizationId,
+      role: "PROMOTION",
+      contentType: "PROMOTION",
+    },
+    data: {
+      promotionCampaignId: campaign.id,
+      activePromotionPublishId: null,
+      menuId: null,
+      activeMenuPublishId: null,
+    },
+  });
+
+  if (updated.count !== 1) {
+    throw new Error("The promotion wall zone is unavailable.");
+  }
+}
