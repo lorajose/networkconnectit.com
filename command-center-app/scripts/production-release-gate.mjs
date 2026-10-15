@@ -45,6 +45,18 @@ if (nodeEnv !== "production") failures.push("NODE_ENV must be production");
 if ((process.env.DATABASE_ADMIN_URL ?? "").trim()) failures.push("DATABASE_ADMIN_URL must not be configured in production");
 if ((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase() && !["false","0","no","off","disabled"].includes((process.env.NCI_ALLOW_DEMO_SEED ?? "").trim().toLowerCase())) failures.push("NCI_ALLOW_DEMO_SEED must be disabled in production");
 
+const stripeSecretKey = (process.env.STRIPE_SECRET_KEY ?? "").trim();
+const stripeSubscriptionWebhookSecret = (process.env.STRIPE_SUBSCRIPTION_WEBHOOK_SECRET ?? "").trim();
+const stripeProPriceId = (process.env.STRIPE_PRO_PRICE_ID ?? "").trim();
+const stripeBusinessPriceId = (process.env.STRIPE_BUSINESS_PRICE_ID ?? "").trim();
+
+if (!stripeSecretKey) failures.push("STRIPE_SECRET_KEY is required for the V1 production release");
+else if (!stripeSecretKey.startsWith("sk_live_")) failures.push("STRIPE_SECRET_KEY must use a live-mode Stripe key in production");
+if (!/^whsec_[A-Za-z0-9_]+$/.test(stripeSubscriptionWebhookSecret)) failures.push("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET must be configured for production");
+if (!/^price_[A-Za-z0-9]+$/.test(stripeProPriceId)) failures.push("STRIPE_PRO_PRICE_ID must be a valid production Price ID");
+if (!/^price_[A-Za-z0-9]+$/.test(stripeBusinessPriceId)) failures.push("STRIPE_BUSINESS_PRICE_ID must be a valid production Price ID");
+if (stripeProPriceId && stripeBusinessPriceId && stripeProPriceId === stripeBusinessPriceId) failures.push("STRIPE_PRO_PRICE_ID and STRIPE_BUSINESS_PRICE_ID must be different");
+
 const databaseTlsMode = (process.env.NCI_DATABASE_TLS_MODE ?? "").trim().toLowerCase();
 if (!["required","verify-ca","verify-identity"].includes(databaseTlsMode)) failures.push("NCI_DATABASE_TLS_MODE must explicitly require TLS (required, verify-ca, or verify-identity)");
 
