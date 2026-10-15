@@ -2,12 +2,14 @@ import Link from "next/link";
 import { notFound } from "next/navigation";
 
 import { updateDesignFloorBackgroundAction, updateDesignFloorPdfPageAction, updateDesignFloorScaleAction, uploadDesignFloorPlanAction } from "@/app/(protected)/design-studio/actions";
+import { AerialSitePanel } from "@/components/design-studio/aerial-site-panel";
 import { DesignCanvas } from "@/components/design-studio/design-canvas";
 import { DesignReportPanel } from "@/components/design-studio/design-report-panel";
 import { DesignVersionHistory } from "@/components/design-studio/design-version-history";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { requireRoles } from "@/lib/auth";
+import { prisma } from "@/lib/db";
 import { getDesignFloorBackground } from "@/lib/contractor-os/design-floor-background-repository";
 import { BUILT_IN_DESIGN_LAYERS } from "@/lib/contractor-os/design-layers";
 import { assertDesignLengthUnit, designUnitsPerMeter } from "@/lib/contractor-os/design-scale";
@@ -16,10 +18,11 @@ import { getDesignProject, listDesignFloors, loadDesignFloorCanvas } from "@/lib
 import { listDesignVersions } from "@/lib/contractor-os/design-version-repository";
 import { routeAccess } from "@/lib/rbac";
 
-type ProjectPageProps = { params: { projectId: string }; searchParams?: { organizationId?: string; floorId?: string } };
+type ProjectPageProps = { params: { projectId: string }; searchParams?: { organizationId?: string; floorId?: string; siteId?: string } };
 
 function formatBytes(value: bigint) { const bytes = Number(value); if (bytes < 1024) return `${bytes} B`; if (bytes < 1024 * 1024) return `${(bytes / 1024).toFixed(1)} KB`; return `${(bytes / (1024 * 1024)).toFixed(1)} MB`; }
 function appBasePath() { const raw = process.env.NEXT_PUBLIC_APP_BASE_PATH?.trim() ?? ""; return raw && raw !== "/" ? raw.replace(/\/+$/, "") : ""; }
+function siteAddress(site: { addressLine1:string|null; addressLine2:string|null; city:string|null; stateRegion:string|null; postalCode:string|null; country:string|null }) { return [site.addressLine1, site.addressLine2, site.city, site.stateRegion, site.postalCode, site.country].filter(Boolean).join(", "); }
 
 export default async function DesignStudioProjectPage({ params, searchParams }: ProjectPageProps) {
   const user = await requireRoles(routeAccess.designStudio);
@@ -28,9 +31,15 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
   const actor = { role: user.role, organizationId: user.organizationId };
   const project = await getDesignProject(actor, params.projectId, requestedOrganizationId);
   if (!project) notFound();
-  const [floors, versions, shareRecords] = await Promise.all([listDesignFloors(actor, params.projectId, requestedOrganizationId), listDesignVersions(actor, params.projectId, requestedOrganizationId), mysqlDesignShareRepository.listForProject(requestedOrganizationId, params.projectId)]);
+  const [floors, versions, shareRecords, sites] = await Promise.all([
+    listDesignFloors(actor, params.projectId, requestedOrganizationId),
+    listDesignVersions(actor, params.projectId, requestedOrganizationId),
+    mysqlDesignShareRepository.listForProject(requestedOrganizationId, params.projectId),
+    prisma.site.findMany({ where: { organizationId: requestedOrganizationId }, select: { id:true, name:true, addressLine1:true, addressLine2:true, city:true, stateRegion:true, postalCode:true, country:true, latitude:true, longitude:true }, orderBy: { name: "asc" } }),
+  ]);
   const initialShares = shareRecords.map((share) => ({ id: share.id, createdAt: share.createdAt.toISOString(), expiresAt: share.expiresAt?.toISOString() ?? null, revokedAt: share.revokedAt?.toISOString() ?? null, passwordProtected: Boolean(share.passwordHash) }));
   const selectedFloor = floors.find((floor) => floor.id === searchParams?.floorId) ?? floors[0] ?? null;
+  const selectedSite = sites.find((site) => site.id === searchParams?.siteId) ?? sites[0] ?? null;
   const [initialDocument, background] = selectedFloor ? await Promise.all([loadDesignFloorCanvas(actor, params.projectId, selectedFloor.id, requestedOrganizationId), getDesignFloorBackground(actor, params.projectId, selectedFloor.id, requestedOrganizationId)]) : [null, null];
   const backgroundUrl = selectedFloor && background ? `${appBasePath()}/api/design-studio/background?organizationId=${encodeURIComponent(requestedOrganizationId)}&projectId=${encodeURIComponent(project.id)}&floorId=${encodeURIComponent(selectedFloor.id)}` : null;
   const pdfPreviewUrl = backgroundUrl && background?.mimeType === "application/pdf" ? `${backgroundUrl}#page=${background.backgroundPdfPage}&toolbar=0&navpanes=0` : null;
@@ -40,7 +49,9 @@ export default async function DesignStudioProjectPage({ params, searchParams }: 
   return <div className="space-y-6">
     <div className="flex flex-wrap items-start justify-between gap-4"><div><p className="text-sm font-medium uppercase tracking-[0.2em] text-primary">Design Studio</p><h1 className="mt-2 text-3xl font-semibold tracking-tight">{project.name}</h1><p className="mt-2 text-sm text-muted-foreground">Working revision {project.workingRevision} · {project.status}</p></div><Button asChild variant="outline"><Link href={`/design-studio?organizationId=${encodeURIComponent(requestedOrganizationId)}`}>All designs</Link></Button></div>
 
-    <Card><CardHeader><CardTitle className="text-lg">Floors / areas</CardTitle><CardDescription>Each floor and its canvas elements are loaded through the tenant-scoped DesignProject relationship.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">{floors.map((floor) => <Button key={floor.id} asChild size="sm" variant={floor.id === selectedFloor?.id ? "default" : "outline"}><Link href={`/design-studio/${project.id}?organizationId=${encodeURIComponent(requestedOrganizationId)}&floorId=${encodeURIComponent(floor.id)}`}>{floor.name}</Link></Button>)}{floors.length === 0 ? <p className="text-sm text-muted-foreground">No floors have been created for this project.</p> : null}</CardContent></Card>
+    <Card><CardHeader><CardTitle className="text-lg">Floors / areas</CardTitle><CardDescription>Each floor and its canvas elements are loaded through the tenant-scoped DesignProject relationship.</CardDescription></CardHeader><CardContent className="flex flex-wrap gap-2">{floors.map((floor) => <Button key={floor.id} asChild size="sm" variant={floor.id === selectedFloor?.id ? "default" : "outline"}><Link href={`/design-studio/${project.id}?organizationId=${encodeURIComponent(requestedOrganizationId)}&floorId=${encodeURIComponent(floor.id)}${selectedSite ? `&siteId=${encodeURIComponent(selectedSite.id)}` : ""}`}>{floor.name}</Link></Button>)}{floors.length === 0 ? <p className="text-sm text-muted-foreground">No floors have been created for this project.</p> : null}</CardContent></Card>
+
+    {sites.length ? <Card><CardHeader><CardTitle className="text-lg">Aerial / satellite site</CardTitle><CardDescription>Choose a tenant site, resolve its address through the server-owned ArcGIS provider, then confirm the aerial anchor. Provider imagery is reference-only; calibrated Design Studio geometry remains authoritative.</CardDescription></CardHeader><CardContent className="space-y-4"><div className="flex flex-wrap gap-2">{sites.map((site) => <Button key={site.id} asChild size="sm" variant={site.id === selectedSite?.id ? "default" : "outline"}><Link href={`/design-studio/${project.id}?organizationId=${encodeURIComponent(requestedOrganizationId)}${selectedFloor ? `&floorId=${encodeURIComponent(selectedFloor.id)}` : ""}&siteId=${encodeURIComponent(site.id)}`}>{site.name}</Link></Button>)}</div>{selectedSite ? <AerialSitePanel key={`${requestedOrganizationId}:${selectedSite.id}`} organizationId={requestedOrganizationId} siteId={selectedSite.id} initialLocation={selectedSite.latitude !== null && selectedSite.longitude !== null ? { siteId:selectedSite.id, formattedAddress:siteAddress(selectedSite) || selectedSite.name, latitude:selectedSite.latitude, longitude:selectedSite.longitude } : null} /> : null}</CardContent></Card> : <Card><CardHeader><CardTitle className="text-lg">Aerial / satellite site</CardTitle><CardDescription>Create a tenant site first, then return here to resolve and confirm its aerial location.</CardDescription></CardHeader></Card>}
 
     {selectedFloor ? <Card><CardHeader><CardTitle className="text-lg">Floor plan background</CardTitle><CardDescription>Upload a private PDF, JPG or PNG and attach it to {selectedFloor.name}. Files remain tenant-scoped and are never stored under the public web directory.</CardDescription></CardHeader><CardContent className="space-y-4">
       {background ? <div className="rounded-xl border bg-muted/20 p-3 text-sm"><p className="font-medium">{background.originalName}</p><p className="mt-1 text-xs text-muted-foreground">{background.mimeType} · {formatBytes(background.byteSize)} · SHA-256 {background.sha256.slice(0, 16)}…</p><p className="mt-1 text-xs text-muted-foreground">Imported {background.createdAt.toLocaleString()}</p></div> : <p className="text-sm text-muted-foreground">No floor plan is attached to this floor yet.</p>}
