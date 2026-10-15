@@ -10,6 +10,12 @@
     "incremental": false,
     "rootDir": ".",
     "outDir": ".security-test-build",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
     "types": [
       "node"
     ]
