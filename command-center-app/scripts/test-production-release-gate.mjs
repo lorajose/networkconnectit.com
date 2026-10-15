@@ -14,14 +14,16 @@ const base = {
   FIRST_ADMIN_BOOTSTRAP_TOKEN: "",
   DATABASE_ADMIN_URL: "",
   NCI_ALLOW_DEMO_SEED: "false",
-  NCI_DATABASE_TLS_MODE: "verify-identity"
+  NCI_DATABASE_TLS_MODE: "verify-identity",
+  STRIPE_SECRET_KEY: "sk_live_ci_nci074",
+  STRIPE_SUBSCRIPTION_WEBHOOK_SECRET: "whsec_ci_nci074",
+  STRIPE_PRO_PRICE_ID: "price_cipro",
+  STRIPE_BUSINESS_PRICE_ID: "price_cibusiness"
 };
 
 function gate(overrides = {}) {
   return spawnSync(process.execPath, ["scripts/production-release-gate.mjs"], {
-    cwd: process.cwd(),
-    env: { ...base, ...overrides },
-    encoding: "utf8"
+    cwd: process.cwd(), env: { ...base, ...overrides }, encoding: "utf8"
   });
 }
 
@@ -29,10 +31,7 @@ const valid = gate();
 assert.equal(valid.status, 0, valid.stderr);
 assert.match(valid.stdout, /environment checks passed/);
 
-const legacyPath = gate({
-  NEXTAUTH_URL: "https://command.networkconnectit.com/tools/command-center/api/auth",
-  NEXT_PUBLIC_APP_BASE_PATH: "/tools/command-center"
-});
+const legacyPath = gate({ NEXTAUTH_URL: "https://command.networkconnectit.com/tools/command-center/api/auth", NEXT_PUBLIC_APP_BASE_PATH: "/tools/command-center" });
 assert.notEqual(legacyPath.status, 0);
 assert.match(legacyPath.stderr, /must be empty/);
 
@@ -48,14 +47,23 @@ const nci074Recovery = gate({ NCI_RECOVER_NCI074: "1" });
 assert.notEqual(nci074Recovery.status, 0);
 assert.match(nci074Recovery.stderr, /NCI_RECOVER_NCI074 recovery flag must be disabled/);
 
+const stripeTestKey = gate({ STRIPE_SECRET_KEY: "sk_test_ci_nci074" });
+assert.notEqual(stripeTestKey.status, 0);
+assert.match(stripeTestKey.stderr, /live-mode Stripe key/);
+
+const missingSubscriptionWebhook = gate({ STRIPE_SUBSCRIPTION_WEBHOOK_SECRET: "" });
+assert.notEqual(missingSubscriptionWebhook.status, 0);
+assert.match(missingSubscriptionWebhook.stderr, /SUBSCRIPTION_WEBHOOK_SECRET must be configured/);
+
+const duplicateSubscriptionPrices = gate({ STRIPE_BUSINESS_PRICE_ID: "price_cipro" });
+assert.notEqual(duplicateSubscriptionPrices.status, 0);
+assert.match(duplicateSubscriptionPrices.stderr, /must be different/);
+
 const missingTls = gate({ NCI_DATABASE_TLS_MODE: "" });
 assert.notEqual(missingTls.status, 0);
 assert.match(missingTls.stderr, /DATABASE_TLS_MODE must explicitly require TLS/);
 
-const declaredVerifiedTlsWithoutUrlTls = gate({
-  DATABASE_URL: "mysql://ci:ci@db.example.internal:3306/command_center",
-  NCI_DATABASE_TLS_MODE: "verify-identity"
-});
+const declaredVerifiedTlsWithoutUrlTls = gate({ DATABASE_URL: "mysql://ci:ci@db.example.internal:3306/command_center", NCI_DATABASE_TLS_MODE: "verify-identity" });
 assert.notEqual(declaredVerifiedTlsWithoutUrlTls.status, 0);
 assert.match(declaredVerifiedTlsWithoutUrlTls.stderr, /sslaccept=strict/);
 
@@ -63,12 +71,7 @@ const loopbackDb = gate({ DATABASE_URL: "mysql://ci:ci@127.0.0.1:3306/command_ce
 assert.notEqual(loopbackDb.status, 0);
 assert.match(loopbackDb.stderr, /must not point to loopback/);
 
-const discreteLoopbackDb = gate({
-  DATABASE_URL: "",
-  DB_HOST: "127.0.0.1",
-  DB_NAME: "command_center",
-  DB_USER: "ci"
-});
+const discreteLoopbackDb = gate({ DATABASE_URL: "", DB_HOST: "127.0.0.1", DB_NAME: "command_center", DB_USER: "ci" });
 assert.notEqual(discreteLoopbackDb.status, 0);
 assert.match(discreteLoopbackDb.stderr, /DB_HOST must not point to loopback/);
 
@@ -87,4 +90,4 @@ const incompleteObjectStorage = gate({ DESIGN_STORAGE_DRIVER: "supabase", DESIGN
 assert.notEqual(incompleteObjectStorage.status, 0);
 assert.match(incompleteObjectStorage.stderr, /requires URL, service-role key and bucket/);
 
-console.log("PASS release gate: auth, database TLS and private storage configuration.");
+console.log("PASS release gate: auth, live Stripe, database TLS and private storage configuration.");
