@@ -134,6 +134,19 @@ enum AlertStatus {
   RESOLVED
 }
 
+enum SubscriptionPlan {
+  PRO
+  BUSINESS
+}
+
+enum SubscriptionStatus {
+  TRIALING
+  ACTIVE
+  PAST_DUE
+  CANCELED
+  INCOMPLETE
+}
+
 enum MenuBoardScreenOrientation {
   LANDSCAPE
   PORTRAIT
@@ -164,6 +177,10 @@ model User {
   email          String         @unique @db.VarChar(191)
   passwordHash   String         @db.VarChar(255)
   role           Role           @default(VIEWER)
+  isActive       Boolean        @default(true)
+  authVersion    Int            @default(1)
+  emailVerifiedAt DateTime?
+  passwordChangedAt DateTime?
   organizationId String?        @db.VarChar(191)
   organization   Organization?  @relation(fields: [organizationId], references: [id], onDelete: SetNull)
   createdAlerts  Alert[]        @relation("AlertCreatedBy")
@@ -175,6 +192,7 @@ model User {
 
   @@index([organizationId])
   @@index([role])
+  @@index([isActive])
 }
 
 model Organization {
@@ -209,6 +227,8 @@ model Organization {
   networkSegments      NetworkSegment[]
   nvrChannelAssignments NvrChannelAssignment[]
   deviceLinks          DeviceLink[]
+  subscription         OrganizationSubscription?
+  subscriptionEvents   OrganizationSubscriptionEvent[]
   menuBoardScreens     MenuBoardScreen[]
   menus                Menu[]
   menuSections         MenuSection[]
@@ -821,4 +841,46 @@ model MenuBoardWallPairingCode {
   @@index([organizationId, displayGroupId])
   @@index([displayGroupId, expiresAt])
   @@index([expiresAt, consumedAt])
+}
+
+model OrganizationSubscription {
+  id                     String             @id @default(cuid()) @db.VarChar(191)
+  organizationId         String             @unique @db.VarChar(191)
+  organization           Organization       @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider               String             @db.VarChar(64)
+  providerCustomerId     String             @db.VarChar(191)
+  providerSubscriptionId String             @db.VarChar(191)
+  plan                   SubscriptionPlan
+  status                 SubscriptionStatus
+  currentPeriodStart     DateTime?
+  currentPeriodEnd       DateTime?
+  cancelAtPeriodEnd      Boolean            @default(false)
+  pendingPlan            SubscriptionPlan?
+  providerScheduleId     String?            @db.VarChar(191)
+  pendingPlanEffectiveAt DateTime?
+  verifiedAt             DateTime
+  createdAt              DateTime           @default(now())
+  updatedAt              DateTime           @updatedAt
+
+  @@unique([provider, providerSubscriptionId])
+  @@unique([provider, providerScheduleId])
+  @@index([provider, providerCustomerId])
+  @@index([status, currentPeriodEnd])
+  @@index([pendingPlan, pendingPlanEffectiveAt])
+}
+
+model OrganizationSubscriptionEvent {
+  id                     String       @id @default(cuid()) @db.VarChar(191)
+  organizationId         String       @db.VarChar(191)
+  organization           Organization @relation(fields: [organizationId], references: [id], onDelete: Cascade)
+  provider               String       @db.VarChar(64)
+  providerEventId        String       @db.VarChar(191)
+  providerSubscriptionId String       @db.VarChar(191)
+  eventType              String       @db.VarChar(96)
+  verified               Boolean      @default(false)
+  receivedAt             DateTime     @default(now())
+
+  @@unique([provider, providerEventId])
+  @@index([organizationId, receivedAt])
+  @@index([provider, providerSubscriptionId])
 }

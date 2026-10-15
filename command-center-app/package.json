@@ -12,7 +12,7 @@
     "typecheck": "tsc --noEmit --incremental false",
     "security:test": "rm -rf .security-test-build && tsc -p tsconfig.security-tests.json && node --test .security-test-build/tests/security/*.test.js .security-test-build/tests/design-floor-plan.test.js && node scripts/security-action-policy.mjs",
     "verify:staging": "npm run lint && npm run build && npm run typecheck && npm run prisma:validate",
-    "verify:ci": "npm run security:test && npm run startup:syntax:test && npm run release:gate:test && npm run qa:gate:test && npm run verify:staging",
+    "verify:ci": "npm run security:test && npm run startup:syntax:test && npm run release:gate:test && npm run qa:gate:test && npm run qa:nci017:stripe-gate:test && npm run verify:staging",
     "prisma:generate": "node scripts/prepare-prisma-godaddy.mjs && node scripts/run-prisma.mjs generate",
     "prisma:validate": "node scripts/run-prisma.mjs validate",
     "prisma:migrate:dev": "node scripts/run-prisma.mjs migrate dev",
@@ -22,9 +22,11 @@
     "bootstrap:local": "node scripts/bootstrap-local.mjs",
     "release:gate": "node scripts/production-release-gate.mjs",
     "release:gate:test": "node scripts/test-production-release-gate.mjs",
-    "startup:syntax:test": "node --check scripts/start-godaddy.mjs && node --check scripts/production-release-gate.mjs && node --check scripts/qa-runtime-gate.mjs && node --check scripts/start-qa.mjs && node --check scripts/audit-production-migration-history.mjs",
+    "startup:syntax:test": "node --check scripts/start-godaddy.mjs && node --check scripts/production-release-gate.mjs && node --check scripts/qa-runtime-gate.mjs && node --check scripts/nci017-stripe-qa-gate.mjs && node --check scripts/test-nci017-stripe-qa-gate.mjs && node --check scripts/start-qa.mjs && node --check scripts/audit-production-migration-history.mjs",
     "qa:gate": "node scripts/qa-runtime-gate.mjs",
     "qa:gate:test": "node scripts/test-qa-runtime-gate.mjs",
+    "qa:nci017:stripe-gate": "node scripts/nci017-stripe-qa-gate.mjs",
+    "qa:nci017:stripe-gate:test": "node scripts/test-nci017-stripe-qa-gate.mjs",
     "start:qa": "node scripts/start-qa.mjs"
   },
   "prisma": {

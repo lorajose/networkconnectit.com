@@ -6,7 +6,8 @@ export async function GET() {
   return NextResponse.json(
     {
       ok: true,
-      service: "networkconnectit-command-center"
+      service: "networkconnectit-command-center",
+      timestamp: new Date().toISOString()
     },
     {
       status: 200,

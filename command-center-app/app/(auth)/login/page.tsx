@@ -8,6 +8,7 @@ type LoginPageProps = {
     callbackUrl?: string;
     email?: string;
     error?: string;
+    reset?: string;
   };
 };
 
@@ -23,7 +24,11 @@ function getErrorMessage(error?: string) {
   return "Authentication could not be completed.";
 }
 
-function getNoticeMessage(bootstrap?: string, email?: string) {
+function getNoticeMessage(bootstrap?: string, email?: string, reset?: string) {
+  if (reset === "success") {
+    return "Password reset completed. Sign in with your new password.";
+  }
+
   if (bootstrap !== "success") {
     return "";
   }
@@ -152,7 +157,8 @@ export default function LoginPage({ searchParams }: LoginPageProps) {
           initialEmail={searchParams?.email}
           noticeMessage={getNoticeMessage(
             searchParams?.bootstrap,
-            searchParams?.email
+            searchParams?.email,
+            searchParams?.reset
           )}
         />
       </div>

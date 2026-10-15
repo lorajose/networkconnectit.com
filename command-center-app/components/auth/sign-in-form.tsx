@@ -1,6 +1,7 @@
 "use client";
 
 import * as React from "react";
+import Link from "next/link";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ShieldCheck } from "lucide-react";
 import { signIn } from "next-auth/react";
@@ -16,8 +17,8 @@ import {
   CardTitle
 } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { withAppBasePath } from "@/lib/app-paths";
 import { Label } from "@/components/ui/label";
+import { withAppBasePath } from "@/lib/app-paths";
 import type { SignInInput } from "@/lib/validations/auth";
 import { signInSchema } from "@/lib/validations/auth";
 
@@ -76,8 +77,7 @@ export function SignInForm({
         <div className="space-y-1">
           <CardTitle>Sign in to Command Center</CardTitle>
           <CardDescription>
-            This scaffold uses credential auth with Prisma-backed users and JWT
-            sessions.
+            Secure credential access with tenant-aware authorization and session controls.
           </CardDescription>
         </div>
       </CardHeader>
@@ -100,7 +100,15 @@ export function SignInForm({
           </div>
 
           <div className="space-y-2">
-            <Label htmlFor="password">Password</Label>
+            <div className="flex items-center justify-between gap-3">
+              <Label htmlFor="password">Password</Label>
+              <Link
+                className="text-xs text-primary hover:underline"
+                href={withAppBasePath("/forgot-password")}
+              >
+                Forgot password?
+              </Link>
+            </div>
             <Input
               id="password"
               type="password"

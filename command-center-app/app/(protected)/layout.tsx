@@ -3,6 +3,7 @@ import type { ReactNode } from "react";
 
 import { AppShell } from "@/components/app-shell";
 import { requireUser } from "@/lib/auth";
+import { getSubscriptionExperienceSummaryForActor } from "@/lib/contractor-os/subscription-access-repository";
 
 export const metadata: Metadata = {
   robots: {
@@ -19,6 +20,12 @@ export default async function ProtectedLayout({
   children: ReactNode;
 }) {
   const user = await requireUser();
+  const subscription = user.organizationId
+    ? await getSubscriptionExperienceSummaryForActor({
+        role: user.role,
+        organizationId: user.organizationId
+      })
+    : null;
 
   return (
     <AppShell
@@ -28,6 +35,7 @@ export default async function ProtectedLayout({
         role: user.role,
         organizationId: user.organizationId
       }}
+      subscription={subscription}
     >
       {children}
     </AppShell>
