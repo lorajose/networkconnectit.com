@@ -10,6 +10,12 @@
     "incremental": false,
     "rootDir": ".",
     "outDir": ".security-test-build",
+    "baseUrl": ".",
+    "paths": {
+      "@/*": [
+        "./*"
+      ]
+    },
     "types": [
       "node"
     ]
@@ -18,6 +24,12 @@
     "lib/rbac.ts",
     "lib/management/tenant-policy.ts",
     "lib/contractor-os/design-floor-plan.ts",
+    "lib/menuboard/security.ts",
+    "lib/menuboard/money.ts",
+    "lib/menuboard/health.ts",
+    "lib/menuboard/player-types.ts",
+    "lib/menuboard/pairing-rate-limit.ts",
+    "lib/menuboard/wall-types.ts",
     "tests/security/**/*.ts",
     "tests/design-floor-plan.test.ts"
   ]
