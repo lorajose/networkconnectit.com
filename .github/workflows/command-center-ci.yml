@@ -126,3 +126,6 @@ jobs:
 
       - name: Verify subscription webhook replay, cancellation and stale-event safety
         run: node scripts/test-subscription-webhook-mysql.cjs
+
+      - name: Verify Field Scope to Takeoff/BOM idempotency and tenant isolation
+        run: node scripts/test-field-scope-mysql.cjs
