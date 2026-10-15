@@ -2,6 +2,13 @@ name: GoDaddy Release Package
 
 on:
   workflow_dispatch:
+  push:
+    branches: [main]
+    paths:
+      - 'command-center-app/**'
+      - '*.html'
+      - 'tools/**'
+      - '.github/workflows/godaddy-release-package.yml'
 
 permissions:
   contents: read
@@ -88,6 +95,43 @@ jobs:
           sha256sum "networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip" > "networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip.sha256"
           cat "networkconnectit-command-center-godaddy-${GITHUB_SHA}.zip.sha256"
 
+      - name: Assemble one app and public website release bundle
+        shell: bash
+        working-directory: .
+        run: |
+          set -euo pipefail
+          mkdir -p release-bundle/app release-bundle/public-site
+          cp -a godaddy-release/. release-bundle/app/
+          python <<'PYBUNDLE'
+          import glob, os, shutil
+          from pathlib import Path
+          public = Path('release-bundle/public-site')
+          for pattern in ('*.html', 'ads.txt', 'robots.txt', 'sitemap.xml', 'favicon.ico', '.htaccess'):
+              for name in glob.glob(pattern):
+                  if Path(name).is_file():
+                      shutil.copy2(name, public / name)
+          for name in ('css', 'img', 'js', 'lib', 'tools', 'mail', 'php'):
+              if Path(name).is_dir():
+                  shutil.copytree(name, public / name)
+          root = Path('release-bundle')
+          (root / 'RELEASE_SHA.txt').write_text(os.environ['GITHUB_SHA'] + '\n')
+          (root / 'README.txt').write_text(
+              'One source release, two deployment targets.\n'
+              'app/: private Node.js application directory; never copy into the public web root.\n'
+              'public-site/: static public website files.\n'
+              'Supply production secrets server-side; no .env is included.\n'
+              'Before starting the app: verify backup, runtime configuration and read-only migration history.\n'
+              'The app startup may apply pending Prisma migrations only after release gates pass.\n'
+              'Packaging success is not production deployment or visual/functional QA acceptance.\n')
+          PYBUNDLE
+          ! find release-bundle -type f -name '.env*' -print -quit | grep -q .
+          find release-bundle -exec touch -t 202001010000 {} +
+          (
+            cd release-bundle
+            find . -type f -print0 | sort -z | xargs -0 zip -X -q "../networkconnectit-complete-release-${GITHUB_SHA}.zip"
+          )
+          sha256sum "networkconnectit-complete-release-${GITHUB_SHA}.zip" > "networkconnectit-complete-release-${GITHUB_SHA}.zip.sha256"
+
       - name: Upload release package
         uses: actions/upload-artifact@v4
         with:
@@ -95,5 +139,7 @@ jobs:
           path: |
             networkconnectit-command-center-godaddy-${{ github.sha }}.zip
             networkconnectit-command-center-godaddy-${{ github.sha }}.zip.sha256
+            networkconnectit-complete-release-${{ github.sha }}.zip
+            networkconnectit-complete-release-${{ github.sha }}.zip.sha256
           if-no-files-found: error
           retention-days: 14
