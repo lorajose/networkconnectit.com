@@ -8,6 +8,7 @@ import { SidebarNav } from "@/components/sidebar-nav";
 import { Badge } from "@/components/ui/badge";
 import { Card, CardContent } from "@/components/ui/card";
 import { Separator } from "@/components/ui/separator";
+import type { SubscriptionExperienceSummary } from "@/lib/contractor-os/subscription-access-repository";
 import type { AppRole } from "@/lib/rbac";
 import { isCommandCenterAdminRole, roleLabels } from "@/lib/rbac";
 import { getRuntimeConfigWarnings } from "@/lib/runtime-config";
@@ -19,10 +20,24 @@ type AppShellProps = {
     role: AppRole;
     organizationId: string | null;
   };
+  subscription: SubscriptionExperienceSummary | null;
   children: ReactNode;
 };
 
-export function AppShell({ user, children }: AppShellProps) {
+function subscriptionDetail(subscription: SubscriptionExperienceSummary) {
+  if (subscription.source === "TRIAL") {
+    return `${subscription.trialDaysRemaining ?? 0} days remaining`;
+  }
+  if (subscription.source === "EXPIRED_TRIAL") {
+    return "Pro trial ended";
+  }
+  if (subscription.cancelAtPeriodEnd) {
+    return "Changes at period end";
+  }
+  return subscription.source === "SUBSCRIPTION" ? "Active subscription" : "Core workspace";
+}
+
+export function AppShell({ user, subscription, children }: AppShellProps) {
   const runtimeWarnings = isCommandCenterAdminRole(user.role)
     ? getRuntimeConfigWarnings()
     : [];
@@ -73,6 +88,19 @@ export function AppShell({ user, children }: AppShellProps) {
                       <p className="truncate text-sm text-muted-foreground">{user.email}</p>
                     </div>
                   </div>
+                  {subscription ? (
+                    <>
+                      <Separator />
+                      <div className="flex items-center justify-between gap-3">
+                        <div className="min-w-0">
+                          <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground/70">Plan</p>
+                          <p className="mt-1 text-sm font-medium text-foreground">{subscription.label}</p>
+                          <p className="mt-1 text-xs text-muted-foreground">{subscriptionDetail(subscription)}</p>
+                        </div>
+                        <Badge variant={subscription.tier === "FREE" ? "outline" : "default"}>{subscription.label}</Badge>
+                      </div>
+                    </>
+                  ) : null}
                   <Separator />
                   <div className="flex items-center justify-between gap-3">
                     <div className="min-w-0">
@@ -93,6 +121,7 @@ export function AppShell({ user, children }: AppShellProps) {
                   <div className="flex flex-wrap items-center gap-2">
                     <Badge variant="outline" className="gap-2"><Sparkles className="h-3.5 w-3.5" />Protected workspace</Badge>
                     <Badge variant="outline">{roleLabels[user.role]}</Badge>
+                    {subscription ? <Badge variant="outline">{subscription.label}</Badge> : null}
                   </div>
                   <div className="min-w-0 space-y-1">
                     <h2 className="break-words text-2xl font-semibold tracking-tight text-foreground">NetworkConnectIT Security Command Center</h2>
@@ -100,6 +129,11 @@ export function AppShell({ user, children }: AppShellProps) {
                   </div>
                 </div>
                 <div className="flex min-w-0 flex-wrap items-center gap-3">
+                  {subscription && subscription.tier !== "BUSINESS" ? (
+                    <Link href="/billing" className="rounded-xl border border-sky-400/30 bg-sky-400/10 px-4 py-2 text-sm font-medium text-sky-200 transition hover:bg-sky-400/15">
+                      {subscription.tier === "FREE" ? "Start Pro" : "Upgrade"}
+                    </Link>
+                  ) : null}
                   <div className="min-w-0 rounded-2xl border border-border/70 bg-background/40 px-4 py-3">
                     <p className="text-[11px] uppercase tracking-[0.22em] text-muted-foreground/70">Signed in</p>
                     <p className="mt-1 truncate text-sm font-medium text-foreground">{user.email}</p>

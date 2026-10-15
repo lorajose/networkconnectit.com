@@ -310,6 +310,9 @@ export default async function ProjectDetailPage({
               <Link href={`/projects/${project.id}/export`}>Export Project PDF</Link>
             </Button>
             <Button variant="outline" asChild>
+              <Link href={`/projects/${project.id}/project-pass`}>Project Pass</Link>
+            </Button>
+            <Button variant="outline" asChild>
               <Link href={`/projects/${project.id}/capacity`}>View capacity</Link>
             </Button>
             <Button variant="outline" asChild>
