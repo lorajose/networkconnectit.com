@@ -2,6 +2,7 @@ import { createHash } from "node:crypto";
 import { readdirSync, readFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { PrismaClient } from "@prisma/client";
+import { auditLegacyAlert, legacyAlertMigration } from "./legacy-alert-history.mjs";
 
 const prisma = new PrismaClient();
 
@@ -36,8 +37,14 @@ try {
     const localMigrations = localMigrationNames();
     const localSet = new Set(localMigrations);
     const rows = await prisma.$queryRawUnsafe(
-      "SELECT migration_name migrationName, checksum, started_at startedAt, finished_at finishedAt, rolled_back_at rolledBackAt, applied_steps_count appliedStepsCount FROM _prisma_migrations ORDER BY started_at ASC"
+      "SELECT id, migration_name migrationName, checksum, started_at startedAt, finished_at finishedAt, rolled_back_at rolledBackAt, applied_steps_count appliedStepsCount FROM _prisma_migrations ORDER BY started_at ASC"
     );
+
+    const legacyRows = rows.filter((row) => row.migrationName === legacyAlertMigration);
+    if (legacyRows.length > 0) {
+      await auditLegacyAlert(prisma, legacyRows);
+      console.log("Migration history audit: verified legacy Alert history and live schema (read-only)");
+    }
 
     const rowsByName = new Map();
     for (const row of rows) {
@@ -54,7 +61,7 @@ try {
         `Migration history audit: ${row.migrationName} state=${state} appliedSteps=${Number(row.appliedStepsCount ?? 0)} checksum=${row.checksum}`
       );
 
-      if (!localSet.has(row.migrationName)) {
+      if (!localSet.has(row.migrationName) && row.migrationName !== legacyAlertMigration) {
         fail(`database contains migration ${row.migrationName} that is absent from this release`);
       }
       if (!row.finishedAt && !row.rolledBackAt) {
