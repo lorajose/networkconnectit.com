@@ -4,6 +4,8 @@ import { spawnSync } from "node:child_process";
 const base = {
   ...process.env,
   NODE_ENV: "production",
+  NCI_RUNTIME_ENV: "production",
+  NCI_PREVIEW_ORIGIN: "",
   NEXTAUTH_SECRET: "ci-production-auth-key-8f4c2a7d91b6e305",
   NEXTAUTH_URL: "https://command.networkconnectit.com/api/auth",
   NEXT_PUBLIC_APP_BASE_PATH: "",
@@ -91,3 +93,31 @@ assert.notEqual(incompleteObjectStorage.status, 0);
 assert.match(incompleteObjectStorage.stderr, /requires URL, service-role key and bucket/);
 
 console.log("PASS release gate: auth, live Stripe, database TLS and private storage configuration.");
+
+const previewConfig = {
+  NCI_RUNTIME_ENV: "preview",
+  NCI_PREVIEW_ORIGIN: "https://preview.example.com",
+  NEXTAUTH_URL: "https://preview.example.com/api/auth",
+  STRIPE_SECRET_KEY: "sk_test_ci_preview",
+  STRIPE_PROJECT_PASS_WEBHOOK_SECRET: "whsec_ci_preview"
+};
+const preview = gate(previewConfig);
+assert.equal(preview.status, 0, preview.stderr);
+assert.match(preview.stdout, /Preview environment checks passed/);
+assert.match(preview.stderr, /NOT isolated/);
+for (const overrides of [
+  { STRIPE_SECRET_KEY: "sk_live_ci_preview" },
+  { NEXTAUTH_URL: base.NEXTAUTH_URL, NCI_PREVIEW_ORIGIN: "https://command.networkconnectit.com" },
+  { NCI_PREVIEW_ORIGIN: "" },
+  { NCI_PREVIEW_ORIGIN: "https://different.example.com" },
+  { NEXTAUTH_URL: "http://preview.example.com/api/auth", NCI_PREVIEW_ORIGIN: "http://preview.example.com" },
+  { STRIPE_PROJECT_PASS_WEBHOOK_SECRET: "" },
+  { NCI_DATABASE_TLS_MODE: "" },
+  { NCI_RECOVER_ALERT_SCHEMA: "1" },
+  { BID_PRIVATE_STORAGE_ROOT: "public" },
+  { NCI_RUNTIME_ENV: "preveiw" }
+]) {
+  const result = gate({ ...previewConfig, ...overrides });
+  assert.notEqual(result.status, 0, `Unsafe Preview configuration accepted: ${JSON.stringify(overrides)}`);
+}
+console.log("PASS Preview gate: explicit environment, exact HTTPS origin, test-only Stripe and retained security checks.");
