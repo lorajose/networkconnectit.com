@@ -5,6 +5,9 @@ const legacyBasePath = "/tools/command-center";
 const rootDomain = "command.networkconnectit.com";
 const failures = [];
 const warnings = [];
+const runtimeEnv = (process.env.NCI_RUNTIME_ENV ?? "production").trim().toLowerCase();
+const isPreview = runtimeEnv === "preview";
+if (!["production", "preview"].includes(runtimeEnv)) failures.push("NCI_RUNTIME_ENV must be production or preview for npm start");
 const nodeEnv = (process.env.NODE_ENV ?? "").trim().toLowerCase();
 
 for (const name of required) {
@@ -23,7 +26,12 @@ if (authUrl) {
   try {
     const url = new URL(authUrl);
     if (url.protocol !== "https:" && url.hostname !== "localhost") failures.push("NEXTAUTH_URL must use HTTPS in production");
-    if (nodeEnv === "production" && url.hostname !== rootDomain) failures.push(`NEXTAUTH_URL production host must be ${rootDomain}`);
+    if (!isPreview && nodeEnv === "production" && url.hostname !== rootDomain) failures.push(`NEXTAUTH_URL production host must be ${rootDomain}`);
+    if (isPreview) {
+      const previewOrigin = (process.env.NCI_PREVIEW_ORIGIN ?? "").trim();
+      if (url.protocol !== "https:" || url.hostname === rootDomain || url.hostname === "localhost") failures.push("Preview NEXTAUTH_URL must use HTTPS on a non-production host");
+      if (!previewOrigin || url.origin !== previewOrigin) failures.push("NCI_PREVIEW_ORIGIN must exactly match the origin of Preview NEXTAUTH_URL (no trailing slash)");
+    }
     const expected = `${basePath}/api/auth`.replace(/\/+/g, "/");
     if (!url.pathname.endsWith(expected)) failures.push(`NEXTAUTH_URL path must end with ${expected}`);
     if (url.hostname === rootDomain && basePath === legacyBasePath) failures.push(`NEXT_PUBLIC_APP_BASE_PATH must be empty when NEXTAUTH_URL uses ${rootDomain}`);
@@ -51,7 +59,8 @@ const stripeProPriceId = (process.env.STRIPE_PRO_PRICE_ID ?? "").trim();
 const stripeBusinessPriceId = (process.env.STRIPE_BUSINESS_PRICE_ID ?? "").trim();
 
 if (!stripeSecretKey) failures.push("STRIPE_SECRET_KEY is required for the V1 production release");
-else if (!stripeSecretKey.startsWith("sk_live_")) failures.push("STRIPE_SECRET_KEY must use a live-mode Stripe key in production");
+else if (isPreview && !stripeSecretKey.startsWith("sk_test_")) failures.push("STRIPE_SECRET_KEY must use a test-mode Stripe key in Preview");
+else if (!isPreview && !stripeSecretKey.startsWith("sk_live_")) failures.push("STRIPE_SECRET_KEY must use a live-mode Stripe key in production");
 if (!/^whsec_[A-Za-z0-9_]+$/.test(stripeSubscriptionWebhookSecret)) failures.push("STRIPE_SUBSCRIPTION_WEBHOOK_SECRET must be configured for production");
 if (!/^price_[A-Za-z0-9]+$/.test(stripeProPriceId)) failures.push("STRIPE_PRO_PRICE_ID must be a valid production Price ID");
 if (!/^price_[A-Za-z0-9]+$/.test(stripeBusinessPriceId)) failures.push("STRIPE_BUSINESS_PRICE_ID must be a valid production Price ID");
@@ -98,9 +107,14 @@ if (storage === "supabase") {
   }
 }
 
+if (isPreview) {
+  if (!/^whsec_[A-Za-z0-9_]+$/.test((process.env.STRIPE_PROJECT_PASS_WEBHOOK_SECRET ?? "").trim())) failures.push("STRIPE_PROJECT_PASS_WEBHOOK_SECRET must be configured for Preview");
+  warnings.push("Preview uses Stripe TEST. Shared database records are NOT isolated: use test organizations only; test subscriptions and passes must not be used for live customers.");
+}
+
 for (const warning of warnings) console.warn(`WARNING: ${warning}`);
 if (failures.length) {
   for (const failure of failures) console.error(`BLOCKER: ${failure}`);
   process.exit(1);
 }
-console.log("Production Release Gate environment checks passed.");
+console.log(`${isPreview ? "Preview" : "Production Release Gate"} environment checks passed.`);
